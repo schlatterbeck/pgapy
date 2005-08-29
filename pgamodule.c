@@ -17,11 +17,11 @@ static double evaluate (PGAContext *ctx, int p, int pop)
     PGA_ctx = Py_BuildValue       ("i", (int) ctx);
     assert (PGA_ctx);
     o       = PyObject_GetItem    (context, PGA_ctx);
-    assert (o)
+    assert (o);
     res1    = PyObject_CallMethod (o, "evaluate", "ii", p, pop);
-    assert (res1)
+    assert (res1);
     res2    = PyNumber_Float      (res1);
-    assert (res2)
+    assert (res2);
     PyArg_Parse (res2, "d", &retval);
     Py_DECREF (PGA_ctx);
     Py_DECREF (o);
