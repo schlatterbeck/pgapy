@@ -2,20 +2,15 @@
 
 from pga import PGA
 import pga
+from operator import add
 
 class My_PGA (PGA) :
     def evaluate (self, pop, p) :
-        count = 0
-        for i in range (len (self)) :
-            if self.get_allele (pop, p, i) :
-                count += 1
-        return count
+        return reduce \
+            (add, [self.get_allele (pop, p, i) for i in range (len (self))])
 # end class My_PGA
 
 if __name__ == '__main__' :
-    pg = My_PGA ("Hallo", type (1), 100, True)
-    print pg
-    print pg.context
-    print pg.__dict__
+    pg = My_PGA (type (2), 100, maximize = True)
     pg.run ()
 
