@@ -13,13 +13,12 @@ static double evaluate (PGAContext *ctx, int p, int pop)
     double retval;
     PyObject *PGA_ctx, *o, *result;
 
-    PGA_ctx = PyCObject_FromVoidPtr  (ctx, NULL);
+    PGA_ctx = Py_BuildValue ("i", (int) ctx);
     o       = PyObject_GetItem       (context, PGA_ctx);
-    result  = PyNumber_Float
-        (PyObject_CallMethod (o, "evaluate", "ii", p, pop));
+    result  = PyObject_CallMethod (o, "evaluate", "ii", p, pop);
+    result  = PyNumber_Float (result);
     /* FIXME: decrement refcount? */
-    retval  = PyArg_Parse (result, "d");
-    printf ("%g\n", retval);
+    PyArg_Parse (result, "d", &retval);
     return retval;
 }
 
@@ -47,8 +46,12 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args)
         , length
         , maximize ? PGA_MAXIMIZE : PGA_MINIMIZE
         );
+    printf ("ctx: %08X; self: %08X\n", (int)ctx, (int)self);
+    fflush (stdout);
     PGASetUp (ctx);
-    PGA_ctx = PyCObject_FromVoidPtr ((void  *) ctx, NULL);
+    PGA_ctx = Py_BuildValue ("i", (int) ctx);
+    printf ("init: PGA_ctx: %08X\n", (int)PGA_ctx);
+    fflush (stdout);
     PyObject_SetItem       (context, PGA_ctx, self);
     PyObject_SetAttrString (self, "context", PGA_ctx);
     Py_INCREF(Py_None);
@@ -64,7 +67,10 @@ static PyObject *PGA_run (PyObject *self0, PyObject *args)
     if (!PyArg_ParseTuple(args, "O", &self))
         return NULL;
     PGA_ctx = PyObject_GetAttrString (self, "context");
-    ctx     = (PGAContext *) PyCObject_AsVoidPtr (PGA_ctx);
+    printf ("PGA_run, PGA_ctx: %08X\n", (int)PGA_ctx);
+    PyArg_Parse (PGA_ctx, "i", &ctx);
+    printf ("PGA_run, ctx: %08X\n", (int)ctx);
+    fflush (stdout);
     PGARun (ctx, evaluate);
     Py_INCREF(Py_None);
     return Py_None;
@@ -79,7 +85,7 @@ static PyObject *PGA_len (PyObject *self0, PyObject *args)
     if (!PyArg_ParseTuple(args, "O", &self))
         return NULL;
     PGA_ctx = PyObject_GetAttrString (self, "context");
-    ctx     = (PGAContext *) PyCObject_AsVoidPtr (PGA_ctx);
+    PyArg_Parse (PGA_ctx, "i", &ctx);
     return Py_BuildValue ("i", PGAGetStringLength (ctx));
 }
 
@@ -91,8 +97,9 @@ static PyObject *PGA_evaluate (PyObject *self0, PyObject *args)
     if (!PyArg_ParseTuple(args, "Oii", &self, &p, &pop))
         return NULL;
     /* FIXME: should raise NotImplementedError */
-    fprintf (stderr, "Ooops\n");
-    return Py_BuildValue ("i", 0);
+    printf ("Ooops\n");
+    fflush (stdout);
+    return Py_BuildValue ("i", 4711);
 }
 
 static PyObject *PGA_get_allele (PyObject *self0, PyObject *args)
@@ -105,7 +112,7 @@ static PyObject *PGA_get_allele (PyObject *self0, PyObject *args)
     if (!PyArg_ParseTuple(args, "Oiii", &self, &p, &pop, &i))
         return NULL;
     PGA_ctx = PyObject_GetAttrString (self, "context");
-    ctx     = (PGAContext *) PyCObject_AsVoidPtr (PGA_ctx);
+    PyArg_Parse (PGA_ctx, "i", &ctx);
     allele  = PGAGetBinaryAllele (ctx, p, pop, i);
     return Py_BuildValue ("i", allele);
 }
