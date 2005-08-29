@@ -19,19 +19,20 @@ static double evaluate (PGAContext *ctx, int p, int pop)
         (PyObject_CallMethod (o, "evaluate", "ii", p, pop));
     /* FIXME: decrement refcount? */
     retval  = PyArg_Parse (result, "d");
+    printf ("%g\n", retval);
     return retval;
 }
 
 /* name, type, length, maximize */
-static PyObject *PGA_init (PyObject *self, PyObject *args)
+static PyObject *PGA_init (PyObject *self0, PyObject *args)
 {
     int argc = 0, maximize = 0, length = 0;
     char *name;
-    PyObject *type, *max = NULL, *PGA_ctx;
+    PyObject *self, *type, *max = NULL, *PGA_ctx;
     char *argv [] = {NULL, NULL};
     PGAContext *ctx;
 
-    if (!PyArg_ParseTuple (args, "sOi|O", &name, &type, &length, &max))
+    if (!PyArg_ParseTuple (args, "OsOi|O", &self, &name, &type, &length, &max))
         return NULL;
     if (max)
     {
@@ -47,48 +48,65 @@ static PyObject *PGA_init (PyObject *self, PyObject *args)
         , maximize ? PGA_MAXIMIZE : PGA_MINIMIZE
         );
     PGASetUp (ctx);
-    PGAPrintContextVariable (ctx, stdout);
     PGA_ctx = PyCObject_FromVoidPtr ((void  *) ctx, NULL);
     PyObject_SetItem       (context, PGA_ctx, self);
     PyObject_SetAttrString (self, "context", PGA_ctx);
-    return Py_BuildValue("");
+    Py_INCREF(Py_None);
+    return Py_None;
 }
 
-static PyObject *PGA_run (PyObject *self, PyObject *args)
+static PyObject *PGA_run (PyObject *self0, PyObject *args)
 {
-    PyObject   *PGA_ctx = PyObject_GetAttrString (self, "context");
-    PGAContext *ctx     = (PGAContext *) PyCObject_AsVoidPtr (PGA_ctx);
+    PyObject *self;
+    PyObject   *PGA_ctx;
+    PGAContext *ctx;
 
-    if (!PyArg_ParseTuple(args, ""))
+    if (!PyArg_ParseTuple(args, "O", &self))
         return NULL;
+    PGA_ctx = PyObject_GetAttrString (self, "context");
+    ctx     = (PGAContext *) PyCObject_AsVoidPtr (PGA_ctx);
     PGARun (ctx, evaluate);
-    return Py_BuildValue("");
+    Py_INCREF(Py_None);
+    return Py_None;
 }
 
-static PyObject *PGA_len (PyObject *self, PyObject *args)
+static PyObject *PGA_len (PyObject *self0, PyObject *args)
 {
-    if (!PyArg_ParseTuple(args, ""))
+    PyObject *self;
+    PyObject   *PGA_ctx;
+    PGAContext *ctx;
+
+    if (!PyArg_ParseTuple(args, "O", &self))
         return NULL;
-    return Py_BuildValue("i", 123);
+    PGA_ctx = PyObject_GetAttrString (self, "context");
+    ctx     = (PGAContext *) PyCObject_AsVoidPtr (PGA_ctx);
+    return Py_BuildValue ("i", PGAGetStringLength (ctx));
 }
 
-static PyObject *PGA_evaluate (PyObject *self, PyObject *args)
+static PyObject *PGA_evaluate (PyObject *self0, PyObject *args)
 {
+    PyObject *self;
     int p, pop;
-    if (!PyArg_ParseTuple(args, "ii", &p, &pop))
+
+    if (!PyArg_ParseTuple(args, "Oii", &self, &p, &pop))
         return NULL;
+    /* FIXME: should raise NotImplementedError */
+    fprintf (stderr, "Ooops\n");
     return Py_BuildValue ("i", 0);
 }
 
-static PyObject *PGA_get_allele (PyObject *self, PyObject *args)
+static PyObject *PGA_get_allele (PyObject *self0, PyObject *args)
 {
+    PyObject *self;
+    PyObject   *PGA_ctx;
+    PGAContext *ctx;
     int p, pop, i, allele;
-    PyObject   *PGA_ctx = PyObject_GetAttrString (self, "context");
-    PGAContext *ctx     = (PGAContext *) PyCObject_AsVoidPtr (PGA_ctx);
 
-    if (!PyArg_ParseTuple(args, "iii", &p, &pop, &i))
+    if (!PyArg_ParseTuple(args, "Oiii", &self, &p, &pop, &i))
         return NULL;
-    allele = PGAGetBinaryAllele (ctx, p, pop, i);
+    PGA_ctx = PyObject_GetAttrString (self, "context");
+    ctx     = (PGAContext *) PyCObject_AsVoidPtr (PGA_ctx);
+    allele  = PGAGetBinaryAllele (ctx, p, pop, i);
     return Py_BuildValue ("i", allele);
 }
 
@@ -107,8 +125,29 @@ static PyMethodDef PGA_Methods [] =
 , {NULL, NULL, 0, NULL}
 };
 
+static PyMethodDef Module_Methods[] = { {NULL, NULL, 0, NULL} };
+
 PyMODINIT_FUNC initpga (void)
 {
-    (void) Py_InitModule("pga", PGA_Methods);
-    context = Py_BuildValue("{}");
+    PyMethodDef *def;
+    PyObject *module      = Py_InitModule       ("pga", Module_Methods);
+    PyObject *module_Dict = PyModule_GetDict    (module);
+    PyObject *class_Dict  = PyDict_New          ();
+    PyObject *class_Name  = PyString_FromString ("PGA");
+    PyObject *pga_Class   = PyClass_New         (NULL, class_Dict, class_Name);
+    PyDict_SetItemString (module_Dict, "PGA", pga_Class);
+    context               = Py_BuildValue       ("{}");
+
+    Py_DECREF(class_Dict);
+    Py_DECREF(class_Name);
+    Py_DECREF(pga_Class);
+    
+    /* add methods to class */
+    for (def = PGA_Methods; def->ml_name != NULL; def++) {
+        PyObject *func   = PyCFunction_New (def,  NULL);
+        PyObject *method = PyMethod_New    (func, NULL, pga_Class);
+        PyDict_SetItemString (class_Dict, def->ml_name, method);
+        Py_DECREF (func);
+        Py_DECREF (method);
+    }
 }
