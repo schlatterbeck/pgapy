@@ -73,22 +73,33 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
 {
     int argc = 0, max = 0, length = 0, pop_size = 0, pga_type = 0;
     PyObject *PGA_ctx;
-    PyObject *self = NULL, *type = NULL, *maximize = NULL;
+    PyObject *self = NULL, *type = NULL, *maximize = NULL, *init = NULL;
+    PyObject *init_percent = NULL;
     char *argv [] = {NULL, NULL};
     PGAContext *ctx;
     static char *kwlist[] =
-        {"self", "type", "length", "maximize", "pop_size", NULL};
+        { "self"
+        , "type"
+        , "length"
+        , "maximize"
+        , "pop_size"
+        , "init"
+        , "init_percent"
+        , NULL
+        };
 
     if  (!PyArg_ParseTupleAndKeywords 
             ( args
             , kw
-            , "OOi|Oi"
+            , "OOi|OiOO"
             , kwlist
             , &self
             , &type
             , &length
             , &maximize
             , &pop_size
+            , &init
+            , &init_percent
             )
         )
     {
@@ -158,6 +169,105 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             return NULL;
         }
         PGASetPopSize (ctx, pop_size);
+    }
+    if (init || init_percent)
+    {
+        int datatype = PGAGetDataType (ctx);
+        int is_real  = (datatype == PGA_DATATYPE_REAL);
+        int i, len;
+        void *i_low, *i_high;
+        PyObject *initvals = (init ? init : init_percent);
+
+        if (datatype != PGA_DATATYPE_INTEGER && datatype != PGA_DATATYPE_REAL)
+        {
+            PyErr_SetString (PyExc_ValueError, "Init only for int/real");
+            return NULL;
+        }
+        if (init && init_percent)
+        {
+            PyErr_SetString (PyExc_ValueError, "Only one of init/init_percent");
+            return NULL;
+        }
+        if (init_percent && !is_real)
+        {
+            PyErr_SetString (PyExc_ValueError, "init_percent only for float");
+            return NULL;
+        }
+        len = PySequence_Length (initvals);
+        if (len < 0)
+        {
+            return NULL;
+        }
+        if (len != PGAGetStringLength (ctx))
+        {
+            PyErr_SetString (PyExc_ValueError, "Init length != string length");
+            return NULL;
+        }
+        i_low  = malloc (len * (is_real ? sizeof (double) : sizeof (int)));
+        i_high = malloc (len * (is_real ? sizeof (double) : sizeof (int)));
+        assert (i_low && i_high);
+        for (i = 0; i < len; i++)
+        {
+            PyObject *x = PySequence_GetItem (initvals, i);
+            PyObject *low, *high;
+            if (!x)
+                return NULL;
+            low  = PySequence_GetItem (x, 0);
+            if (!low)
+                return NULL;
+            high = PySequence_GetItem (x, 1);
+            if (!high)
+                return NULL;
+            if (is_real)
+            {
+                PyObject *l, *h;
+                double hi;
+                l = PyNumber_Float (low);
+                if (!l)
+                    return NULL;
+                h = PyNumber_Float (high);
+                if (!h)
+                    return NULL;
+                PyArg_Parse (h, "d", ((double *)i_high) + i);
+                PyArg_Parse (l, "d", ((double *)i_low)  + i);
+                hi = ((double *)i_high) [i];
+                if (init_percent && (hi <= 0 || hi > 1))
+                {
+                    PyErr_SetString 
+                        (PyExc_ValueError, "Percentage must be 0 < p <= 1");
+                    return NULL;
+                }
+            }
+            else
+            {
+                PyObject *l, *h;
+                l = PyNumber_Int (low);
+                if (!l)
+                    return NULL;
+                h = PyNumber_Int (high);
+                if (!h)
+                    return NULL;
+                PyArg_Parse (h, "i", ((int *)i_high) + i);
+                PyArg_Parse (l, "i", ((int *)i_low)  + i);
+            }
+        }
+        if (is_real)
+        {
+            if (init)
+            {
+                PGASetRealInitRange    (ctx, i_low, i_high);
+            }
+            else
+            {
+                PGASetRealInitPercent  (ctx, i_low, i_high);
+            }
+        }
+        else
+        {
+            PGASetIntegerInitRange (ctx, i_low, i_high);
+        }
+        free (i_low);
+        free (i_high);
     }
     PGASetUp (ctx);
     PGA_ctx = Py_BuildValue ("i", (int) ctx);
@@ -277,13 +387,30 @@ static PyObject *PGA_get_allele (PyObject *self0, PyObject *args)
 }
 
 
-/*
-__del__
-    PGADestroy (ctx)
-*/
+static PyObject *PGA_del (PyObject *self0, PyObject *args)
+{
+    PyObject *self;
+    PyObject   *PGA_ctx;
+    PGAContext *ctx;
+
+    fprintf (stderr, "In PGA_del\n"); /* never reached?? */
+    fflush  (stderr);
+    if (!PyArg_ParseTuple(args, "O", &self))
+        return NULL;
+    PGA_ctx = PyObject_GetAttrString (self, "context");
+    PyArg_Parse          (PGA_ctx, "i", &ctx);
+    PyObject_DelItem     (context, PGA_ctx);
+    Py_DECREF            (PGA_ctx);
+    PGADestroy           (ctx);
+    Py_INCREF            (Py_None);
+    return Py_None;
+}
 
 static PyMethodDef PGA_Methods [] =
-{ { "__init__",   (PyCFunction)PGA_init, METH_VARARGS | METH_KEYWORDS
+{ { "__del__",    (PyCFunction)PGA_del,  METH_VARARGS
+  , "Delete object and PGA data structures"
+  }
+, { "__init__",   (PyCFunction)PGA_init, METH_VARARGS | METH_KEYWORDS
   , "Init object"
   }
 , { "__len__",    PGA_len,               METH_VARARGS

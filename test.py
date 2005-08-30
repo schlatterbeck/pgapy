@@ -11,6 +11,6 @@ class My_PGA (PGA) :
 # end class My_PGA
 
 if __name__ == '__main__' :
-    pg = My_PGA (type (2), 100, maximize = True)
+    pg = My_PGA (type (2), 100, maximize = True, init = [(0,5)] * 100)
     pg.run ()
 
