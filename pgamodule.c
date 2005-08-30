@@ -412,15 +412,13 @@ static int check_allele (PGAContext *ctx, int p, int pop, int i)
         PyErr_SetString (PyExc_ValueError, x);
         return 0;
     }
-    /*
-    if (p < 0 || p >= PGAGetPopSize (ctx))
+    if ((p < 0 || p >= PGAGetPopSize (ctx)) && p != PGA_TEMP1 && p != PGA_TEMP2)
     {
         char x [50];
         sprintf (x, "%d: invalid population index", p);
         PyErr_SetString (PyExc_ValueError, x);
         return 0;
     }
-    */
     if (i < 0 || i >= PGAGetStringLength (ctx))
     {
         char x [50];
