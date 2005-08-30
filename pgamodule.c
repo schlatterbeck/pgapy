@@ -23,6 +23,17 @@ static void prc (PyObject *o, char *str)
 }
 # endif
 
+static PGAContext *get_context (PyObject *self)
+{
+    PyObject   *PGA_ctx = PyObject_GetAttrString (self, "context");
+    PGAContext *ctx;
+    if (!PGA_ctx)
+        return NULL;
+    PyArg_Parse (PGA_ctx, "i", &ctx);
+    Py_DECREF   (PGA_ctx);
+    return ctx;
+}
+
 /*
  * Need a hash table of mapping ctx to PGA objects. Look up the
  * appropriate object and call its PGA_evaluate
@@ -281,14 +292,11 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
 static PyObject *PGA_run (PyObject *self0, PyObject *args)
 {
     PyObject *self;
-    PyObject   *PGA_ctx;
     PGAContext *ctx;
 
     if (!PyArg_ParseTuple(args, "O", &self))
         return NULL;
-    PGA_ctx = PyObject_GetAttrString (self, "context");
-    PyArg_Parse (PGA_ctx, "i", &ctx);
-    Py_DECREF   (PGA_ctx);
+    ctx = get_context (self);
     PGARun      (ctx, evaluate);
     if (error_occurred)
     {
@@ -301,14 +309,11 @@ static PyObject *PGA_run (PyObject *self0, PyObject *args)
 static PyObject *PGA_len (PyObject *self0, PyObject *args)
 {
     PyObject *self;
-    PyObject   *PGA_ctx;
     PGAContext *ctx;
 
     if (!PyArg_ParseTuple(args, "O", &self))
         return NULL;
-    PGA_ctx = PyObject_GetAttrString (self, "context");
-    PyArg_Parse          (PGA_ctx, "i", &ctx);
-    Py_DECREF            (PGA_ctx);
+    ctx = get_context (self);
     return Py_BuildValue ("i", PGAGetStringLength (ctx));
 }
 
@@ -329,16 +334,12 @@ static PyObject *PGA_evaluate (PyObject *self0, PyObject *args)
 static PyObject *PGA_get_allele (PyObject *self0, PyObject *args)
 {
     PyObject *self;
-    PyObject   *PGA_ctx;
     PGAContext *ctx;
     int p, pop, i;
 
     if (!PyArg_ParseTuple(args, "Oiii", &self, &p, &pop, &i))
         return NULL;
-    PGA_ctx = PyObject_GetAttrString (self, "context");
-    PyArg_Parse                      (PGA_ctx, "i", &ctx);
-    Py_DECREF                        (PGA_ctx);
-    PGA_ctx = NULL;
+    ctx = get_context (self);
 
     if (pop != PGA_OLDPOP && pop != PGA_NEWPOP)
     {
