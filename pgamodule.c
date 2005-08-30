@@ -347,10 +347,17 @@ static PyObject *PGA_get_allele (PyObject *self0, PyObject *args)
         PyErr_SetString (PyExc_ValueError, x);
         return NULL;
     }
-    if (p < 0 || p >= PGAGetStringLength (ctx))
+    if (p < 0 || p >= PGAGetPopSize (ctx))
     {
         char x [50];
-        sprintf (x, "%d: invalid index", p);
+        sprintf (x, "%d: invalid population index", p);
+        PyErr_SetString (PyExc_ValueError, x);
+        return NULL;
+    }
+    if (i < 0 || i >= PGAGetStringLength (ctx))
+    {
+        char x [50];
+        sprintf (x, "%d: invalid index", i);
         PyErr_SetString (PyExc_ValueError, x);
         return NULL;
     }
@@ -393,16 +400,20 @@ static PyObject *PGA_del (PyObject *self0, PyObject *args)
     PyObject   *PGA_ctx;
     PGAContext *ctx;
 
-    fprintf (stderr, "In PGA_del\n"); /* never reached?? */
-    fflush  (stderr);
     if (!PyArg_ParseTuple(args, "O", &self))
         return NULL;
+    Py_INCREF (Py_None);
     PGA_ctx = PyObject_GetAttrString (self, "context");
+    /*
+    fprintf (stderr, "After PGA_ctx in PGA_del: %08X\n", (int) PGA_ctx);
+    fflush  (stderr);
+    */
+    if (!PGA_ctx)
+        return Py_None;
     PyArg_Parse          (PGA_ctx, "i", &ctx);
     PyObject_DelItem     (context, PGA_ctx);
     Py_DECREF            (PGA_ctx);
     PGADestroy           (ctx);
-    Py_INCREF            (Py_None);
     return Py_None;
 }
 
