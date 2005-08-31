@@ -120,6 +120,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
 {
     int argc = 0, max = 0, length = 0, pop_size = 0, pga_type = 0;
     int random_seed = 0;
+    double mutation_prob = 0;
     PyObject *PGA_ctx;
     PyObject *self = NULL, *type = NULL, *maximize = NULL, *init = NULL;
     PyObject *init_percent = NULL;
@@ -134,13 +135,14 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         , "init"
         , "init_percent"
         , "random_seed"
+        , "mutation_prob"
         , NULL
         };
 
     if  (!PyArg_ParseTupleAndKeywords 
             ( args
             , kw
-            , "OOi|OiOOi"
+            , "OOi|OiOOid"
             , kwlist
             , &self
             , &type
@@ -150,6 +152,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             , &init
             , &init_percent
             , &random_seed
+            , &mutation_prob
             )
         )
     {
@@ -214,7 +217,11 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     }
     if (random_seed)
     {
-        PGASetRandomSeed (ctx, random_seed);
+        PGASetRandomSeed   (ctx, random_seed);
+    }
+    if (mutation_prob)
+    {
+        PGASetMutationProb (ctx, mutation_prob);
     }
 
     if (pop_size)
@@ -422,7 +429,7 @@ static int check_allele (PGAContext *ctx, int p, int pop, int i)
     if (i < 0 || i >= PGAGetStringLength (ctx))
     {
         char x [50];
-        sprintf (x, "%d: invalid index", i);
+        sprintf (x, "%d: allele index out of range", i);
         PyErr_SetString (PyExc_ValueError, x);
         return 0;
     }
