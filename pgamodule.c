@@ -119,11 +119,12 @@ static int mutation (PGAContext *ctx, int p, int pop, double mr)
 static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
 {
     int argc = 0, max = 0, length = 0, pop_size = 0, pga_type = 0;
-    int random_seed = 0;
+    int random_seed = 0, max_GA_iter = 0, max_no_change = 0;
+    int max_similarity = 0;
     double mutation_prob = 0;
     PyObject *PGA_ctx;
     PyObject *self = NULL, *type = NULL, *maximize = NULL, *init = NULL;
-    PyObject *init_percent = NULL;
+    PyObject *init_percent = NULL, *stopping_rule_type = NULL;
     char *argv [] = {NULL, NULL};
     PGAContext *ctx;
     static char *kwlist[] =
@@ -135,14 +136,18 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         , "init"
         , "init_percent"
         , "random_seed"
+        , "max_GA_iter"
+        , "max_no_change"
+        , "max_similarity"
         , "mutation_prob"
+        , "stopping_rule_type"
         , NULL
         };
 
     if  (!PyArg_ParseTupleAndKeywords 
             ( args
             , kw
-            , "OOi|OiOOid"
+            , "OOi|OiOOiiiidO"
             , kwlist
             , &self
             , &type
@@ -152,7 +157,11 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             , &init
             , &init_percent
             , &random_seed
+            , &max_GA_iter
+            , &max_no_change
+            , &max_similarity
             , &mutation_prob
+            , &stopping_rule_type
             )
         )
     {
@@ -235,6 +244,33 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             return NULL;
         }
         PGASetPopSize (ctx, pop_size);
+    }
+    if (stopping_rule_type)
+    {
+        int i, len = PySequence_Length (stopping_rule_type);
+        if (len < 0)
+        {
+            return NULL;
+        }
+        for (i = 0; i < len; i++)
+        {
+            PyObject *x = PySequence_GetItem (stopping_rule_type, i);
+            int val;
+            if (!x)
+                return NULL;
+            if (!PyArg_Parse (x, "i", &val))
+                return NULL;
+            if (  val != PGA_STOP_MAXITER
+               && val != PGA_STOP_NOCHANGE
+               && val != PGA_STOP_TOOSIMILAR
+               )
+            {
+                PyErr_SetString 
+                    (PyExc_ValueError, "Invalid stoppping_rule_type");
+                return NULL;
+            }
+            PGASetStoppingRuleType (ctx, val);
+        }
     }
     if (init || init_percent)
     {
@@ -704,11 +740,25 @@ static PyMethodDef PGA_Methods [] =
 , {NULL, NULL, 0, NULL}
 };
 
+typedef struct
+{
+    char *cd_name;
+    int   cd_value;
+} constdef_t;
+
+static constdef_t constdef [] =
+    { {"PGA_STOP_NOCHANGE",   PGA_STOP_NOCHANGE  }
+    , {"PGA_STOP_MAXITER",    PGA_STOP_MAXITER   }
+    , {"PGA_STOP_TOOSIMILAR", PGA_STOP_TOOSIMILAR}
+    , {NULL,                  0                  }
+    };
+
 static PyMethodDef Module_Methods[] = { {NULL, NULL, 0, NULL} };
 
 PyMODINIT_FUNC initpga (void)
 {
     PyMethodDef *def;
+    constdef_t  *cd;
     PyObject *module      = Py_InitModule       ("pga", Module_Methods);
     PyObject *module_Dict = PyModule_GetDict    (module);
     PyObject *class_Dict  = PyDict_New          ();
@@ -717,6 +767,12 @@ PyMODINIT_FUNC initpga (void)
     context               = Py_BuildValue       ("{}");
     PyDict_SetItemString (module_Dict, "PGA",     pga_Class);
     PyDict_SetItemString (module_Dict, "context", context);
+
+    for (cd = constdef; cd->cd_name; cd++) {
+        PyObject *constant = Py_BuildValue    ("i", cd->cd_value);
+        PyDict_SetItemString (module_Dict, cd->cd_name, constant);
+        Py_DECREF (constant);
+    }
 
     Py_DECREF(class_Dict);
     Py_DECREF(class_Name);
