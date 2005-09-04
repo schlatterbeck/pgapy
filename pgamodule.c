@@ -124,7 +124,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     double mutation_prob = 0;
     PyObject *PGA_ctx;
     PyObject *self = NULL, *type = NULL, *maximize = NULL, *init = NULL;
-    PyObject *init_percent = NULL, *stopping_rule_type = NULL;
+    PyObject *init_percent = NULL, *stopping_rule_types = NULL;
     char *argv [] = {NULL, NULL};
     PGAContext *ctx;
     static char *kwlist[] =
@@ -140,7 +140,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         , "max_no_change"
         , "max_similarity"
         , "mutation_prob"
-        , "stopping_rule_type"
+        , "stopping_rule_types"
         , NULL
         };
 
@@ -161,7 +161,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             , &max_no_change
             , &max_similarity
             , &mutation_prob
-            , &stopping_rule_type
+            , &stopping_rule_types
             )
         )
     {
@@ -245,16 +245,16 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         }
         PGASetPopSize (ctx, pop_size);
     }
-    if (stopping_rule_type)
+    if (stopping_rule_types)
     {
-        int i, len = PySequence_Length (stopping_rule_type);
+        int i, len = PySequence_Length (stopping_rule_types);
         if (len < 0)
         {
             return NULL;
         }
         for (i = 0; i < len; i++)
         {
-            PyObject *x = PySequence_GetItem (stopping_rule_type, i);
+            PyObject *x = PySequence_GetItem (stopping_rule_types, i);
             int val;
             if (!x)
                 return NULL;
