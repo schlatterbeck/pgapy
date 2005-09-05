@@ -120,6 +120,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
 {
     int argc = 0, max = 0, length = 0, pop_size = 0, pga_type = 0;
     int random_seed = 0, max_GA_iter = 0, max_no_change = 0;
+    int num_replace = -1, pop_replace_type = -1;
     int max_similarity = 0;
     double mutation_prob = 0;
     PyObject *PGA_ctx;
@@ -141,13 +142,15 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         , "max_similarity"
         , "mutation_prob"
         , "stopping_rule_types"
+        , "num_replace"
+        , "pop_replace_type"
         , NULL
         };
 
     if  (!PyArg_ParseTupleAndKeywords 
             ( args
             , kw
-            , "OOi|OiOOiiiidO"
+            , "OOi|OiOOiiiidOii"
             , kwlist
             , &self
             , &type
@@ -162,6 +165,8 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             , &max_similarity
             , &mutation_prob
             , &stopping_rule_types
+            , &num_replace
+            , &pop_replace_type
             )
         )
     {
@@ -231,6 +236,22 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     if (mutation_prob)
     {
         PGASetMutationProb (ctx, mutation_prob);
+    }
+    if (num_replace >= 0)
+    {
+        PGASetNumReplaceValue (ctx, num_replace);
+    }
+    if (pop_replace_type >= 0)
+    {
+        if (  pop_replace_type != PGA_POPREPL_BEST
+           && pop_replace_type != PGA_POPREPL_RANDOM_NOREP
+           && pop_replace_type != PGA_POPREPL_RANDOM_REP
+           )
+        {
+            PyErr_SetString (PyExc_ValueError, "invalid pop_replace_type");
+            return NULL;
+        }
+        PGASetPopReplaceType (ctx, pop_replace_type);
     }
 
     if (pop_size)
@@ -747,10 +768,13 @@ typedef struct
 } constdef_t;
 
 static constdef_t constdef [] =
-    { {"PGA_STOP_NOCHANGE",   PGA_STOP_NOCHANGE  }
-    , {"PGA_STOP_MAXITER",    PGA_STOP_MAXITER   }
-    , {"PGA_STOP_TOOSIMILAR", PGA_STOP_TOOSIMILAR}
-    , {NULL,                  0                  }
+    { {"PGA_POPREPL_BEST",         PGA_POPREPL_BEST          }
+    , {"PGA_POPREPL_RANDOM_REP",   PGA_POPREPL_RANDOM_REP    }
+    , {"PGA_POPREPL_RANDOM_NOREP", PGA_POPREPL_RANDOM_NOREP  }
+    , {"PGA_STOP_NOCHANGE",        PGA_STOP_NOCHANGE         }
+    , {"PGA_STOP_MAXITER",         PGA_STOP_MAXITER          }
+    , {"PGA_STOP_TOOSIMILAR",      PGA_STOP_TOOSIMILAR       }
+    , {NULL,                       0                         }
     };
 
 static PyMethodDef Module_Methods[] = { {NULL, NULL, 0, NULL} };
