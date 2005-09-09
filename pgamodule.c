@@ -784,7 +784,9 @@ typedef struct
 } constdef_t;
 
 static constdef_t constdef [] =
-    { {"PGA_POPREPL_BEST",         PGA_POPREPL_BEST          }
+    { {"PGA_NEWPOP",               PGA_NEWPOP                }
+    , {"PGA_OLDPOP",               PGA_OLDPOP                }
+    , {"PGA_POPREPL_BEST",         PGA_POPREPL_BEST          }
     , {"PGA_POPREPL_RANDOM_REP",   PGA_POPREPL_RANDOM_REP    }
     , {"PGA_POPREPL_RANDOM_NOREP", PGA_POPREPL_RANDOM_NOREP  }
     , {"PGA_STOP_NOCHANGE",        PGA_STOP_NOCHANGE         }
