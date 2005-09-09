@@ -594,6 +594,19 @@ static PyObject *PGA_set_allele (PyObject *self0, PyObject *args)
     return Py_None;
 }
 
+static PyObject *PGA_get_best_index (PyObject *self0, PyObject *args)
+{
+    PyObject *self;
+    PGAContext *ctx;
+    int pop;
+
+    if (!PyArg_ParseTuple(args, "Oi", &self, &pop))
+        return NULL;
+    if (!(ctx = get_context (self)))
+        return NULL;
+    return Py_BuildValue ("i", PGAGetBestIndex (ctx, pop));
+}
+
 static PyObject *PGA_set_random_seed (PyObject *self0, PyObject *args)
 {
     PyObject *self;
@@ -733,6 +746,9 @@ static PyMethodDef PGA_Methods [] =
   }
 , { "get_allele",                PGA_get_allele,                METH_VARARGS
   , "Get allele"
+  }
+, { "get_best_index",            PGA_get_best_index,            METH_VARARGS
+  , "Get best index in population pop"
   }
 , { "random01",                  PGA_random_01,                 METH_VARARGS
   , "Random float 0 <= f <= 1"
