@@ -126,6 +126,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     PyObject *PGA_ctx;
     PyObject *self = NULL, *type = NULL, *maximize = NULL, *init = NULL;
     PyObject *init_percent = NULL, *stopping_rule_types = NULL;
+    PyObject *print_options = NULL;
     char *argv [] = {NULL, NULL};
     PGAContext *ctx;
     static char *kwlist[] =
@@ -144,13 +145,14 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         , "stopping_rule_types"
         , "num_replace"
         , "pop_replace_type"
+        , "print_options"
         , NULL
         };
 
     if  (!PyArg_ParseTupleAndKeywords 
             ( args
             , kw
-            , "OOi|OiOOiiiidOii"
+            , "OOi|OiOOiiiidOiiO"
             , kwlist
             , &self
             , &type
@@ -167,6 +169,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             , &stopping_rule_types
             , &num_replace
             , &pop_replace_type
+            , &print_options
             )
         )
     {
@@ -291,6 +294,36 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
                 return NULL;
             }
             PGASetStoppingRuleType (ctx, val);
+        }
+    }
+    if (print_options)
+    {
+        int i, len = PySequence_Length (print_options);
+        if (len < 0)
+        {
+            return NULL;
+        }
+        for (i = 0; i < len; i++)
+        {
+            PyObject *x = PySequence_GetItem (print_options, i);
+            int val;
+            if (!x)
+                return NULL;
+            if (!PyArg_Parse (x, "i", &val))
+                return NULL;
+            if (  val != PGA_REPORT_AVERAGE
+               && val != PGA_REPORT_HAMMING
+               && val != PGA_REPORT_OFFLINE
+               && val != PGA_REPORT_ONLINE
+               && val != PGA_REPORT_STRING
+               && val != PGA_REPORT_WORST
+               )
+            {
+                PyErr_SetString 
+                    (PyExc_ValueError, "Invalid print_option");
+                return NULL;
+            }
+            PGASetPrintOptions (ctx, val);
         }
     }
     if (init || init_percent)
@@ -789,6 +822,12 @@ static constdef_t constdef [] =
     , {"PGA_POPREPL_BEST",         PGA_POPREPL_BEST          }
     , {"PGA_POPREPL_RANDOM_REP",   PGA_POPREPL_RANDOM_REP    }
     , {"PGA_POPREPL_RANDOM_NOREP", PGA_POPREPL_RANDOM_NOREP  }
+    , {"PGA_REPORT_AVERAGE",       PGA_REPORT_AVERAGE        }
+    , {"PGA_REPORT_HAMMING",       PGA_REPORT_HAMMING        }
+    , {"PGA_REPORT_OFFLINE",       PGA_REPORT_OFFLINE        }
+    , {"PGA_REPORT_ONLINE",        PGA_REPORT_ONLINE         }
+    , {"PGA_REPORT_STRING",        PGA_REPORT_STRING         }
+    , {"PGA_REPORT_WORST",         PGA_REPORT_WORST          }
     , {"PGA_STOP_NOCHANGE",        PGA_STOP_NOCHANGE         }
     , {"PGA_STOP_MAXITER",         PGA_STOP_MAXITER          }
     , {"PGA_STOP_TOOSIMILAR",      PGA_STOP_TOOSIMILAR       }
