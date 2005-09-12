@@ -7,6 +7,36 @@
 static PyObject *context        = NULL;
 static int       error_occurred = 0;
 
+typedef struct
+{
+    char *cd_name;
+    int   cd_value;
+} constdef_t;
+
+static constdef_t constdef [] =
+    { {"PGA_NEWPOP",               PGA_NEWPOP                }
+    , {"PGA_OLDPOP",               PGA_OLDPOP                }
+    , {"PGA_POPREPL_BEST",         PGA_POPREPL_BEST          }
+    , {"PGA_POPREPL_RANDOM_NOREP", PGA_POPREPL_RANDOM_NOREP  }
+    , {"PGA_POPREPL_RANDOM_REP",   PGA_POPREPL_RANDOM_REP    }
+    , {"PGA_REPORT_AVERAGE",       PGA_REPORT_AVERAGE        }
+    , {"PGA_REPORT_HAMMING",       PGA_REPORT_HAMMING        }
+    , {"PGA_REPORT_OFFLINE",       PGA_REPORT_OFFLINE        }
+    , {"PGA_REPORT_ONLINE",        PGA_REPORT_ONLINE         }
+    , {"PGA_REPORT_STRING",        PGA_REPORT_STRING         }
+    , {"PGA_REPORT_WORST",         PGA_REPORT_WORST          }
+    , {"PGA_STOP_MAXITER",         PGA_STOP_MAXITER          }
+    , {"PGA_STOP_NOCHANGE",        PGA_STOP_NOCHANGE         }
+    , {"PGA_STOP_TOOSIMILAR",      PGA_STOP_TOOSIMILAR       }
+    , {NULL,                       0                         }
+    };
+
+int compare_constdef (const void *v1, const void *v2)
+{
+    const constdef_t *p1 = v1, *p2 = v2;
+    return strcmp (p1->cd_name, p2->cd_name);
+}
+
 # if 0
 static void prc (PyObject *o, char *str)
 {
@@ -114,6 +144,77 @@ static int mutation (PGAContext *ctx, int p, int pop, double mr)
     rr = PyArg_Parse (r, "i", &retval);
     ERR_CHECK (rr, PGA_TRUE);
     return retval;
+}
+
+static int init_sequence
+    ( PyObject   *sequence
+    , PGAContext *ctx
+    , void      (*fun)(PGAContext *, int)
+    , char       *firstconst
+    , int         constlen
+    , char       *name
+    , int       (*checkfun)(PGAContext *, int, char *)
+    )
+{
+    constdef_t *constcheck, key;
+
+    key.cd_name = firstconst;
+    constcheck = bsearch 
+            ( &key
+            , constdef
+            , sizeof (constdef) / sizeof (constdef_t) - 1
+            , sizeof (constdef_t)
+            , compare_constdef
+            );
+    assert (constcheck);
+    if (sequence)
+    {
+        int i, len = PySequence_Length (sequence);
+        if (len < 0)
+        {
+            return 0;
+        }
+        for (i = 0; i < len; i++)
+        {
+            PyObject *x = PySequence_GetItem (sequence, i);
+            int val, ci;
+            if (!x)
+                return 0;
+            if (!PyArg_Parse (x, "i", &val))
+                return 0;
+            for (ci = 0; ci < constlen; ci++)
+            {
+                if (val == constcheck [ci].cd_value)
+                    break;
+            }
+            if (ci == constlen)
+            {
+                PyErr_SetString 
+                    (PyExc_ValueError, name);
+                return 0;
+            }
+            if (checkfun && !checkfun (ctx, val, name))
+                return 0;
+            fun (ctx, val);
+        }
+    }
+    return 1;
+}
+
+static int check_hamming (PGAContext *ctx, int val, char *name)
+{
+    if  (  val == PGA_REPORT_HAMMING
+        && PGAGetDataType (ctx) != PGA_DATATYPE_BINARY
+        )
+    {
+        char errmsg [1024];
+        sprintf 
+            (errmsg, "%s: no hamming reporting for non-binary datatype", name);
+        PyErr_SetString 
+            (PyExc_ValueError, errmsg);
+        return 0;
+    }
+    return 1;
 }
 
 static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
@@ -269,63 +370,28 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         }
         PGASetPopSize (ctx, pop_size);
     }
-    if (stopping_rule_types)
-    {
-        int i, len = PySequence_Length (stopping_rule_types);
-        if (len < 0)
-        {
-            return NULL;
-        }
-        for (i = 0; i < len; i++)
-        {
-            PyObject *x = PySequence_GetItem (stopping_rule_types, i);
-            int val;
-            if (!x)
-                return NULL;
-            if (!PyArg_Parse (x, "i", &val))
-                return NULL;
-            if (  val != PGA_STOP_MAXITER
-               && val != PGA_STOP_NOCHANGE
-               && val != PGA_STOP_TOOSIMILAR
-               )
-            {
-                PyErr_SetString 
-                    (PyExc_ValueError, "Invalid stoppping_rule_type");
-                return NULL;
-            }
-            PGASetStoppingRuleType (ctx, val);
-        }
-    }
-    if (print_options)
-    {
-        int i, len = PySequence_Length (print_options);
-        if (len < 0)
-        {
-            return NULL;
-        }
-        for (i = 0; i < len; i++)
-        {
-            PyObject *x = PySequence_GetItem (print_options, i);
-            int val;
-            if (!x)
-                return NULL;
-            if (!PyArg_Parse (x, "i", &val))
-                return NULL;
-            if (  val != PGA_REPORT_AVERAGE
-               && val != PGA_REPORT_HAMMING
-               && val != PGA_REPORT_OFFLINE
-               && val != PGA_REPORT_ONLINE
-               && val != PGA_REPORT_STRING
-               && val != PGA_REPORT_WORST
-               )
-            {
-                PyErr_SetString 
-                    (PyExc_ValueError, "Invalid print_option");
-                return NULL;
-            }
-            PGASetPrintOptions (ctx, val);
-        }
-    }
+    if  (!init_sequence
+            ( stopping_rule_types
+            , ctx
+            , PGASetStoppingRuleType
+            , "PGA_STOP_MAXITER"
+            , 3
+            , "stopping_rule_types"
+            , NULL
+            )
+        )
+        return NULL;
+    if  (!init_sequence
+            ( print_options
+            , ctx
+            , PGASetPrintOptions
+            , "PGA_REPORT_AVERAGE"
+            , 6
+            , "print_options"
+            , check_hamming
+            )
+        )
+        return NULL;
     if (init || init_percent)
     {
         int datatype = PGAGetDataType (ctx);
@@ -809,30 +875,6 @@ static PyMethodDef PGA_Methods [] =
   }
 , {NULL, NULL, 0, NULL}
 };
-
-typedef struct
-{
-    char *cd_name;
-    int   cd_value;
-} constdef_t;
-
-static constdef_t constdef [] =
-    { {"PGA_NEWPOP",               PGA_NEWPOP                }
-    , {"PGA_OLDPOP",               PGA_OLDPOP                }
-    , {"PGA_POPREPL_BEST",         PGA_POPREPL_BEST          }
-    , {"PGA_POPREPL_RANDOM_REP",   PGA_POPREPL_RANDOM_REP    }
-    , {"PGA_POPREPL_RANDOM_NOREP", PGA_POPREPL_RANDOM_NOREP  }
-    , {"PGA_REPORT_AVERAGE",       PGA_REPORT_AVERAGE        }
-    , {"PGA_REPORT_HAMMING",       PGA_REPORT_HAMMING        }
-    , {"PGA_REPORT_OFFLINE",       PGA_REPORT_OFFLINE        }
-    , {"PGA_REPORT_ONLINE",        PGA_REPORT_ONLINE         }
-    , {"PGA_REPORT_STRING",        PGA_REPORT_STRING         }
-    , {"PGA_REPORT_WORST",         PGA_REPORT_WORST          }
-    , {"PGA_STOP_NOCHANGE",        PGA_STOP_NOCHANGE         }
-    , {"PGA_STOP_MAXITER",         PGA_STOP_MAXITER          }
-    , {"PGA_STOP_TOOSIMILAR",      PGA_STOP_TOOSIMILAR       }
-    , {NULL,                       0                         }
-    };
 
 static PyMethodDef Module_Methods[] = { {NULL, NULL, 0, NULL} };
 

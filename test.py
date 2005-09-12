@@ -26,7 +26,6 @@ if __name__ == '__main__' :
             , PGA_REPORT_OFFLINE
             , PGA_REPORT_WORST
             , PGA_REPORT_AVERAGE
-            , PGA_REPORT_HAMMING
             ]
         )
     pg.run ()
