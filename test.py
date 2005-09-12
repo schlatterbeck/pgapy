@@ -10,9 +10,16 @@ import pga
 from operator import add
 
 class My_PGA (PGA) :
-    def evaluate (self, pop, p) :
+    def evaluate (self, p, pop) :
         return reduce \
-            (add, [self.get_allele (pop, p, i) for i in range (len (self))])
+            (add, [self.get_allele (p, pop, i) for i in range (len (self))])
+    # end def evaluate
+
+    def print_string (self, file, p, pop) :
+        file.write ("HUHU\n");
+        PGA.print_string (self, file, p, pop)
+    # end def print_string
+
 # end class My_PGA
 
 if __name__ == '__main__' :

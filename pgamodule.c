@@ -82,7 +82,7 @@ static PyObject *get_self (PGAContext *ctx)
 #define ERR_CHECK(x,r) do {      \
     if (!(x)) {                  \
         error_occurred = 1;    \
-        return (r);     \
+        return r;     \
     }                          \
 } while (0)
 
@@ -124,6 +124,7 @@ static int check_stop (PGAContext *ctx)
         ERR_CHECK (r, PGA_TRUE);
         rr = PyArg_Parse (r, "i", &retval);
         ERR_CHECK (rr, PGA_TRUE);
+        Py_DECREF (r);
         return !!retval;
     }
     return PGACheckStoppingConditions (ctx);
@@ -138,12 +139,66 @@ static int mutation (PGAContext *ctx, int p, int pop, double mr)
     int retval, rr;
     ERR_CHECK (!error_occurred, 0);
     self = get_self (ctx);
-    ERR_CHECK (self, PGA_TRUE);
+    ERR_CHECK (self, 0);
     r    = PyObject_CallMethod (self, "mutation", "iid", p, pop, mr);
-    ERR_CHECK (r, PGA_TRUE);
+    ERR_CHECK (r, 0);
     rr = PyArg_Parse (r, "i", &retval);
-    ERR_CHECK (rr, PGA_TRUE);
+    ERR_CHECK (rr, 0);
+    Py_DECREF (r);
     return retval;
+}
+
+/*
+ * Low-level gene print function
+ */
+static void print_gene (PGAContext *ctx, FILE *fp, int p, int pop)
+{
+    PyObject *self, *file, *r;
+    ERR_CHECK (!error_occurred,);
+    self    = get_self (ctx);
+    ERR_CHECK (self,);
+    file = PyFile_FromFile (fp, "<PGA_file>", "w", fclose);
+    ERR_CHECK (file,);
+    r    = PyObject_CallMethod (self, "print_string", "Oii", file, p, pop);
+    ERR_CHECK (r,);
+    Py_DECREF (r);
+}
+
+/*
+ * Python gene print function -- can be overridden in descendent class
+ */
+static PyObject *PGA_print_string (PyObject *self0, PyObject *args)
+{
+    PyObject     *self;
+    PyFileObject *file;
+    PGAContext   *ctx;
+    int           p, pop;
+
+    if (!PyArg_ParseTuple(args, "OOii", &self, &file, &p, &pop))
+        return NULL;
+    if (!(ctx = get_context (self)))
+        return NULL;
+    if (!PyFile_Check (file))
+        return NULL;
+    assert (file->f_fp);
+    switch (PGAGetDataType (ctx)) {
+    case PGA_DATATYPE_BINARY :
+        PGABinaryPrintString    (ctx, file->f_fp, p, pop);
+        break;
+    case PGA_DATATYPE_CHARACTER :
+        PGACharacterPrintString (ctx, file->f_fp, p, pop);
+        break;
+    case PGA_DATATYPE_INTEGER :
+        PGAIntegerPrintString   (ctx, file->f_fp, p, pop);
+        break;
+    case PGA_DATATYPE_REAL :
+        PGARealPrintString      (ctx, file->f_fp, p, pop);
+        break;
+    default :
+        assert (0);
+    }
+    Py_INCREF (Py_None);
+    return Py_None;
 }
 
 static int init_sequence
@@ -328,7 +383,8 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         , length
         , max ? PGA_MAXIMIZE : PGA_MINIMIZE
         );
-    PGASetUserFunction (ctx, PGA_USERFUNCTION_STOPCOND, (void *)check_stop);
+    PGASetUserFunction (ctx, PGA_USERFUNCTION_STOPCOND,    (void *)check_stop);
+    PGASetUserFunction (ctx, PGA_USERFUNCTION_PRINTSTRING, (void *)print_gene);
     if (PyObject_HasAttrString (self, "mutation"))
     {
         PGASetUserFunction (ctx, PGA_USERFUNCTION_MUTATION, (void *)mutation);
@@ -609,31 +665,31 @@ static PyObject *PGA_get_allele (PyObject *self0, PyObject *args)
         return NULL;
 
     switch (PGAGetDataType (ctx)) {
-    case PGA_DATATYPE_BINARY:
+    case PGA_DATATYPE_BINARY :
     {
         int allele = PGAGetBinaryAllele (ctx, p, pop, i);
         return Py_BuildValue ("i", allele);
         break;
     }
-    case PGA_DATATYPE_CHARACTER:
+    case PGA_DATATYPE_CHARACTER :
     {
         char allele = PGAGetCharacterAllele (ctx, p, pop, i);
         return Py_BuildValue ("c", allele);
         break;
     }
-    case PGA_DATATYPE_INTEGER:
+    case PGA_DATATYPE_INTEGER :
     {
         int allele = PGAGetIntegerAllele (ctx, p, pop, i);
         return Py_BuildValue ("i", allele);
         break;
     }
-    case PGA_DATATYPE_REAL:
+    case PGA_DATATYPE_REAL :
     {
         double allele = PGAGetRealAllele (ctx, p, pop, i);
         return Py_BuildValue ("d", allele);
         break;
     }
-    default:
+    default :
         assert (0);
     }
     Py_INCREF   (Py_None);
@@ -654,7 +710,7 @@ static PyObject *PGA_set_allele (PyObject *self0, PyObject *args)
         return NULL;
 
     switch (PGAGetDataType (ctx)) {
-    case PGA_DATATYPE_BINARY:
+    case PGA_DATATYPE_BINARY :
     {
         int allele;
         if (!PyArg_Parse (val, "i", &allele))
@@ -662,7 +718,7 @@ static PyObject *PGA_set_allele (PyObject *self0, PyObject *args)
         PGASetBinaryAllele (ctx, p, pop, i, allele);
         break;
     }
-    case PGA_DATATYPE_CHARACTER:
+    case PGA_DATATYPE_CHARACTER :
     {
         char allele;
         if (!PyArg_Parse (val, "c", &allele))
@@ -670,7 +726,7 @@ static PyObject *PGA_set_allele (PyObject *self0, PyObject *args)
         PGASetCharacterAllele (ctx, p, pop, i, allele);
         break;
     }
-    case PGA_DATATYPE_INTEGER:
+    case PGA_DATATYPE_INTEGER :
     {
         int allele;
         if (!PyArg_Parse (val, "i", &allele))
@@ -678,7 +734,7 @@ static PyObject *PGA_set_allele (PyObject *self0, PyObject *args)
         PGASetIntegerAllele (ctx, p, pop, i, allele);
         break;
     }
-    case PGA_DATATYPE_REAL:
+    case PGA_DATATYPE_REAL :
     {
         double allele;
         if (!PyArg_Parse (val, "d", &allele))
@@ -686,7 +742,7 @@ static PyObject *PGA_set_allele (PyObject *self0, PyObject *args)
         PGASetRealAllele (ctx, p, pop, i, allele);
         break;
     }
-    default:
+    default :
         assert (0);
     }
     Py_INCREF   (Py_None);
@@ -848,6 +904,9 @@ static PyMethodDef PGA_Methods [] =
   }
 , { "get_best_index",            PGA_get_best_index,            METH_VARARGS
   , "Get best index in population pop"
+  }
+, { "print_string",              PGA_print_string,              METH_VARARGS
+  , "Python gene print function -- can be overridden in descendent class."
   }
 , { "random01",                  PGA_random_01,                 METH_VARARGS
   , "Random float 0 <= f <= 1"
