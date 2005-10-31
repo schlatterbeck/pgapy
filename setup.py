@@ -25,6 +25,20 @@
 from distutils.core import setup, Extension
 from Version        import VERSION
 
+license = 'GNU Library or Lesser General Public License (LGPL)'
+
+description = \
+    """\
+        pgapack, the parallel genetic algorithm library (see
+        ftp://info.mcs.anl.gov/pub/pgapack/README) is a powerfull genetic
+        algorithm library by D. Levine, Mathematics and Computer Science
+        Division Argonne National Laboratory. The library is written in
+        C. PGAPy wraps this library for use with Python.
+
+        You really, absolutely need to read the documentation that comes
+        with pgapack -- and of course you need the pgapack library.
+    """
+
 module1 = Extension \
     ( 'pga'
     , sources       = ['pgamodule.c']
@@ -34,8 +48,23 @@ module1 = Extension \
     )
 
 setup \
-    ( name        = 'PGA'
-    , version     = VERSION
-    , description = 'Wrapper for pgapack genetic algorithm library'
-    , ext_modules = [module1]
+    ( name             = 'PGAPy'
+    , version          = VERSION
+    , description      = 'Python wrapper for pgapack, the parallel genetic '\
+                         'algorithm library'
+    , long_description = description
+    , ext_modules      = [module1]
+    , author           = "Ralf Schlatterbeck"
+    , author_email     = "rsc@runtux.com"
+    , classifiers      = \
+        [ 'Development Status :: 3 - Alpha'
+        , 'Intended Audience :: Developers'
+        , 'Intended Audience :: Education'
+        , 'Intended Audience :: Science/Research'
+        , 'License :: OSI Approved :: ' + license
+        , 'Operating System :: OS Independent'
+        , 'Programming Language :: C'
+        , 'Programming Language :: Python'
+        , 'Topic :: Software Development :: Libraries :: Python Modules'
+        ]
     )
