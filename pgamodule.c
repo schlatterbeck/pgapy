@@ -3,6 +3,7 @@
 #include <stdio.h>
 #undef NDEBUG
 #include <assert.h>
+#include <Version.h>
 
 static PyObject *context        = NULL;
 static int       error_occurred = 0;
@@ -945,10 +946,12 @@ PyMODINIT_FUNC initpga (void)
     PyObject *module_Dict = PyModule_GetDict    (module);
     PyObject *class_Dict  = PyDict_New          ();
     PyObject *class_Name  = PyString_FromString ("PGA");
+    PyObject *version     = PyString_FromString (VERSION);
     PyObject *pga_Class   = PyClass_New         (NULL, class_Dict, class_Name);
     context               = Py_BuildValue       ("{}");
     PyDict_SetItemString (module_Dict, "PGA",     pga_Class);
     PyDict_SetItemString (module_Dict, "context", context);
+    PyDict_SetItemString (module_Dict, "VERSION", version);
 
     for (cd = constdef; cd->cd_name; cd++) {
         PyObject *constant = Py_BuildValue    ("i", cd->cd_value);
@@ -958,6 +961,7 @@ PyMODINIT_FUNC initpga (void)
 
     Py_DECREF(class_Dict);
     Py_DECREF(class_Name);
+    Py_DECREF(version);
     Py_DECREF(pga_Class);
     
     /* add methods to class */
