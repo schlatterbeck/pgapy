@@ -44,7 +44,7 @@ module1 = Extension \
     , sources       = ['pgamodule.c']
     , define_macros = [('WL', '32')]
     , include_dirs  = ['.']
-    , libraries     = ['pgaO']
+    , libraries     = ['pgaO'] # you might need to adapt name of pga lib
     )
 
 setup \
