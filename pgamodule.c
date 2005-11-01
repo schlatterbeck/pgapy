@@ -969,11 +969,13 @@ PyMODINIT_FUNC initpga (void)
     PyObject *class_Dict  = PyDict_New          ();
     PyObject *class_Name  = PyString_FromString ("PGA");
     PyObject *version     = PyString_FromString (VERSION);
+    PyObject *pga         = PyString_FromString ("pga");
     PyObject *pga_Class   = PyClass_New         (NULL, class_Dict, class_Name);
     context               = Py_BuildValue       ("{}");
-    PyDict_SetItemString (module_Dict, "PGA",     pga_Class);
-    PyDict_SetItemString (module_Dict, "context", context);
-    PyDict_SetItemString (module_Dict, "VERSION", version);
+    PyDict_SetItemString (module_Dict, "PGA",        pga_Class);
+    PyDict_SetItemString (module_Dict, "context",    context);
+    PyDict_SetItemString (module_Dict, "VERSION",    version);
+    PyDict_SetItemString (class_Dict,  "__module__", pga);
 
     for (cd = constdef; cd->cd_name; cd++) {
         PyObject *constant = Py_BuildValue    ("i", cd->cd_value);
@@ -984,6 +986,7 @@ PyMODINIT_FUNC initpga (void)
     Py_DECREF(class_Dict);
     Py_DECREF(class_Name);
     Py_DECREF(version);
+    Py_DECREF(pga);
     Py_DECREF(pga_Class);
     
     /* add methods to class */
