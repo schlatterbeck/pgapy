@@ -20,7 +20,7 @@ README.html: README
 	rst2html $< > $@
 
 default.css: ../../html/stylesheets/default.css
-	ln -sf ../../html/stylesheets/default.css
+	cp ../../html/stylesheets/default.css .
 
 %.py: %.v
 	sed -e 's/RELEASE/$(LASTRELASE)/' $< > $@
@@ -33,5 +33,5 @@ upload_homepage: all
 	scp default.css $(USERNAME)@$(HOSTNAME):$(PROJECTDIR)
 
 clean:
-	rm -f MANIFEST Version.h Version.py Version.pyc
+	rm -f MANIFEST Version.h Version.py Version.pyc default.css README.html
 	rm -rf dist build
