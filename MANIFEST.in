@@ -1,1 +1,4 @@
 include test.py
+include README
+include README.html
+include default.css
