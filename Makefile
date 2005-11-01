@@ -4,6 +4,10 @@ SRC=Makefile setup.py pgamodule.c test.py* README README.html default.css
 VERSION=Version.h Version.py
 LASTRELASE:=$(shell if x=`lastrelease -d` ;then echo $$x ;else echo 'NO_TAG' ;fi)
 
+USERNAME=schlatterbeck
+HOSTNAME=shell.sourceforge.net
+PROJECTDIR=/home/groups/p/pg/pgapy/htdocs
+
 all: $(VERSION)
 
 $(VERSION): $(SRC)
@@ -23,6 +27,10 @@ default.css: ../../html/stylesheets/default.css
 
 %.h: %.py
 	python $< > $@
+
+upload_homepage: all
+	scp README.html $(USERNAME)@$(HOSTNAME):$(PROJECTDIR)/index.html
+	scp default.css $(USERNAME)@$(HOSTNAME):$(PROJECTDIR)
 
 clean:
 	rm -f MANIFEST Version.h Version.py Version.pyc
