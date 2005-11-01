@@ -1,5 +1,6 @@
 PKG=pgapy
-SRC=Makefile setup.py pgamodule.c test.py* README README.html default.css
+SRC=Makefile MANIFEST.in setup.py README README.html default.css \
+    pgamodule.c test.py
 
 VERSION=Version.h Version.py
 LASTRELASE:=$(shell if x=`lastrelease -d` ;then echo $$x ;else echo 'NO_TAG' ;fi)
