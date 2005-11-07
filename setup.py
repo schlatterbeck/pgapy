@@ -65,6 +65,5 @@ setup \
         , 'Programming Language :: C'
         , 'Programming Language :: Python'
         , 'Topic :: Software Development :: Libraries :: Python Modules'
-        , 'Topic :: Software Development :: Algorithms :: Genetic Algorithms'
         ]
     )
