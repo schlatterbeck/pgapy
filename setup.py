@@ -21,10 +21,10 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # ****************************************************************************
 
-
 from distutils.core import setup, Extension
 from Version        import VERSION
 from textwrap       import dedent
+from os             import path
 
 license = 'GNU Library or Lesser General Public License (LGPL)'
 
@@ -37,6 +37,22 @@ description = dedent \
         in C. PGAPy wraps this library for use with Python.
     """)
 
+
+# example config for default pga home when installing pga from source
+# contributed by Márk Váradi. You need to comment the module1 below if
+# you want to use this setting.
+BASE    = '/usr/local/pga/'	# default pga home in Linux machines
+module1 = Extension \
+    ( 'pga'
+    , sources       = ['pgamodule.c']
+    , define_macros = [('WL', '32')]
+    , include_dirs  = ['.', path.join (BASE, 'include')]
+    , libraries     = [':libpgaO.a'] # you might need to adapt name of pga lib
+    , library_dirs  = [path.join (BASE, 'lib/linux')]
+    )
+
+# default config on debian (installation in /usr):
+# (uncomment following lines if you want to use config above)
 module1 = Extension \
     ( 'pga'
     , sources       = ['pgamodule.c']
@@ -65,5 +81,8 @@ setup \
         , 'Programming Language :: C'
         , 'Programming Language :: Python'
         , 'Topic :: Software Development :: Libraries :: Python Modules'
+# Would be nice if distutils supported the following category -- it
+# doesn't according to "python setup.py register --list-classifiers"
+#       , 'Topic :: Software Development :: Algorithms :: Genetic Algorithms'
         ]
     )
