@@ -76,7 +76,7 @@ Naming conventions in PGAPy
 
 When you extend PGAPy -- remember not all functions of pgapack are
 wrapped yet and you may need additional functions -- you should stick to
-the my naming conventions when making changes.
+my naming conventions when making changes.
 The following naming conventions were used for the wrapper:
 
  - Constants of pgapack like ``PGA_REPORT_STRING`` are used as-is in
@@ -137,6 +137,10 @@ Readme-update: Sourceforge logo, Changes chapter.
 
  - Add Sourceforge logo as required
  - Add Changes chapter for automagic releases
+ - Add a build-rule to setup.py to allow building for standard-install
+   of pgapack -- this currently needs editing of setup.py -- should use
+   autodetect here but this would require that I set up a machine with
+   standard install of pgapack for testing.
 
 Version 0.1: Initial freshmeat announcement
 

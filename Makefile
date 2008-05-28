@@ -36,3 +36,5 @@ upload_homepage: all
 clean:
 	rm -f MANIFEST Version.h Version.py Version.pyc default.css README.html
 	rm -rf dist build
+
+include ../make/Makefile-sf

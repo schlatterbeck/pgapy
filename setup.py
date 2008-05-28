@@ -26,17 +26,16 @@ from Version        import VERSION
 from textwrap       import dedent
 from os             import path
 
+description = []
+f = open ('README')
+logo_stripped = False
+for line in f :
+    if not logo_stripped and line.strip () :
+        continue
+    logo_stripped = True
+    description.append (line)
+
 license = 'GNU Library or Lesser General Public License (LGPL)'
-
-description = dedent \
-    ("""\
-        pgapack, the parallel genetic algorithm library (see
-        ftp://info.mcs.anl.gov/pub/pgapack/README) is a powerfull genetic
-        algorithm library by D. Levine, Mathematics and Computer Science
-        Division Argonne National Laboratory. The library is written
-        in C. PGAPy wraps this library for use with Python.
-    """)
-
 
 # example config for default pga home when installing pga from source
 # contributed by Márk Váradi. You need to comment the module1 below if
@@ -66,7 +65,7 @@ setup \
     , version          = VERSION
     , description      = 'Python wrapper for pgapack, the parallel genetic '\
                          'algorithm library'
-    , long_description = description
+    , long_description = ''.join (description)
     , ext_modules      = [module1]
     , author           = "Ralf Schlatterbeck"
     , author_email     = "rsc@runtux.com"
