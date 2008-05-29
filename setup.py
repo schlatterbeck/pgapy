@@ -22,7 +22,10 @@
 # ****************************************************************************
 
 from distutils.core import setup, Extension
-from Version        import VERSION
+try :
+    from Version        import VERSION
+except :
+    VERSION = None
 from textwrap       import dedent
 from os             import path
 
@@ -79,6 +82,7 @@ setup \
         , 'Operating System :: OS Independent'
         , 'Programming Language :: C'
         , 'Programming Language :: Python'
+        , 'Topic :: Scientific/Engineering :: Artificial Intelligence'
         , 'Topic :: Software Development :: Libraries :: Python Modules'
 # Would be nice if distutils supported the following category -- it
 # doesn't according to "python setup.py register --list-classifiers"
