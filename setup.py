@@ -53,14 +53,24 @@ module1 = Extension \
     , library_dirs  = [path.join (BASE, 'lib/linux')]
     )
 
-# default config on debian (installation in /usr):
-# (uncomment following lines if you want to use config above)
+# default config on debian before lenny (installation in /usr):
+# (comment following lines if you want to use a config above)
 module1 = Extension \
     ( 'pga'
     , sources       = ['pgamodule.c']
     , define_macros = [('WL', '32')]
     , include_dirs  = ['.']
     , libraries     = ['pgaO'] # you might need to adapt name of pga lib
+    )
+
+# default config on debian lenny, serial version (installation in /usr):
+# (comment following lines if you want to use a config above)
+module1 = Extension \
+    ( 'pga'
+    , sources       = ['pgamodule.c']
+    , define_macros = [('WL', '32')]
+    , include_dirs  = ['.', '/usr/include/pgapack-serial']
+    , libraries     = ['pgapack-serial1']
     )
 
 setup \
