@@ -43,12 +43,13 @@ license = 'GNU Library or Lesser General Public License (LGPL)'
 # example config for default pga home when installing pga from source
 # contributed by Márk Váradi. You need to comment the module1 below if
 # you want to use this setting.
-BASE    = '/usr/local/pga/'	# default pga home in Linux machines
+BASE     = '/usr/local/pga/'	# default pga home in Linux machines
+DEB_BASE = '/usr/include/pgapack-serial' # Default on Debian lenny
 module1 = Extension \
     ( 'pga'
     , sources       = ['pgamodule.c']
     , define_macros = [('WL', '32')]
-    , include_dirs  = ['.', path.join (BASE, 'include')]
+    , include_dirs  = ['.', path.join (BASE, 'include'), DEB_BASE]
     , libraries     = [':libpgaO.a'] # you might need to adapt name of pga lib
     , library_dirs  = [path.join (BASE, 'lib/linux')]
     )
@@ -59,8 +60,8 @@ module1 = Extension \
     ( 'pga'
     , sources       = ['pgamodule.c']
     , define_macros = [('WL', '32')]
-    , include_dirs  = ['.']
-    , libraries     = ['pgaO'] # you might need to adapt name of pga lib
+    , include_dirs  = ['.', DEB_BASE]
+    , libraries     = ['pgapack-serial1'] # serial version on debian lenny
     )
 
 # default config on debian lenny, serial version (installation in /usr):
