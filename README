@@ -7,6 +7,8 @@
 PGAPy: Python wrapper for pgapack parallel genetic algorithm library
 ====================================================================
 
+:Author: Ralf Schlatterbeck <rsc@runtux.com>
+
 PGAPy is a wrapper for pgapack, the parallel genetic algorithm library
 (see `pgapack Readme`_), a powerfull genetic algorithm library by
 D. Levine, Mathematics and Computer Science Division Argonne National
