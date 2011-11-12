@@ -2,7 +2,7 @@
     :height: 62
     :width: 210
     :alt: SourceForge.net Logo
-    :target: http://sourceforge.net
+    :target: http://sourceforge.net/pgapy
 
 PGAPy: Python wrapper for pgapack parallel genetic algorithm library
 ====================================================================
