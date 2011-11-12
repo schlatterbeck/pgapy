@@ -1,4 +1,3 @@
-PKG=pgapy
 SRC=Makefile MANIFEST.in setup.py README README.html \
     pgamodule.c test.py
 
@@ -8,8 +7,10 @@ VERSIONPY=Version.py
 VERSION=$(VERSIONH) $(VERSIONPY)
 
 USERNAME=schlatterbeck
-HOSTNAME=shell.sourceforge.net
-PROJECTDIR=/home/groups/p/pg/pgapy/htdocs
+PROJECT=pgapy
+PACKAGE=pgapy
+CHANGES=changes
+NOTES=notes
 
 all: $(VERSION)
 
