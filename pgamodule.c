@@ -306,6 +306,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     PyObject *self = NULL, *type = NULL, *maximize = NULL, *init = NULL;
     PyObject *init_percent = NULL, *stopping_rule_types = NULL;
     PyObject *print_options = NULL;
+    PyObject *no_duplicates = NULL;
     char *argv [] = {NULL, NULL};
     PGAContext *ctx;
     static char *kwlist[] =
@@ -325,13 +326,14 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         , "num_replace"
         , "pop_replace_type"
         , "print_options"
+        , "no_duplicates"
         , NULL
         };
 
     if  (!PyArg_ParseTupleAndKeywords 
             ( args
             , kw
-            , "OOi|OiOOiiiidOiiO"
+            , "OOi|OiOOiiiidOiiOO"
             , kwlist
             , &self
             , &type
@@ -349,6 +351,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             , &num_replace
             , &pop_replace_type
             , &print_options
+            , &no_duplicates
             )
         )
     {
@@ -435,6 +438,10 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             return NULL;
         }
         PGASetPopReplaceType (ctx, pop_replace_type);
+    }
+    if (no_duplicates && PyObject_IsTrue (no_duplicates))
+    {
+        PGASetNoDuplicatesFlag (ctx, PGA_TRUE);
     }
 
     if (pop_size)
