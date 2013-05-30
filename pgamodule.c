@@ -449,6 +449,18 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         }
         PGASetPopSize (ctx, pop_size);
     }
+    if (max_GA_iter) 
+    {
+        if (max_GA_iter <= 2)
+        {
+            PyErr_SetString \
+                ( PyExc_ValueError
+                , "Iteration count must be at least 2"
+                );
+            return NULL;
+        }
+        PGASetMaxGAIterValue (ctx, max_GA_iter);
+    }
     if  (!init_sequence
             ( stopping_rule_types
             , ctx
