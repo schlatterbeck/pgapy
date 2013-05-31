@@ -163,7 +163,7 @@ static double evaluate (PGAContext *ctx, int p, int pop)
 }
 
 /*
- * Used if the calling object has a duplicate-check method.
+ * Used if the calling object has a check_duplicate method.
  * Otherwise use built-in default for the datatype.
  * Perform duplicate checking, compare strings p1 and p2 to see if they
  * are different. If they are, return non-zero, else return 0.
