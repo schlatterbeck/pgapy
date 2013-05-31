@@ -530,13 +530,21 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     }
     PGASetUserFunction (ctx, PGA_USERFUNCTION_PRINTSTRING, (void *)print_gene);
     PGASetUserFunction (ctx, PGA_USERFUNCTION_STOPCOND,    (void *)check_stop);
-    if (random_seed)
+    if (max_no_change)
     {
-        PGASetRandomSeed   (ctx, random_seed);
+        PGASetMaxNoChangeValue (ctx, max_no_change);
+    }
+    if (max_similarity)
+    {
+        PGASetMaxSimilarityValue (ctx, max_similarity);
     }
     if (mutation_prob)
     {
         PGASetMutationProb (ctx, mutation_prob);
+    }
+    if (no_duplicates && PyObject_IsTrue (no_duplicates))
+    {
+        PGASetNoDuplicatesFlag (ctx, PGA_TRUE);
     }
     if (num_replace >= 0)
     {
@@ -554,9 +562,9 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         }
         PGASetPopReplaceType (ctx, pop_replace_type);
     }
-    if (no_duplicates && PyObject_IsTrue (no_duplicates))
+    if (random_seed)
     {
-        PGASetNoDuplicatesFlag (ctx, PGA_TRUE);
+        PGASetRandomSeed   (ctx, random_seed);
     }
 
     if (pop_size)
