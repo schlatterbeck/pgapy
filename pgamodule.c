@@ -405,10 +405,10 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     int argc = 0, max = 0, length = 0, pop_size = 0, pga_type = 0;
     int random_seed = 0, max_GA_iter = 0, max_no_change = 0;
     int num_replace = -1, pop_replace_type = -1;
-    int max_similarity = 0, crossover_type = 0, select_type = 0;
+    int max_similarity = 0, crossover_type = -1, select_type = -1;
     double mutation_prob = -1;
-    double crossover_prob = -1;
-    double uniform_crossover_prob = -1;
+    double crossover_prob = 0.85;
+    double uniform_crossover_prob = 0.5;
     PyObject *PGA_ctx;
     PyObject *self = NULL, *type = NULL, *maximize = NULL, *init = NULL;
     PyObject *init_percent = NULL, *stopping_rule_types = NULL;
@@ -436,13 +436,15 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         , "no_duplicates"
         , "crossover_type"
         , "select_type"
+        , "crossover_prob"
+        , "uniform_crossover_prob"
         , NULL
         };
 
     if  (!PyArg_ParseTupleAndKeywords 
             ( args
             , kw
-            , "OOi|OiOOiiiidOiiOOii"
+            , "OOi|OiOOiiiidOiiOOiidd"
             , kwlist
             , &self
             , &type
@@ -463,6 +465,8 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             , &no_duplicates
             , &crossover_type
             , &select_type
+            , &crossover_prob
+            , &uniform_crossover_prob
             )
         )
     {
@@ -549,7 +553,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     {
         PGASetCrossoverProb (ctx, crossover_prob);
     }
-    if (crossover_type)
+    if (crossover_type >= 0)
     {
         if (  crossover_type != PGA_CROSSOVER_ONEPT
            && crossover_type != PGA_CROSSOVER_TWOPT
@@ -581,10 +585,11 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     {
         PGASetMaxSimilarityValue (ctx, max_similarity);
     }
-    if (mutation_prob >= 0)
+    if (mutation_prob < 0)
     {
-        PGASetMutationProb (ctx, mutation_prob);
+        mutation_prob = (double)1.0 / (double)length;
     }
+    PGASetMutationProb (ctx, mutation_prob);
     if (no_duplicates && PyObject_IsTrue (no_duplicates))
     {
         PGASetNoDuplicatesFlag (ctx, PGA_TRUE);
@@ -621,7 +626,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     {
         PGASetRandomSeed   (ctx, random_seed);
     }
-    if (select_type)
+    if (select_type >= 0)
     {
         if (  select_type != PGA_SELECT_PROPORTIONAL
            && select_type != PGA_SELECT_SUS
@@ -637,6 +642,33 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     if (uniform_crossover_prob >= 0)
     {
         PGASetUniformCrossoverProb (ctx, uniform_crossover_prob);
+    }
+
+    /* Set attributes from internal values */
+    {
+        PyObject *p;
+        double prob;
+        prob = PGAGetCrossoverProb (ctx);
+        p = Py_BuildValue ("d", prob);
+        if (p)
+        {
+            PyObject_SetAttrString (self, "crossover_prob", p);
+            Py_DECREF (p);
+        }
+        prob = PGAGetMutationProb (ctx);
+        p = Py_BuildValue ("d", prob);
+        if (p)
+        {
+            PyObject_SetAttrString (self, "mutation_prob", p);
+            Py_DECREF (p);
+        }
+        prob = PGAGetUniformCrossoverProb (ctx);
+        p = Py_BuildValue ("d", prob);
+        if (p)
+        {
+            PyObject_SetAttrString (self, "uniform_crossover_prob", p);
+            Py_DECREF (p);
+        }
     }
 
     if  (!init_sequence
