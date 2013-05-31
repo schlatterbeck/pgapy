@@ -104,10 +104,30 @@ static PyObject *get_self (PGAContext *ctx)
 
 #define ERR_CHECK(x,r) do {      \
     if (!(x)) {                  \
-        error_occurred = 1;    \
-        return r;     \
-    }                          \
+        error_occurred = 1;      \
+        return r;                \
+    }                            \
 } while (0)
+
+/*
+ * Used if the calling object has an endofgen method.
+ * Otherwise use built-in default for the datatype.
+ * Called after each generation.
+ * Do something useful, display the population on a graphics output,
+ * let the user adjust the population, etc.
+ */
+static void endofgen (PGAContext *ctx)
+{
+    PyObject *self, *r;
+    ERR_CHECK (!error_occurred,);
+    self = get_self (ctx);
+    ERR_CHECK (self, );
+    r    = PyObject_CallMethod (self, "endofgen", "");
+    ERR_CHECK (r, );
+    Py_DECREF (r);
+    Py_DECREF (self);
+    return;
+}
 
 /*
  * Need a hash table of mapping ctx to PGA objects. Look up the
@@ -134,6 +154,38 @@ static double evaluate (PGAContext *ctx, int p, int pop)
     return retval;
 }
 
+/*
+ * Used if the calling object has a duplicate-check method.
+ * Otherwise use built-in default for the datatype.
+ * Perform duplicate checking, compare strings p1 and p2 to see if they
+ * are different. If they are, return non-zero, else return 0.
+ */
+static int check_duplicate (PGAContext *ctx, int p1, int pop1, int p2, int pop2)
+{
+    PyObject *self, *r;
+    int rr, retval;
+    ERR_CHECK (!error_occurred, 0);
+    self = get_self (ctx);
+    ERR_CHECK (self, 0);
+    r    = PyObject_CallMethod
+        (self, "check_duplicate", "iiii", p1, pop1, p2, pop2);
+    ERR_CHECK (r, 0);
+    rr = PyArg_Parse (r, "i", &retval);
+    ERR_CHECK (rr, 0);
+    Py_DECREF (r);
+    Py_DECREF (self);
+    return !!retval;
+}
+
+/*
+ * Check stopping criteria, this is always active.
+ * User can set a stop_cond method to add stopping criteria.
+ * We perform the magic here that if during one of the callback
+ * functions (calling into python, e.g. evaluate) an error occurrs, we
+ * check the error flag here and stop. This way we can return an error
+ * in one of the callback functions to python and raise the appropriate
+ * exception there.
+ */
 static int check_stop (PGAContext *ctx)
 {
     PyObject *self;
@@ -142,19 +194,62 @@ static int check_stop (PGAContext *ctx)
     ERR_CHECK (self, PGA_TRUE);
     if (PyObject_HasAttrString (self, "stop_cond"))
     {
-        PyObject *r = PyObject_CallMethod (self, "stop_cond", NULL);
         int retval, rr;
+        PyObject *r = PyObject_CallMethod (self, "stop_cond", NULL);
         ERR_CHECK (r, PGA_TRUE);
         rr = PyArg_Parse (r, "i", &retval);
         ERR_CHECK (rr, PGA_TRUE);
         Py_DECREF (r);
+        Py_DECREF (self);
         return !!retval;
     }
+    Py_DECREF (self);
     return PGACheckStoppingConditions (ctx);
 }
 
 /*
+ * Used if the calling object has a crossover method.
+ * Otherwise use built-in default for the datatype.
+ * Perform crossover from p1 and p2 into c1 and c2
+ */
+static void crossover
+    (PGAContext *ctx, int p1, int p2, int p_pop, int c1, int c2, int c_pop)
+{
+    PyObject *self, *r;
+    ERR_CHECK (!error_occurred, );
+    self = get_self (ctx);
+    ERR_CHECK (self, );
+    r    = PyObject_CallMethod
+        (self, "crossover", "iiiiii", p1, p2, p_pop, c1, c2, c_pop);
+    ERR_CHECK (r, );
+    Py_DECREF (r);
+    Py_DECREF (self);
+    return;
+}
+
+/*
+ * Used if the calling object has an initstring method.
+ * Otherwise use built-in default for the datatype.
+ */
+static void initstring (PGAContext *ctx, int p, int pop)
+{
+    PyObject *self, *r;
+    ERR_CHECK (!error_occurred, );
+    self = get_self (ctx);
+    ERR_CHECK (self, );
+    r    = PyObject_CallMethod (self, "initstring", "ii", p, pop);
+    ERR_CHECK (r, );
+    Py_DECREF (r);
+    Py_DECREF (self);
+    return;
+}
+
+/*
  * Used if the calling object has a mutation method.
+ * Otherwise use built-in default for the datatype.
+ * Insert code to mutate Data.
+ * Remember to count the number of mutations that happen, and return
+ * that value!
  */
 static int mutation (PGAContext *ctx, int p, int pop, double mr)
 {
@@ -168,6 +263,7 @@ static int mutation (PGAContext *ctx, int p, int pop, double mr)
     rr = PyArg_Parse (r, "i", &retval);
     ERR_CHECK (rr, 0);
     Py_DECREF (r);
+    Py_DECREF (self);
     return retval;
 }
 
@@ -185,6 +281,7 @@ static void print_gene (PGAContext *ctx, FILE *fp, int p, int pop)
     r    = PyObject_CallMethod (self, "print_string", "Oii", file, p, pop);
     ERR_CHECK (r,);
     Py_DECREF (r);
+    Py_DECREF (self);
 }
 
 /*
@@ -409,12 +506,30 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         , length
         , max ? PGA_MAXIMIZE : PGA_MINIMIZE
         );
-    PGASetUserFunction (ctx, PGA_USERFUNCTION_STOPCOND,    (void *)check_stop);
-    PGASetUserFunction (ctx, PGA_USERFUNCTION_PRINTSTRING, (void *)print_gene);
+    if (PyObject_HasAttrString (self, "check_duplicate"))
+    {
+        PGASetUserFunction
+            (ctx, PGA_USERFUNCTION_DUPLICATE, (void *)check_duplicate);
+    }
+    if (PyObject_HasAttrString (self, "crossover"))
+    {
+        PGASetUserFunction (ctx, PGA_USERFUNCTION_CROSSOVER, (void *)crossover);
+    }
+    if (PyObject_HasAttrString (self, "endofgen"))
+    {
+        PGASetUserFunction (ctx, PGA_USERFUNCTION_ENDOFGEN, (void *)endofgen);
+    }
+    if (PyObject_HasAttrString (self, "initstring"))
+    {
+        PGASetUserFunction
+            (ctx, PGA_USERFUNCTION_INITSTRING, (void *)initstring);
+    }
     if (PyObject_HasAttrString (self, "mutation"))
     {
         PGASetUserFunction (ctx, PGA_USERFUNCTION_MUTATION, (void *)mutation);
     }
+    PGASetUserFunction (ctx, PGA_USERFUNCTION_PRINTSTRING, (void *)print_gene);
+    PGASetUserFunction (ctx, PGA_USERFUNCTION_STOPCOND,    (void *)check_stop);
     if (random_seed)
     {
         PGASetRandomSeed   (ctx, random_seed);
