@@ -36,8 +36,12 @@ typedef struct
     int   cd_value;
 } constdef_t;
 
+/* These need to be kept sorted */
 static constdef_t constdef [] =
-    { {"PGA_NEWPOP",               PGA_NEWPOP                }
+    { {"PGA_CROSSOVER_ONEPT",      PGA_CROSSOVER_ONEPT       }
+    , {"PGA_CROSSOVER_TWOPT",      PGA_CROSSOVER_TWOPT       }
+    , {"PGA_CROSSOVER_UNIFORM",    PGA_CROSSOVER_UNIFORM     }
+    , {"PGA_NEWPOP",               PGA_NEWPOP                }
     , {"PGA_OLDPOP",               PGA_OLDPOP                }
     , {"PGA_POPREPL_BEST",         PGA_POPREPL_BEST          }
     , {"PGA_POPREPL_RANDOM_NOREP", PGA_POPREPL_RANDOM_NOREP  }
@@ -48,6 +52,10 @@ static constdef_t constdef [] =
     , {"PGA_REPORT_ONLINE",        PGA_REPORT_ONLINE         }
     , {"PGA_REPORT_STRING",        PGA_REPORT_STRING         }
     , {"PGA_REPORT_WORST",         PGA_REPORT_WORST          }
+    , {"PGA_SELECT_PROPORTIONAL",  PGA_SELECT_PROPORTIONAL   }
+    , {"PGA_SELECT_PTOURNAMENT",   PGA_SELECT_PTOURNAMENT    }
+    , {"PGA_SELECT_SUS",           PGA_SELECT_SUS            }
+    , {"PGA_SELECT_TOURNAMENT",    PGA_SELECT_TOURNAMENT     }
     , {"PGA_STOP_MAXITER",         PGA_STOP_MAXITER          }
     , {"PGA_STOP_NOCHANGE",        PGA_STOP_NOCHANGE         }
     , {"PGA_STOP_TOOSIMILAR",      PGA_STOP_TOOSIMILAR       }
@@ -397,8 +405,10 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     int argc = 0, max = 0, length = 0, pop_size = 0, pga_type = 0;
     int random_seed = 0, max_GA_iter = 0, max_no_change = 0;
     int num_replace = -1, pop_replace_type = -1;
-    int max_similarity = 0;
-    double mutation_prob = 0;
+    int max_similarity = 0, crossover_type = 0, select_type = 0;
+    double mutation_prob = -1;
+    double crossover_prob = -1;
+    double uniform_crossover_prob = -1;
     PyObject *PGA_ctx;
     PyObject *self = NULL, *type = NULL, *maximize = NULL, *init = NULL;
     PyObject *init_percent = NULL, *stopping_rule_types = NULL;
@@ -424,13 +434,15 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         , "pop_replace_type"
         , "print_options"
         , "no_duplicates"
+        , "crossover_type"
+        , "select_type"
         , NULL
         };
 
     if  (!PyArg_ParseTupleAndKeywords 
             ( args
             , kw
-            , "OOi|OiOOiiiidOiiOO"
+            , "OOi|OiOOiiiidOiiOOii"
             , kwlist
             , &self
             , &type
@@ -449,6 +461,8 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             , &pop_replace_type
             , &print_options
             , &no_duplicates
+            , &crossover_type
+            , &select_type
             )
         )
     {
@@ -530,6 +544,35 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     }
     PGASetUserFunction (ctx, PGA_USERFUNCTION_PRINTSTRING, (void *)print_gene);
     PGASetUserFunction (ctx, PGA_USERFUNCTION_STOPCOND,    (void *)check_stop);
+
+    if (crossover_prob >= 0)
+    {
+        PGASetCrossoverProb (ctx, crossover_prob);
+    }
+    if (crossover_type)
+    {
+        if (  crossover_type != PGA_CROSSOVER_ONEPT
+           && crossover_type != PGA_CROSSOVER_TWOPT
+           && crossover_type != PGA_CROSSOVER_UNIFORM
+           )
+        {
+            PyErr_SetString (PyExc_ValueError, "invalid crossover_type");
+            return NULL;
+        }
+        PGASetCrossoverType (ctx, crossover_type);
+    }
+    if (max_GA_iter) 
+    {
+        if (max_GA_iter <= 2)
+        {
+            PyErr_SetString \
+                ( PyExc_ValueError
+                , "Iteration count must be at least 2"
+                );
+            return NULL;
+        }
+        PGASetMaxGAIterValue (ctx, max_GA_iter);
+    }
     if (max_no_change)
     {
         PGASetMaxNoChangeValue (ctx, max_no_change);
@@ -538,7 +581,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     {
         PGASetMaxSimilarityValue (ctx, max_similarity);
     }
-    if (mutation_prob)
+    if (mutation_prob >= 0)
     {
         PGASetMutationProb (ctx, mutation_prob);
     }
@@ -562,11 +605,6 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         }
         PGASetPopReplaceType (ctx, pop_replace_type);
     }
-    if (random_seed)
-    {
-        PGASetRandomSeed   (ctx, random_seed);
-    }
-
     if (pop_size)
     {
         if (pop_size <= 1)
@@ -579,18 +617,28 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         }
         PGASetPopSize (ctx, pop_size);
     }
-    if (max_GA_iter) 
+    if (random_seed)
     {
-        if (max_GA_iter <= 2)
+        PGASetRandomSeed   (ctx, random_seed);
+    }
+    if (select_type)
+    {
+        if (  select_type != PGA_SELECT_PROPORTIONAL
+           && select_type != PGA_SELECT_SUS
+           && select_type != PGA_SELECT_TOURNAMENT
+           && select_type != PGA_SELECT_PTOURNAMENT
+           )
         {
-            PyErr_SetString \
-                ( PyExc_ValueError
-                , "Iteration count must be at least 2"
-                );
+            PyErr_SetString (PyExc_ValueError, "invalid select_type");
             return NULL;
         }
-        PGASetMaxGAIterValue (ctx, max_GA_iter);
+        PGASetSelectType (ctx, select_type);
     }
+    if (uniform_crossover_prob >= 0)
+    {
+        PGASetUniformCrossoverProb (ctx, uniform_crossover_prob);
+    }
+
     if  (!init_sequence
             ( stopping_rule_types
             , ctx
