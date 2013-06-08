@@ -651,33 +651,6 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         PGASetUniformCrossoverProb (ctx, uniform_crossover_prob);
     }
 
-    /* Set attributes from internal values */
-    {
-        PyObject *p;
-        double prob;
-        prob = PGAGetCrossoverProb (ctx);
-        p = Py_BuildValue ("d", prob);
-        if (p)
-        {
-            PyObject_SetAttrString (self, "crossover_prob", p);
-            Py_DECREF (p);
-        }
-        prob = PGAGetMutationProb (ctx);
-        p = Py_BuildValue ("d", prob);
-        if (p)
-        {
-            PyObject_SetAttrString (self, "mutation_prob", p);
-            Py_DECREF (p);
-        }
-        prob = PGAGetUniformCrossoverProb (ctx);
-        p = Py_BuildValue ("d", prob);
-        if (p)
-        {
-            PyObject_SetAttrString (self, "uniform_crossover_prob", p);
-            Py_DECREF (p);
-        }
-    }
-
     if  (!init_sequence
             ( stopping_rule_types
             , ctx
@@ -804,6 +777,40 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         free (i_high);
     }
     PGASetUp (ctx);
+    /* Set attributes from internal values */
+    {
+        PyObject *p;
+        double prob;
+        prob = PGAGetCrossoverProb (ctx);
+        p = Py_BuildValue ("d", prob);
+        if (p)
+        {
+            PyObject_SetAttrString (self, "crossover_prob", p);
+            Py_DECREF (p);
+        }
+        prob = PGAGetMutationProb (ctx);
+        p = Py_BuildValue ("d", prob);
+        if (p)
+        {
+            PyObject_SetAttrString (self, "mutation_prob", p);
+            Py_DECREF (p);
+        }
+        prob = PGAGetUniformCrossoverProb (ctx);
+        p = Py_BuildValue ("d", prob);
+        if (p)
+        {
+            PyObject_SetAttrString (self, "uniform_crossover_prob", p);
+            Py_DECREF (p);
+        }
+        pop_size = PGAGetPopSize (ctx);
+        p = Py_BuildValue ("i", pop_size);
+        if (p)
+        {
+            PyObject_SetAttrString (self, "pop_size", p);
+            Py_DECREF (p);
+        }
+    }
+
     PGA_ctx = Py_BuildValue ("i", (int) ctx);
     PyObject_SetItem       (context, PGA_ctx, self);
     PyObject_SetAttrString (self, "context", PGA_ctx);
@@ -1041,6 +1048,31 @@ static PyObject *PGA_random_01 (PyObject *self0, PyObject *args)
     return Py_BuildValue ("d", PGARandom01 (ctx, 0));
 }
 
+static PyObject *PGA_get_fitness (PyObject *self0, PyObject *args)
+{
+    PyObject *self;
+    PGAContext *ctx;
+    int p, pop;
+
+    if (!PyArg_ParseTuple(args, "Oii", &self, &p, &pop))
+        return NULL;
+    if (!(ctx = get_context (self)))
+        return NULL;
+    return Py_BuildValue ("d", PGAGetFitness (ctx, p, pop));
+}
+
+static PyObject *PGA_get_iteration (PyObject *self0, PyObject *args)
+{
+    PyObject *self;
+    PGAContext *ctx;
+
+    if (!PyArg_ParseTuple(args, "O", &self))
+        return NULL;
+    if (!(ctx = get_context (self)))
+        return NULL;
+    return Py_BuildValue ("i", PGAGetGAIterValue (ctx));
+}
+
 static int check_probability (double probability)
 {
     if (probability < 0 || probability > 1)
@@ -1156,6 +1188,12 @@ static PyMethodDef PGA_Methods [] =
   }
 , { "get_best_index",            PGA_get_best_index,            METH_VARARGS
   , "Get best index in population pop"
+  }
+, { "get_fitness",               PGA_get_fitness,               METH_VARARGS
+  , "Get fitness of an individual"
+  }
+, { "get_iteration",             PGA_get_iteration,             METH_VARARGS
+  , "Current iteration (GA iter)"
   }
 , { "print_string",              PGA_print_string,              METH_VARARGS
   , "Python gene print function -- can be overridden in descendent class."
