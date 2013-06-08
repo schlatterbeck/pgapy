@@ -101,7 +101,7 @@ static PGAContext *get_context (PyObject *self)
 
 static PyObject *get_self (PGAContext *ctx)
 {
-    PyObject *self, *PGA_ctx = Py_BuildValue    ("i", (int) ctx);
+    PyObject *self, *PGA_ctx = Py_BuildValue    ("l", (long) ctx);
 
     if (!PGA_ctx)
         return NULL;
@@ -811,7 +811,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         }
     }
 
-    PGA_ctx = Py_BuildValue ("i", (int) ctx);
+    PGA_ctx = Py_BuildValue ("l", (long) ctx);
     PyObject_SetItem       (context, PGA_ctx, self);
     PyObject_SetAttrString (self, "context", PGA_ctx);
     Py_DECREF (PGA_ctx);
