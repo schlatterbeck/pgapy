@@ -90,7 +90,7 @@ static PGAContext *get_context (PyObject *self)
     PGAContext *ctx;
     if (!PGA_ctx)
         return NULL;
-    if (!PyArg_Parse (PGA_ctx, "i", &ctx))
+    if (!PyArg_Parse (PGA_ctx, "l", &ctx))
     {
         Py_DECREF   (PGA_ctx);
         return NULL;
@@ -847,7 +847,7 @@ static PyObject *PGA_del (PyObject *self0, PyObject *args)
     */
     if (!PGA_ctx)
         return Py_None;
-    if (!PyArg_Parse (PGA_ctx, "i", &ctx))
+    if (!PyArg_Parse (PGA_ctx, "l", &ctx))
         return Py_None;
     PyObject_DelItem     (context, PGA_ctx);
     Py_DECREF            (PGA_ctx);
