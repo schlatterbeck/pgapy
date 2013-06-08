@@ -406,6 +406,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     int random_seed = 0, max_GA_iter = 0, max_no_change = 0;
     int num_replace = -1, pop_replace_type = -1;
     int max_similarity = 0, crossover_type = -1, select_type = -1;
+    int print_frequency = 0;
     double mutation_prob = -1;
     double crossover_prob = 0.85;
     double uniform_crossover_prob = 0.5;
@@ -438,13 +439,14 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         , "select_type"
         , "crossover_prob"
         , "uniform_crossover_prob"
+        , "print_frequency"
         , NULL
         };
 
     if  (!PyArg_ParseTupleAndKeywords 
             ( args
             , kw
-            , "OOi|OiOOiiiidOiiOOiidd"
+            , "OOi|OiOOiiiidOiiOOiiddi"
             , kwlist
             , &self
             , &type
@@ -467,6 +469,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             , &select_type
             , &crossover_prob
             , &uniform_crossover_prob
+            , &print_frequency
             )
         )
     {
@@ -621,6 +624,10 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             return NULL;
         }
         PGASetPopSize (ctx, pop_size);
+    }
+    if (print_frequency)
+    {
+        PGASetPrintFrequencyValue (ctx, print_frequency);
     }
     if (random_seed)
     {
