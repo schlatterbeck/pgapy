@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: iso-8859-1 -*-
-# Copyright (C) 2005 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2005-14 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -30,7 +30,7 @@ from textwrap       import dedent
 from os             import path
 
 description = []
-f = open ('README')
+f = open ('README.rst')
 logo_stripped = False
 for line in f :
     if not logo_stripped and line.strip () :

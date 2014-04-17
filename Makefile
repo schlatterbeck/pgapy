@@ -1,7 +1,15 @@
-SRC=Makefile MANIFEST.in setup.py README README.html \
+# To use this Makefile, get a copy of my SF Release Tools
+# git clone git://git.code.sf.net/p/sfreleasetools/code sfreleasetools
+# And point the environment variable RELEASETOOLS to the checkout
+ifeq (,${RELEASETOOLS})
+    RELEASETOOLS=../releasetools
+endif
+
+README=README.rst
+SRC=Makefile MANIFEST.in setup.py $(README) README.html \
     pgamodule.c test.py
 
-LASTRELEASE:=$(shell ../svntools/lastrelease -n)
+LASTRELEASE:=$(shell $(RELEASETOOLS)/lastrelease -n)
 VERSIONH=Version.h
 VERSIONPY=Version.py
 VERSION=$(VERSIONH) $(VERSIONPY)
@@ -24,4 +32,4 @@ clean:
 	rm -f MANIFEST Version.h Version.py Version.pyc default.css README.html
 	rm -rf dist build
 
-include ../make/Makefile-sf
+include $(RELEASETOOLS)/Makefile-sf

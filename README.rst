@@ -133,16 +133,19 @@ Project information and download from `Sourceforge main page`_
 Changes
 -------
 
-Version 0.2: Minor bugfixes
+Version 0.2: Feature enhancements, Bug fixes
 
+64 bit support, more pgapack functions and attributes wrapped,
 Readme-update: Sourceforge logo, Changes chapter.
 
- - Add Sourceforge logo as required
- - Add Changes chapter for automagic releases
+ - Bug-fixes for 64 bit architectures
+ - More functions and attributes of pgapack wrapped
  - Add a build-rule to setup.py to allow building for standard-install
    of pgapack -- this currently needs editing of setup.py -- should use
    autodetect here but this would require that I set up a machine with
    standard install of pgapack for testing.
+ - Add Sourceforge logo as required
+ - Add Changes chapter for automagic releases
 
 Version 0.1: Initial freshmeat announcement
 

@@ -1,5 +1,5 @@
 include test.py
-include README
+include README.rst
 include README.html
 include default.css
 include Version.h
