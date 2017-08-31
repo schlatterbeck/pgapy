@@ -32,6 +32,6 @@ dist: all
 
 clean:
 	rm -f MANIFEST Version.h Version.py Version.pyc default.css README.html
-	rm -rf dist build
+	rm -rf ${CLEAN}
 
 include $(RELEASETOOLS)/Makefile-sf
