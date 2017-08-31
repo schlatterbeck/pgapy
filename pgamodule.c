@@ -1,4 +1,4 @@
-/* Copyright (C) 2005 Dr. Ralf Schlatterbeck Open Source Consulting.
+/* Copyright (C) 2005-17 Dr. Ralf Schlatterbeck Open Source Consulting.
  * Reichergasse 131, A-3411 Weidling.
  * Web: http://www.runtux.com Email: office@runtux.com
  * All rights reserved
@@ -26,6 +26,18 @@
 #undef NDEBUG
 #include <assert.h>
 #include <Version.h>
+
+#define IS_PY3 (PY_VERSION_HEX >= 0x3000000)
+
+/* Conditional compilation for python2 vs python3 */
+# if IS_PY3
+# define PyInt_Type PyLong_Type
+# define PyString_Check PyUnicode_Check
+# define PyString_FromString(x) PyUnicode_FromString((x))
+# define PyFileObject PyObject
+# define PyFile_Check(x) PyObject_IsInstance((x), (PyObject *)&PyIOBase_Type)
+# else /* Python 2 */
+# endif /* Python 2 */
 
 static PyObject *context        = NULL;
 static int       error_occurred = 0;
@@ -284,7 +296,11 @@ static void print_gene (PGAContext *ctx, FILE *fp, int p, int pop)
     ERR_CHECK (!error_occurred,);
     self    = get_self (ctx);
     ERR_CHECK (self,);
+#if IS_PY3
+    file = PyFile_FromFd (fileno (fp), "", "w", -1, "utf-8", NULL, NULL, 0);
+#else
     file = PyFile_FromFile (fp, "<PGA_file>", "w", fclose);
+#endif
     ERR_CHECK (file,);
     r    = PyObject_CallMethod (self, "print_string", "Oii", file, p, pop);
     ERR_CHECK (r,);
@@ -301,26 +317,35 @@ static PyObject *PGA_print_string (PyObject *self0, PyObject *args)
     PyFileObject *file;
     PGAContext   *ctx;
     int           p, pop;
+    FILE         *fp;
 
     if (!PyArg_ParseTuple(args, "OOii", &self, &file, &p, &pop))
         return NULL;
     if (!(ctx = get_context (self)))
         return NULL;
+#if IS_PY3
+    fp = fdopen (PyObject_AsFileDescriptor (file), "w");
+    if (fp == NULL) {
+        return NULL;
+    }
+#else
     if (!PyFile_Check (file))
         return NULL;
-    assert (file->f_fp);
+    fp = file->f_fp;
+    assert (fp);
+#endif
     switch (PGAGetDataType (ctx)) {
     case PGA_DATATYPE_BINARY :
-        PGABinaryPrintString    (ctx, file->f_fp, p, pop);
+        PGABinaryPrintString    (ctx, fp, p, pop);
         break;
     case PGA_DATATYPE_CHARACTER :
-        PGACharacterPrintString (ctx, file->f_fp, p, pop);
+        PGACharacterPrintString (ctx, fp, p, pop);
         break;
     case PGA_DATATYPE_INTEGER :
-        PGAIntegerPrintString   (ctx, file->f_fp, p, pop);
+        PGAIntegerPrintString   (ctx, fp, p, pop);
         break;
     case PGA_DATATYPE_REAL :
-        PGARealPrintString      (ctx, file->f_fp, p, pop);
+        PGARealPrintString      (ctx, fp, p, pop);
         break;
     default :
         assert (0);
@@ -480,7 +505,9 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     {
         pga_type = PGA_DATATYPE_BINARY;
     }
-    else if (PyObject_IsSubclass (type, (PyObject *)&PyInt_Type))
+    else if (  PyObject_IsSubclass (type, (PyObject *)&PyInt_Type)
+            || PyObject_IsSubclass (type, (PyObject *)&PyLong_Type)
+            )
     {
         pga_type = PGA_DATATYPE_INTEGER;
     }
@@ -488,7 +515,10 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     {
         pga_type = PGA_DATATYPE_REAL;
     }
-    else if (PyObject_IsSubclass (type, (PyObject *)&PyString_Type))
+    else if (  PyBytes_Check (type)
+            || PyUnicode_Check (type)
+            || PyString_Check (type)
+            )
     {
         pga_type = PGA_DATATYPE_CHARACTER;
     }
@@ -746,10 +776,10 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             else
             {
                 PyObject *l, *h;
-                l = PyNumber_Int (low);
+                l = PyNumber_Long (low);
                 if (!l)
                     return NULL;
-                h = PyNumber_Int (high);
+                h = PyNumber_Long (high);
                 if (!h)
                     return NULL;
                 if (  !PyArg_Parse (h, "i", ((int *)i_high) + i)
@@ -1171,7 +1201,7 @@ static PyMethodDef PGA_Methods [] =
 { { "__del__",                   PGA_del,                       METH_VARARGS
   , "Delete object and PGA data structures"
   }
-, { "__init__",     (PyCFunction)PGA_init,       METH_VARARGS | METH_KEYWORDS
+, { "__init__",     (PyCFunction)PGA_init,      METH_VARARGS | METH_KEYWORDS
   , "Init object"
   }
 , { "__len__",                   PGA_len,                       METH_VARARGS
@@ -1227,19 +1257,35 @@ static PyMethodDef PGA_Methods [] =
 
 static PyMethodDef Module_Methods[] = { {NULL, NULL, 0, NULL} };
 
+#if IS_PY3
+static struct PyModuleDef module_definition =
+{ PyModuleDef_HEAD_INIT
+, "pga"
+, NULL
+, -1
+, Module_Methods
+};
+// python3 has different convention for module name
+#define initpga PyInit_pga
+#endif
+
 PyMODINIT_FUNC initpga (void)
 {
     PyMethodDef *def;
     constdef_t  *cd;
-    PyObject *module      = Py_InitModule       ("pga", Module_Methods);
-    PyObject *module_Dict = PyModule_GetDict    (module);
-    PyObject *class_Dict  = PyDict_New          ();
     PyObject *class_Name  = PyString_FromString ("PGA");
+    PyObject *class_Dict  = PyDict_New          ();
+#if IS_PY3
+    PyObject *module      = PyModule_Create     (&module_definition);
+#else
+    PyObject *module      = Py_InitModule       ("pga", Module_Methods);
+#endif
+    PyObject *bases       = PyTuple_New         (0);
+    PyObject *pga_Class   = NULL;
+    PyObject *module_Dict = PyModule_GetDict    (module);
     PyObject *version     = PyString_FromString (VERSION);
     PyObject *pga         = PyString_FromString ("pga");
-    PyObject *pga_Class   = PyClass_New         (NULL, class_Dict, class_Name);
     context               = Py_BuildValue       ("{}");
-    PyDict_SetItemString (module_Dict, "PGA",        pga_Class);
     PyDict_SetItemString (module_Dict, "context",    context);
     PyDict_SetItemString (module_Dict, "VERSION",    version);
     PyDict_SetItemString (class_Dict,  "__module__", pga);
@@ -1249,19 +1295,30 @@ PyMODINIT_FUNC initpga (void)
         PyDict_SetItemString (module_Dict, cd->cd_name, constant);
         Py_DECREF (constant);
     }
-
-    Py_DECREF(class_Dict);
-    Py_DECREF(class_Name);
-    Py_DECREF(version);
-    Py_DECREF(pga);
-    Py_DECREF(pga_Class);
+    Py_CLEAR(version);
+    Py_CLEAR(pga);
     
     /* add methods to class */
     for (def = PGA_Methods; def->ml_name != NULL; def++) {
         PyObject *func   = PyCFunction_New (def,  NULL);
-        PyObject *method = PyMethod_New    (func, NULL, pga_Class);
+#if IS_PY3
+        PyObject *method = PyInstanceMethod_New (func);
+#else
+        PyObject *method = PyMethod_New (func, NULL, pga_Class);
+#endif
         PyDict_SetItemString (class_Dict, def->ml_name, method);
-        Py_DECREF (func);
-        Py_DECREF (method);
+        Py_CLEAR (func);
+        Py_CLEAR (method);
     }
+    pga_Class = PyObject_CallFunctionObjArgs
+        ((PyObject *)&PyType_Type, class_Name, bases, class_Dict, NULL);
+    PyDict_SetItemString (module_Dict, "PGA", pga_Class);
+
+    Py_CLEAR(bases);
+    Py_CLEAR(class_Name);
+    Py_CLEAR(pga_Class);
+    Py_CLEAR(class_Dict);
+#if IS_PY3
+    return module;
+#endif
 }
