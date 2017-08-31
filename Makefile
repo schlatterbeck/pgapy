@@ -6,8 +6,10 @@ ifeq (,${RELEASETOOLS})
 endif
 
 README=README.rst
+EXAMPLES=$(patsubst %.py,examples/%.py,cards.py hello-world.py \
+    one-max.py sort-numbers.py)
 SRC=Makefile MANIFEST.in setup.py $(README) README.html \
-    pgamodule.c test.py
+    pgamodule.c $(EXAMPLES)
 
 LASTRELEASE:=$(shell $(RELEASETOOLS)/lastrelease -n)
 VERSIONH=Version.h
