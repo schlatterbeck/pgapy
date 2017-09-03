@@ -14,3 +14,6 @@
 .#*
 .*.swp
 .DS_store
+Version.h
+Version.py
+README.html

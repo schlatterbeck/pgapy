@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: iso-8859-1 -*-
-# Copyright (C) 2005-14 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2005-17 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # All rights reserved
@@ -38,13 +38,13 @@ for line in f :
     logo_stripped = True
     description.append (line)
 
-license = 'GNU Library or Lesser General Public License (LGPL)'
+license = 'BSD License'
 
 # example config for default pga home when installing pga from source
 # contributed by Márk Váradi. You need to comment the module1 below if
 # you want to use this setting.
 BASE     = '/usr/local/pga/'	# default pga home in Linux machines
-DEB_BASE = '/usr/include/pgapack-serial' # Default on Debian lenny
+DEB_BASE = '/usr/include/pgapack-serial' # Default on Debian since lenny
 module1 = Extension \
     ( 'pga'
     , sources       = ['pgamodule.c']
@@ -54,17 +54,7 @@ module1 = Extension \
     , library_dirs  = [path.join (BASE, 'lib/linux')]
     )
 
-# default config on debian before lenny (installation in /usr):
-# (comment following lines if you want to use a config above)
-module1 = Extension \
-    ( 'pga'
-    , sources       = ['pgamodule.c']
-    , define_macros = [('WL', '32')]
-    , include_dirs  = ['.', DEB_BASE]
-    , libraries     = ['pgapack-serial1'] # serial version on debian lenny
-    )
-
-# default config on debian lenny, serial version (installation in /usr):
+# default config since debian lenny, serial version (installation in /usr):
 # (comment following lines if you want to use a config above)
 module1 = Extension \
     ( 'pga'
@@ -85,7 +75,7 @@ setup \
     , author_email     = "rsc@runtux.com"
     , url              = "http://pgapy.sourceforge.net/"
     , classifiers      = \
-        [ 'Development Status :: 3 - Alpha'
+        [ 'Development Status :: 5 - Production/Stable'
         , 'Intended Audience :: Developers'
         , 'Intended Audience :: Education'
         , 'Intended Audience :: Science/Research'
