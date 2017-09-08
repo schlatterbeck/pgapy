@@ -53,6 +53,11 @@ static constdef_t constdef [] =
     { {"PGA_CROSSOVER_ONEPT",      PGA_CROSSOVER_ONEPT       }
     , {"PGA_CROSSOVER_TWOPT",      PGA_CROSSOVER_TWOPT       }
     , {"PGA_CROSSOVER_UNIFORM",    PGA_CROSSOVER_UNIFORM     }
+    , {"PGA_MUTATION_CONSTANT",    PGA_MUTATION_CONSTANT     }
+    , {"PGA_MUTATION_GAUSSIAN",    PGA_MUTATION_GAUSSIAN     }
+    , {"PGA_MUTATION_PERMUTE",     PGA_MUTATION_PERMUTE      }
+    , {"PGA_MUTATION_RANGE",       PGA_MUTATION_RANGE        }
+    , {"PGA_MUTATION_UNIFORM",     PGA_MUTATION_UNIFORM      }
     , {"PGA_NEWPOP",               PGA_NEWPOP                }
     , {"PGA_OLDPOP",               PGA_OLDPOP                }
     , {"PGA_POPREPL_BEST",         PGA_POPREPL_BEST          }
@@ -447,14 +452,19 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     int num_replace = -1, pop_replace_type = -1;
     int max_similarity = 0, crossover_type = -1, select_type = -1;
     int print_frequency = 0;
+    int restart_frequency = 0;
+    int mutation_type = 0;
     double mutation_prob = -1;
     double crossover_prob = 0.85;
     double uniform_crossover_prob = 0.5;
     PyObject *PGA_ctx = NULL;
     PyObject *self = NULL, *type = NULL, *maximize = NULL, *init = NULL;
     PyObject *init_percent = NULL, *stopping_rule_types = NULL;
+    PyObject *integer_init_permute = NULL;
     PyObject *print_options = NULL;
     PyObject *no_duplicates = NULL;
+    PyObject *restart = NULL;
+    PyObject *mutation_bounded = NULL;
     char *argv [] = {NULL, NULL};
     PGAContext *ctx;
     static char *kwlist[] =
@@ -465,6 +475,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         , "pop_size"
         , "init"
         , "init_percent"
+        , "integer_init_permute"
         , "random_seed"
         , "max_GA_iter"
         , "max_no_change"
@@ -480,13 +491,17 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         , "crossover_prob"
         , "uniform_crossover_prob"
         , "print_frequency"
+        , "restart"
+        , "restart_frequency"
+        , "mutation_bounded"
+        , "mutation_type"
         , NULL
         };
 
     if  (!PyArg_ParseTupleAndKeywords 
             ( args
             , kw
-            , "OOi|OiOOiiiidOiiOOiiddi"
+            , "OOi|OiOOOiiiidOiiOOiiddiOiOi"
             , kwlist
             , &self
             , &type
@@ -495,6 +510,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             , &pop_size
             , &init
             , &init_percent
+            , &integer_init_permute
             , &random_seed
             , &max_GA_iter
             , &max_no_change
@@ -510,6 +526,10 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             , &crossover_prob
             , &uniform_crossover_prob
             , &print_frequency
+            , &restart
+            , &restart_frequency
+            , &mutation_bounded
+            , &mutation_type
             )
         )
     {
@@ -718,6 +738,46 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             )
         )
         return NULL;
+    if (integer_init_permute) {
+        int i;
+        int len = PySequence_Length (integer_init_permute);
+        int permute_lh [2];
+        if (len < 0) {
+            return NULL;
+        }
+        if (len != 2) {
+            PyErr_SetString
+                ( PyExc_ValueError
+                , "Need lower, upper for integer_init_permute"
+                );
+            return NULL;
+        }
+        for (i = 0; i < 2; i++) {
+            PyObject *x = PySequence_GetItem (integer_init_permute, i);
+            PyObject *l = NULL;
+            if (!x) {
+                return NULL;
+            }
+            l = PyNumber_Long (x);
+            Py_CLEAR (x);
+            if (!l) {
+                return NULL;
+            }
+            if (!PyArg_Parse (l, "i", permute_lh + i)) {
+                Py_CLEAR (l);
+                return NULL;
+            }
+            Py_CLEAR (l);
+        }
+        if (permute_lh [1] - permute_lh [0] != length - 1) {
+            PyErr_SetString
+                ( PyExc_ValueError
+                , "integer_init_permute: upper - lower must be gene length"
+                );
+            return NULL;
+        }
+        PGASetIntegerInitPermute (ctx, permute_lh [0], permute_lh [1]);
+    }
     if (init || init_percent)
     {
         int datatype = PGAGetDataType (ctx);
@@ -757,29 +817,49 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         for (i = 0; i < len; i++)
         {
             PyObject *x = PySequence_GetItem (initvals, i);
-            PyObject *low, *high;
-            if (!x)
+            PyObject *low = NULL, *high = NULL;
+            if (!x) {
                 return NULL;
+            }
             low  = PySequence_GetItem (x, 0);
-            if (!low)
+            if (!low) {
+                Py_CLEAR (x);
                 return NULL;
+            }
             high = PySequence_GetItem (x, 1);
-            if (!high)
+            if (!high) {
+                Py_CLEAR (x);
+                Py_CLEAR (low);
                 return NULL;
+            }
+            Py_CLEAR (x);
             if (is_real)
             {
-                PyObject *l, *h;
+                PyObject *l = NULL, *h = NULL;
                 double hi;
                 l = PyNumber_Float (low);
-                if (!l)
+                if (!l) {
+                    Py_CLEAR (low);
+                    Py_CLEAR (high);
                     return NULL;
+                }
                 h = PyNumber_Float (high);
-                if (!h)
+                if (!h) {
+                    Py_CLEAR (low);
+                    Py_CLEAR (high);
+                    Py_CLEAR (l);
                     return NULL;
+                }
+                Py_CLEAR (low);
+                Py_CLEAR (high);
                 if (  !PyArg_Parse (h, "d", ((double *)i_high) + i)
                    || !PyArg_Parse (l, "d", ((double *)i_low)  + i)
                    )
+                {
+                    Py_CLEAR (l);
+                    Py_CLEAR (h);
                     return NULL;
+                }
                 hi = ((double *)i_high) [i];
                 if (init_percent && (hi <= 0 || hi > 1))
                 {
@@ -790,17 +870,30 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             }
             else
             {
-                PyObject *l, *h;
+                PyObject *l = NULL, *h = NULL;
                 l = PyNumber_Long (low);
-                if (!l)
+                if (!l) {
+                    Py_CLEAR (low);
+                    Py_CLEAR (high);
                     return NULL;
+                }
                 h = PyNumber_Long (high);
-                if (!h)
+                if (!h) {
+                    Py_CLEAR (low);
+                    Py_CLEAR (high);
+                    Py_CLEAR (l);
                     return NULL;
+                }
+                Py_CLEAR (low);
+                Py_CLEAR (high);
                 if (  !PyArg_Parse (h, "i", ((int *)i_high) + i)
                    || !PyArg_Parse (l, "i", ((int *)i_low)  + i)
                    )
+                {
+                    Py_CLEAR (l);
+                    Py_CLEAR (h);
                     return NULL;
+                }
             }
         }
         if (is_real)
@@ -817,9 +910,24 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         else
         {
             PGASetIntegerInitRange (ctx, i_low, i_high);
+            /* Seems pgapack doesn't initialize this correctly
+             * We see an error when we try to enable restart
+             */
+            if (!mutation_type) {
+                mutation_type = PGA_MUTATION_RANGE;
+            }
         }
         free (i_low);
         free (i_high);
+    }
+    if (restart && PyObject_IsTrue (restart)) {
+        PGASetRestartFlag (ctx, PGA_TRUE);
+    }
+    if (restart_frequency) {
+        PGASetRestartFrequencyValue (ctx, restart_frequency);
+    }
+    if (mutation_bounded && PyObject_IsTrue (mutation_bounded)) {
+        PGASetMutationBoundedFlag (ctx, PGA_TRUE);
     }
     PGASetUp (ctx);
     /* Set attributes from internal values */
@@ -886,10 +994,10 @@ static PyObject *PGA_del (PyObject *self0, PyObject *args)
         return NULL;
     Py_INCREF (Py_None);
     PGA_ctx = PyObject_GetAttrString (self, "context");
-    /*
-    fprintf (stderr, "After PGA_ctx in PGA_del: %08X\n", (int) PGA_ctx);
+    #if 0
+    fprintf (stderr, "After PGA_ctx in PGA_del: %p\n", PGA_ctx);
     fflush  (stderr);
-    */
+    #endif
     if (!PGA_ctx)
         return Py_None;
     if (!PyArg_Parse (PGA_ctx, "l", &ctx))
