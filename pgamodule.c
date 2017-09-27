@@ -50,33 +50,38 @@ typedef struct
 
 /* These need to be kept sorted */
 static constdef_t constdef [] =
-    { {"PGA_CROSSOVER_ONEPT",      PGA_CROSSOVER_ONEPT       }
-    , {"PGA_CROSSOVER_TWOPT",      PGA_CROSSOVER_TWOPT       }
-    , {"PGA_CROSSOVER_UNIFORM",    PGA_CROSSOVER_UNIFORM     }
-    , {"PGA_MUTATION_CONSTANT",    PGA_MUTATION_CONSTANT     }
-    , {"PGA_MUTATION_GAUSSIAN",    PGA_MUTATION_GAUSSIAN     }
-    , {"PGA_MUTATION_PERMUTE",     PGA_MUTATION_PERMUTE      }
-    , {"PGA_MUTATION_RANGE",       PGA_MUTATION_RANGE        }
-    , {"PGA_MUTATION_UNIFORM",     PGA_MUTATION_UNIFORM      }
-    , {"PGA_NEWPOP",               PGA_NEWPOP                }
-    , {"PGA_OLDPOP",               PGA_OLDPOP                }
-    , {"PGA_POPREPL_BEST",         PGA_POPREPL_BEST          }
-    , {"PGA_POPREPL_RANDOM_NOREP", PGA_POPREPL_RANDOM_NOREP  }
-    , {"PGA_POPREPL_RANDOM_REP",   PGA_POPREPL_RANDOM_REP    }
-    , {"PGA_REPORT_AVERAGE",       PGA_REPORT_AVERAGE        }
-    , {"PGA_REPORT_HAMMING",       PGA_REPORT_HAMMING        }
-    , {"PGA_REPORT_OFFLINE",       PGA_REPORT_OFFLINE        }
-    , {"PGA_REPORT_ONLINE",        PGA_REPORT_ONLINE         }
-    , {"PGA_REPORT_STRING",        PGA_REPORT_STRING         }
-    , {"PGA_REPORT_WORST",         PGA_REPORT_WORST          }
-    , {"PGA_SELECT_PROPORTIONAL",  PGA_SELECT_PROPORTIONAL   }
-    , {"PGA_SELECT_PTOURNAMENT",   PGA_SELECT_PTOURNAMENT    }
-    , {"PGA_SELECT_SUS",           PGA_SELECT_SUS            }
-    , {"PGA_SELECT_TOURNAMENT",    PGA_SELECT_TOURNAMENT     }
-    , {"PGA_STOP_MAXITER",         PGA_STOP_MAXITER          }
-    , {"PGA_STOP_NOCHANGE",        PGA_STOP_NOCHANGE         }
-    , {"PGA_STOP_TOOSIMILAR",      PGA_STOP_TOOSIMILAR       }
-    , {NULL,                       0                         }
+    { {"PGA_CROSSOVER_ONEPT",       PGA_CROSSOVER_ONEPT       }
+    , {"PGA_CROSSOVER_TWOPT",       PGA_CROSSOVER_TWOPT       }
+    , {"PGA_CROSSOVER_UNIFORM",     PGA_CROSSOVER_UNIFORM     }
+    , {"PGA_FITNESSMIN_CMAX",       PGA_FITNESSMIN_CMAX       }
+    , {"PGA_FITNESSMIN_RECIPROCAL", PGA_FITNESSMIN_RECIPROCAL }
+    , {"PGA_FITNESS_NORMAL",        PGA_FITNESS_NORMAL        }
+    , {"PGA_FITNESS_RANKING",       PGA_FITNESS_RANKING       }
+    , {"PGA_FITNESS_RAW",           PGA_FITNESS_RAW           }
+    , {"PGA_MUTATION_CONSTANT",     PGA_MUTATION_CONSTANT     }
+    , {"PGA_MUTATION_GAUSSIAN",     PGA_MUTATION_GAUSSIAN     }
+    , {"PGA_MUTATION_PERMUTE",      PGA_MUTATION_PERMUTE      }
+    , {"PGA_MUTATION_RANGE",        PGA_MUTATION_RANGE        }
+    , {"PGA_MUTATION_UNIFORM",      PGA_MUTATION_UNIFORM      }
+    , {"PGA_NEWPOP",                PGA_NEWPOP                }
+    , {"PGA_OLDPOP",                PGA_OLDPOP                }
+    , {"PGA_POPREPL_BEST",          PGA_POPREPL_BEST          }
+    , {"PGA_POPREPL_RANDOM_NOREP",  PGA_POPREPL_RANDOM_NOREP  }
+    , {"PGA_POPREPL_RANDOM_REP",    PGA_POPREPL_RANDOM_REP    }
+    , {"PGA_REPORT_AVERAGE",        PGA_REPORT_AVERAGE        }
+    , {"PGA_REPORT_HAMMING",        PGA_REPORT_HAMMING        }
+    , {"PGA_REPORT_OFFLINE",        PGA_REPORT_OFFLINE        }
+    , {"PGA_REPORT_ONLINE",         PGA_REPORT_ONLINE         }
+    , {"PGA_REPORT_STRING",         PGA_REPORT_STRING         }
+    , {"PGA_REPORT_WORST",          PGA_REPORT_WORST          }
+    , {"PGA_SELECT_PROPORTIONAL",   PGA_SELECT_PROPORTIONAL   }
+    , {"PGA_SELECT_PTOURNAMENT",    PGA_SELECT_PTOURNAMENT    }
+    , {"PGA_SELECT_SUS",            PGA_SELECT_SUS            }
+    , {"PGA_SELECT_TOURNAMENT",     PGA_SELECT_TOURNAMENT     }
+    , {"PGA_STOP_MAXITER",          PGA_STOP_MAXITER          }
+    , {"PGA_STOP_NOCHANGE",         PGA_STOP_NOCHANGE         }
+    , {"PGA_STOP_TOOSIMILAR",       PGA_STOP_TOOSIMILAR       }
+    , {NULL,                        0                         }
     };
 
 int compare_constdef (const void *v1, const void *v2)
@@ -89,12 +94,9 @@ int compare_constdef (const void *v1, const void *v2)
 static void prc (PyObject *o, char *str)
 {
     fprintf (stderr, "%s: %08X", str, (int)o);
-    if (o)
-    {
+    if (o) {
         fprintf (stderr, "%s: Refcount: %d\n", str, o->ob_refcnt);
-    }
-    else
-    {
+    } else {
         fprintf (stderr, "\n");
     }
     fflush  (stderr);
@@ -105,10 +107,10 @@ static PGAContext *get_context (PyObject *self)
 {
     PyObject   *PGA_ctx = PyObject_GetAttrString (self, "context");
     PGAContext *ctx;
-    if (!PGA_ctx)
+    if (!PGA_ctx) {
         return NULL;
-    if (!PyArg_Parse (PGA_ctx, "l", &ctx))
-    {
+    }
+    if (!PyArg_Parse (PGA_ctx, "l", &ctx)) {
         Py_DECREF   (PGA_ctx);
         return NULL;
     }
@@ -120,8 +122,9 @@ static PyObject *get_self (PGAContext *ctx)
 {
     PyObject *self, *PGA_ctx = Py_BuildValue    ("l", (long) ctx);
 
-    if (!PGA_ctx)
+    if (!PGA_ctx) {
         return NULL;
+    }
     self = PyObject_GetItem (context, PGA_ctx);
     Py_DECREF (PGA_ctx);
     return self;
@@ -227,8 +230,7 @@ static int check_stop (PGAContext *ctx)
     ERR_CHECK (!error_occurred, PGA_TRUE);
     self = get_self (ctx);
     ERR_CHECK (self, PGA_TRUE);
-    if (PyObject_HasAttrString (self, "stop_cond"))
-    {
+    if (PyObject_HasAttrString (self, "stop_cond")) {
         int retval = PGA_TRUE, rr;
         PyObject *r = PyObject_CallMethod (self, "stop_cond", NULL);
         ERR_CHECK_X (r);
@@ -339,18 +341,21 @@ static PyObject *PGA_print_string (PyObject *self0, PyObject *args)
     int           p, pop;
     FILE         *fp = NULL;
 
-    if (!PyArg_ParseTuple(args, "OOii", &self, &file, &p, &pop))
+    if (!PyArg_ParseTuple(args, "OOii", &self, &file, &p, &pop)) {
         return NULL;
-    if (!(ctx = get_context (self)))
+    }
+    if (!(ctx = get_context (self))) {
         return NULL;
+    }
 #if IS_PY3
     fp = fdopen (PyObject_AsFileDescriptor (file), "w");
     if (fp == NULL) {
         return NULL;
     }
 #else
-    if (!PyFile_Check (file))
+    if (!PyFile_Check (file)) {
         return NULL;
+    }
     fp = file->f_fp;
     assert (fp);
 #endif
@@ -395,34 +400,32 @@ static int init_sequence
             , compare_constdef
             );
     assert (constcheck);
-    if (sequence)
-    {
+    if (sequence) {
         int i, len = PySequence_Length (sequence);
-        if (len < 0)
-        {
+        if (len < 0) {
             return 0;
         }
-        for (i = 0; i < len; i++)
-        {
+        for (i = 0; i < len; i++) {
             PyObject *x = PySequence_GetItem (sequence, i);
             int val, ci;
-            if (!x)
+            if (!x) {
                 return 0;
-            if (!PyArg_Parse (x, "i", &val))
+            }
+            if (!PyArg_Parse (x, "i", &val)) {
                 return 0;
-            for (ci = 0; ci < constlen; ci++)
-            {
-                if (val == constcheck [ci].cd_value)
+            }
+            for (ci = 0; ci < constlen; ci++) {
+                if (val == constcheck [ci].cd_value) {
                     break;
+                }
             }
-            if (ci == constlen)
-            {
-                PyErr_SetString 
-                    (PyExc_ValueError, name);
+            if (ci == constlen) {
+                PyErr_SetString (PyExc_ValueError, name);
                 return 0;
             }
-            if (checkfun && !checkfun (ctx, val, name))
+            if (checkfun && !checkfun (ctx, val, name)) {
                 return 0;
+            }
             fun (ctx, val);
         }
     }
@@ -454,9 +457,14 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     int print_frequency = 0;
     int restart_frequency = 0;
     int mutation_type = 0;
+    int fitness_type = 0;
+    int fitness_min_type = 0;
     double mutation_prob = -1;
     double crossover_prob = 0.85;
     double uniform_crossover_prob = 0.5;
+    double p_tournament_prob = -1.0;
+    double max_fitness_rank = 1.2;
+    double fitness_cmax_value = 1.01;
     PyObject *PGA_ctx = NULL;
     PyObject *self = NULL, *type = NULL, *maximize = NULL, *init = NULL;
     PyObject *init_percent = NULL, *stopping_rule_types = NULL;
@@ -465,6 +473,8 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     PyObject *no_duplicates = NULL;
     PyObject *restart = NULL;
     PyObject *mutation_bounded = NULL;
+    PyObject *mutation_and_crossover = NULL;
+    PyObject *mutation_or_crossover = NULL;
     char *argv [] = {NULL, NULL};
     PGAContext *ctx;
     static char *kwlist[] =
@@ -495,13 +505,20 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         , "restart_frequency"
         , "mutation_bounded"
         , "mutation_type"
+        , "mutation_and_crossover"
+        , "mutation_or_crossover"
+        , "p_tournament_prob"
+        , "fitness_type"
+        , "max_fitness_rank"
+        , "fitness_cmax_value"
+        , "fitness_min_type"
         , NULL
         };
 
     if  (!PyArg_ParseTupleAndKeywords 
             ( args
             , kw
-            , "OOi|OiOOOiiiidOiiOOiiddiOiOi"
+            , "OOi|OiOOOiiiidOiiOOiiddiOiOiOOdiddi"
             , kwlist
             , &self
             , &type
@@ -530,14 +547,20 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             , &restart_frequency
             , &mutation_bounded
             , &mutation_type
+            , &mutation_and_crossover
+            , &mutation_or_crossover
+            , &p_tournament_prob
+            , &fitness_type
+            , &max_fitness_rank
+            , &fitness_cmax_value
+            , &fitness_min_type
             )
         )
     {
         return NULL;
     }
 
-    if (PyObject_IsSubclass      (type, (PyObject *)&PyBool_Type))
-    {
+    if (PyObject_IsSubclass      (type, (PyObject *)&PyBool_Type)) {
         pga_type = PGA_DATATYPE_BINARY;
     }
     else if (  PyObject_IsSubclass (type, (PyObject *)&PyInt_Type)
@@ -556,9 +579,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             )
     {
         pga_type = PGA_DATATYPE_CHARACTER;
-    }
-    else
-    {
+    } else {
         /* FIXME: Implement PGA_DATATYPE_USER */
         PyErr_SetString \
             ( PyExc_NotImplementedError
@@ -567,15 +588,13 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         return NULL;
     }
 
-    if (maximize)
-    {
+    if (maximize) {
         max = PyObject_IsTrue (maximize);
     }
-    if (length <= 0)
-    {
+    if (length <= 1) {
         PyErr_SetString \
             ( PyExc_ValueError
-            , "Gene length must be at least 1"
+            , "Gene length must be at least 2"
             );
         return NULL;
     }
@@ -592,37 +611,30 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         , length
         , max ? PGA_MAXIMIZE : PGA_MINIMIZE
         );
-    if (PyObject_HasAttrString (self, "check_duplicate"))
-    {
+    if (PyObject_HasAttrString (self, "check_duplicate")) {
         PGASetUserFunction
             (ctx, PGA_USERFUNCTION_DUPLICATE, (void *)check_duplicate);
     }
-    if (PyObject_HasAttrString (self, "crossover"))
-    {
+    if (PyObject_HasAttrString (self, "crossover")) {
         PGASetUserFunction (ctx, PGA_USERFUNCTION_CROSSOVER, (void *)crossover);
     }
-    if (PyObject_HasAttrString (self, "endofgen"))
-    {
+    if (PyObject_HasAttrString (self, "endofgen")) {
         PGASetUserFunction (ctx, PGA_USERFUNCTION_ENDOFGEN, (void *)endofgen);
     }
-    if (PyObject_HasAttrString (self, "initstring"))
-    {
+    if (PyObject_HasAttrString (self, "initstring")) {
         PGASetUserFunction
             (ctx, PGA_USERFUNCTION_INITSTRING, (void *)initstring);
     }
-    if (PyObject_HasAttrString (self, "mutation"))
-    {
+    if (PyObject_HasAttrString (self, "mutation")) {
         PGASetUserFunction (ctx, PGA_USERFUNCTION_MUTATION, (void *)mutation);
     }
     PGASetUserFunction (ctx, PGA_USERFUNCTION_PRINTSTRING, (void *)print_gene);
     PGASetUserFunction (ctx, PGA_USERFUNCTION_STOPCOND,    (void *)check_stop);
 
-    if (crossover_prob >= 0)
-    {
+    if (crossover_prob >= 0) {
         PGASetCrossoverProb (ctx, crossover_prob);
     }
-    if (crossover_type >= 0)
-    {
+    if (crossover_type >= 0) {
         if (  crossover_type != PGA_CROSSOVER_ONEPT
            && crossover_type != PGA_CROSSOVER_TWOPT
            && crossover_type != PGA_CROSSOVER_UNIFORM
@@ -633,10 +645,8 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         }
         PGASetCrossoverType (ctx, crossover_type);
     }
-    if (max_GA_iter) 
-    {
-        if (max_GA_iter <= 2)
-        {
+    if (max_GA_iter) {
+        if (max_GA_iter <= 2) {
             PyErr_SetString \
                 ( PyExc_ValueError
                 , "Iteration count must be at least 2"
@@ -645,29 +655,23 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         }
         PGASetMaxGAIterValue (ctx, max_GA_iter);
     }
-    if (max_no_change)
-    {
+    if (max_no_change) {
         PGASetMaxNoChangeValue (ctx, max_no_change);
     }
-    if (max_similarity)
-    {
+    if (max_similarity) {
         PGASetMaxSimilarityValue (ctx, max_similarity);
     }
-    if (mutation_prob < 0)
-    {
+    if (mutation_prob < 0) {
         mutation_prob = (double)1.0 / (double)length;
     }
     PGASetMutationProb (ctx, mutation_prob);
-    if (no_duplicates && PyObject_IsTrue (no_duplicates))
-    {
+    if (no_duplicates && PyObject_IsTrue (no_duplicates)) {
         PGASetNoDuplicatesFlag (ctx, PGA_TRUE);
     }
-    if (num_replace >= 0)
-    {
+    if (num_replace >= 0) {
         PGASetNumReplaceValue (ctx, num_replace);
     }
-    if (pop_replace_type >= 0)
-    {
+    if (pop_replace_type >= 0) {
         if (  pop_replace_type != PGA_POPREPL_BEST
            && pop_replace_type != PGA_POPREPL_RANDOM_NOREP
            && pop_replace_type != PGA_POPREPL_RANDOM_REP
@@ -678,10 +682,8 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         }
         PGASetPopReplaceType (ctx, pop_replace_type);
     }
-    if (pop_size)
-    {
-        if (pop_size <= 1)
-        {
+    if (pop_size) {
+        if (pop_size <= 1) {
             PyErr_SetString \
                 ( PyExc_ValueError
                 , "Population size must be at least 2"
@@ -690,16 +692,13 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         }
         PGASetPopSize (ctx, pop_size);
     }
-    if (print_frequency)
-    {
+    if (print_frequency) {
         PGASetPrintFrequencyValue (ctx, print_frequency);
     }
-    if (random_seed)
-    {
+    if (random_seed) {
         PGASetRandomSeed   (ctx, random_seed);
     }
-    if (select_type >= 0)
-    {
+    if (select_type >= 0) {
         if (  select_type != PGA_SELECT_PROPORTIONAL
            && select_type != PGA_SELECT_SUS
            && select_type != PGA_SELECT_TOURNAMENT
@@ -711,9 +710,17 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         }
         PGASetSelectType (ctx, select_type);
     }
-    if (uniform_crossover_prob >= 0)
-    {
+    if (uniform_crossover_prob >= 0) {
         PGASetUniformCrossoverProb (ctx, uniform_crossover_prob);
+    }
+    if (p_tournament_prob >= 0) {
+        PGASetPTournamentProb (ctx, p_tournament_prob);
+    }
+    if (max_fitness_rank >= 0) {
+        PGASetMaxFitnessRank (ctx, max_fitness_rank);
+    }
+    if (fitness_cmax_value >= 0) {
+        PGASetFitnessCmaxValue (ctx, fitness_cmax_value);
     }
 
     if  (!init_sequence
@@ -726,7 +733,9 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             , NULL
             )
         )
+    {
         return NULL;
+    }
     if  (!init_sequence
             ( print_options
             , ctx
@@ -737,7 +746,9 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             , check_hamming
             )
         )
+    {
         return NULL;
+    }
     if (integer_init_permute) {
         int i;
         int len = PySequence_Length (integer_init_permute);
@@ -778,44 +789,37 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         }
         PGASetIntegerInitPermute (ctx, permute_lh [0], permute_lh [1]);
     }
-    if (init || init_percent)
-    {
+    if (init || init_percent) {
         int datatype = PGAGetDataType (ctx);
         int is_real  = (datatype == PGA_DATATYPE_REAL);
         int i, len;
         void *i_low, *i_high;
         PyObject *initvals = (init ? init : init_percent);
 
-        if (datatype != PGA_DATATYPE_INTEGER && datatype != PGA_DATATYPE_REAL)
-        {
+        if (datatype != PGA_DATATYPE_INTEGER && datatype != PGA_DATATYPE_REAL) {
             PyErr_SetString (PyExc_ValueError, "Init only for int/real");
             return NULL;
         }
-        if (init && init_percent)
-        {
+        if (init && init_percent) {
             PyErr_SetString (PyExc_ValueError, "Only one of init/init_percent");
             return NULL;
         }
-        if (init_percent && !is_real)
-        {
+        if (init_percent && !is_real) {
             PyErr_SetString (PyExc_ValueError, "init_percent only for float");
             return NULL;
         }
         len = PySequence_Length (initvals);
-        if (len < 0)
-        {
+        if (len < 0) {
             return NULL;
         }
-        if (len != PGAGetStringLength (ctx))
-        {
+        if (len != PGAGetStringLength (ctx)) {
             PyErr_SetString (PyExc_ValueError, "Init length != string length");
             return NULL;
         }
         i_low  = malloc (len * (is_real ? sizeof (double) : sizeof (int)));
         i_high = malloc (len * (is_real ? sizeof (double) : sizeof (int)));
         assert (i_low && i_high);
-        for (i = 0; i < len; i++)
-        {
+        for (i = 0; i < len; i++) {
             PyObject *x = PySequence_GetItem (initvals, i);
             PyObject *low = NULL, *high = NULL;
             if (!x) {
@@ -833,8 +837,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
                 return NULL;
             }
             Py_CLEAR (x);
-            if (is_real)
-            {
+            if (is_real) {
                 PyObject *l = NULL, *h = NULL;
                 double hi;
                 l = PyNumber_Float (low);
@@ -861,15 +864,12 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
                     return NULL;
                 }
                 hi = ((double *)i_high) [i];
-                if (init_percent && (hi <= 0 || hi > 1))
-                {
+                if (init_percent && (hi <= 0 || hi > 1)) {
                     PyErr_SetString 
                         (PyExc_ValueError, "Percentage must be 0 < p <= 1");
                     return NULL;
                 }
-            }
-            else
-            {
+            } else {
                 PyObject *l = NULL, *h = NULL;
                 l = PyNumber_Long (low);
                 if (!l) {
@@ -896,26 +896,14 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
                 }
             }
         }
-        if (is_real)
-        {
-            if (init)
-            {
+        if (is_real) {
+            if (init) {
                 PGASetRealInitRange    (ctx, i_low, i_high);
-            }
-            else
-            {
+            } else {
                 PGASetRealInitPercent  (ctx, i_low, i_high);
             }
-        }
-        else
-        {
+        } else {
             PGASetIntegerInitRange (ctx, i_low, i_high);
-            /* Seems pgapack doesn't initialize this correctly
-             * We see an error when we try to enable restart
-             */
-            if (!mutation_type) {
-                mutation_type = PGA_MUTATION_RANGE;
-            }
         }
         free (i_low);
         free (i_high);
@@ -929,6 +917,21 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     if (mutation_bounded && PyObject_IsTrue (mutation_bounded)) {
         PGASetMutationBoundedFlag (ctx, PGA_TRUE);
     }
+    if (mutation_and_crossover && PyObject_IsTrue (mutation_and_crossover)) {
+        PGASetMutationAndCrossoverFlag (ctx, PGA_TRUE);
+    }
+    if (mutation_or_crossover && PyObject_IsTrue (mutation_or_crossover)) {
+        PGASetMutationOrCrossoverFlag (ctx, PGA_TRUE);
+    }
+    if (mutation_type) {
+        PGASetMutationType (ctx, mutation_type);
+    }
+    if (fitness_type) {
+        PGASetFitnessType (ctx, fitness_type);
+    }
+    if (fitness_min_type) {
+        PGASetFitnessMinType (ctx, fitness_min_type);
+    }
     PGASetUp (ctx);
     /* Set attributes from internal values */
     {
@@ -936,29 +939,25 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         double prob;
         prob = PGAGetCrossoverProb (ctx);
         p = Py_BuildValue ("d", prob);
-        if (p)
-        {
+        if (p) {
             PyObject_SetAttrString (self, "crossover_prob", p);
             Py_DECREF (p);
         }
         prob = PGAGetMutationProb (ctx);
         p = Py_BuildValue ("d", prob);
-        if (p)
-        {
+        if (p) {
             PyObject_SetAttrString (self, "mutation_prob", p);
             Py_DECREF (p);
         }
         prob = PGAGetUniformCrossoverProb (ctx);
         p = Py_BuildValue ("d", prob);
-        if (p)
-        {
+        if (p) {
             PyObject_SetAttrString (self, "uniform_crossover_prob", p);
             Py_DECREF (p);
         }
         pop_size = PGAGetPopSize (ctx);
         p = Py_BuildValue ("i", pop_size);
-        if (p)
-        {
+        if (p) {
             PyObject_SetAttrString (self, "pop_size", p);
             Py_DECREF (p);
         }
@@ -977,10 +976,12 @@ static PyObject *PGA_check_stopping_conditions (PyObject *self0, PyObject *args)
     PyObject *self;
     PGAContext *ctx;
 
-    if (!PyArg_ParseTuple(args, "O", &self))
+    if (!PyArg_ParseTuple(args, "O", &self)) {
         return NULL;
-    if (!(ctx = get_context (self)))
+    }
+    if (!(ctx = get_context (self))) {
         return NULL;
+    }
     return Py_BuildValue ("i", PGACheckStoppingConditions (ctx));
 }
 
@@ -990,18 +991,21 @@ static PyObject *PGA_del (PyObject *self0, PyObject *args)
     PyObject   *PGA_ctx = NULL;
     PGAContext *ctx;
 
-    if (!PyArg_ParseTuple(args, "O", &self))
+    if (!PyArg_ParseTuple(args, "O", &self)) {
         return NULL;
+    }
     Py_INCREF (Py_None);
     PGA_ctx = PyObject_GetAttrString (self, "context");
     #if 0
     fprintf (stderr, "After PGA_ctx in PGA_del: %p\n", PGA_ctx);
     fflush  (stderr);
     #endif
-    if (!PGA_ctx)
+    if (!PGA_ctx) {
         return Py_None;
-    if (!PyArg_Parse (PGA_ctx, "l", &ctx))
+    }
+    if (!PyArg_Parse (PGA_ctx, "l", &ctx)) {
         return Py_None;
+    }
     PyObject_DelItem (context, PGA_ctx);
     Py_CLEAR         (PGA_ctx);
     PGADestroy       (ctx);
@@ -1013,8 +1017,9 @@ static PyObject *PGA_evaluate (PyObject *self0, PyObject *args)
     PyObject *self;
     int p, pop;
 
-    if (!PyArg_ParseTuple(args, "Oii", &self, &p, &pop))
+    if (!PyArg_ParseTuple(args, "Oii", &self, &p, &pop)) {
         return NULL;
+    }
     PyErr_SetString \
         ( PyExc_NotImplementedError
         , "You must define \"evaluate\" in a derived class"
@@ -1027,17 +1032,18 @@ static PyObject *PGA_len (PyObject *self0, PyObject *args)
     PyObject *self;
     PGAContext *ctx;
 
-    if (!PyArg_ParseTuple(args, "O", &self))
+    if (!PyArg_ParseTuple(args, "O", &self)) {
         return NULL;
-    if (!(ctx = get_context (self)))
+    }
+    if (!(ctx = get_context (self))) {
         return NULL;
+    }
     return Py_BuildValue ("i", PGAGetStringLength (ctx));
 }
 
 static int check_allele (PGAContext *ctx, int p, int pop, int i)
 {
-    if (pop != PGA_OLDPOP && pop != PGA_NEWPOP)
-    {
+    if (pop != PGA_OLDPOP && pop != PGA_NEWPOP) {
         char x [50];
         sprintf (x, "%d: invalid population", pop);
         PyErr_SetString (PyExc_ValueError, x);
@@ -1050,8 +1056,7 @@ static int check_allele (PGAContext *ctx, int p, int pop, int i)
         PyErr_SetString (PyExc_ValueError, x);
         return 0;
     }
-    if (i < 0 || i >= PGAGetStringLength (ctx))
-    {
+    if (i < 0 || i >= PGAGetStringLength (ctx)) {
         char x [50];
         sprintf (x, "%d: allele index out of range", i);
         PyErr_SetString (PyExc_ValueError, x);
@@ -1069,12 +1074,15 @@ static PyObject *PGA_get_allele (PyObject *self0, PyObject *args)
     PGAContext *ctx = NULL;
     int p, pop, i;
 
-    if (!PyArg_ParseTuple(args, "Oiii", &self, &p, &pop, &i))
+    if (!PyArg_ParseTuple(args, "Oiii", &self, &p, &pop, &i)) {
         return NULL;
-    if (!(ctx = get_context (self)))
+    }
+    if (!(ctx = get_context (self))) {
         return NULL;
-    if (!check_allele (ctx, p, pop, i))
+    }
+    if (!check_allele (ctx, p, pop, i)) {
         return NULL;
+    }
 
     switch (PGAGetDataType (ctx)) {
     case PGA_DATATYPE_BINARY :
@@ -1114,12 +1122,15 @@ static PyObject *PGA_set_allele (PyObject *self0, PyObject *args)
     PGAContext *ctx = NULL;
     int p, pop, i;
 
-    if (!PyArg_ParseTuple(args, "OiiiO", &self, &p, &pop, &i, &val))
+    if (!PyArg_ParseTuple(args, "OiiiO", &self, &p, &pop, &i, &val)) {
         return NULL;
-    if (!(ctx = get_context (self)))
+    }
+    if (!(ctx = get_context (self))) {
         return NULL;
-    if (!check_allele (ctx, p, pop, i))
+    }
+    if (!check_allele (ctx, p, pop, i)) {
         return NULL;
+    }
 
     switch (PGAGetDataType (ctx)) {
     case PGA_DATATYPE_BINARY :
@@ -1167,10 +1178,12 @@ static PyObject *PGA_get_best_index (PyObject *self0, PyObject *args)
     PGAContext *ctx = NULL;
     int pop;
 
-    if (!PyArg_ParseTuple(args, "Oi", &self, &pop))
+    if (!PyArg_ParseTuple(args, "Oi", &self, &pop)) {
         return NULL;
-    if (!(ctx = get_context (self)))
+    }
+    if (!(ctx = get_context (self))) {
         return NULL;
+    }
     return Py_BuildValue ("i", PGAGetBestIndex (ctx, pop));
 }
 
@@ -1180,10 +1193,12 @@ static PyObject *PGA_set_random_seed (PyObject *self0, PyObject *args)
     PGAContext *ctx = NULL;
     int seed;
 
-    if (!PyArg_ParseTuple(args, "Oi", &self, &seed))
+    if (!PyArg_ParseTuple(args, "Oi", &self, &seed)) {
         return NULL;
-    if (!(ctx = get_context (self)))
+    }
+    if (!(ctx = get_context (self))) {
         return NULL;
+    }
     PGASetRandomSeed (ctx, seed);
     Py_INCREF   (Py_None);
     return Py_None;
@@ -1194,10 +1209,12 @@ static PyObject *PGA_random_01 (PyObject *self0, PyObject *args)
     PyObject   *self = NULL;
     PGAContext *ctx = NULL;
 
-    if (!PyArg_ParseTuple(args, "O", &self))
+    if (!PyArg_ParseTuple(args, "O", &self)) {
         return NULL;
-    if (!(ctx = get_context (self)))
+    }
+    if (!(ctx = get_context (self))) {
         return NULL;
+    }
     return Py_BuildValue ("d", PGARandom01 (ctx, 0));
 }
 
@@ -1207,11 +1224,28 @@ static PyObject *PGA_get_fitness (PyObject *self0, PyObject *args)
     PGAContext *ctx = NULL;
     int p, pop;
 
-    if (!PyArg_ParseTuple(args, "Oii", &self, &p, &pop))
+    if (!PyArg_ParseTuple(args, "Oii", &self, &p, &pop)) {
         return NULL;
-    if (!(ctx = get_context (self)))
+    }
+    if (!(ctx = get_context (self))) {
         return NULL;
+    }
     return Py_BuildValue ("d", PGAGetFitness (ctx, p, pop));
+}
+
+static PyObject *PGA_get_evaluation_up_to_date (PyObject *self0, PyObject *args)
+{
+    PyObject *self = NULL;
+    PGAContext *ctx = NULL;
+    int p, pop;
+
+    if (!PyArg_ParseTuple(args, "Oii", &self, &p, &pop)) {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    return Py_BuildValue ("i", PGAGetEvaluationUpToDateFlag (ctx, p, pop));
 }
 
 static PyObject *PGA_get_iteration (PyObject *self0, PyObject *args)
@@ -1219,17 +1253,18 @@ static PyObject *PGA_get_iteration (PyObject *self0, PyObject *args)
     PyObject *self = NULL;
     PGAContext *ctx = NULL;
 
-    if (!PyArg_ParseTuple(args, "O", &self))
+    if (!PyArg_ParseTuple(args, "O", &self)) {
         return NULL;
-    if (!(ctx = get_context (self)))
+    }
+    if (!(ctx = get_context (self))) {
         return NULL;
+    }
     return Py_BuildValue ("i", PGAGetGAIterValue (ctx));
 }
 
 static int check_probability (double probability)
 {
-    if (probability < 0 || probability > 1)
-    {
+    if (probability < 0 || probability > 1) {
         PyErr_SetString 
             (PyExc_ValueError, "Probability must be 0 <= p <= 1");
         return 0;
@@ -1243,18 +1278,20 @@ static PyObject *PGA_random_flip (PyObject *self0, PyObject *args)
     PGAContext *ctx = NULL;
     double     probability;
 
-    if (!PyArg_ParseTuple(args, "Od", &self, &probability))
+    if (!PyArg_ParseTuple(args, "Od", &self, &probability)) {
         return NULL;
-    if (!check_probability (probability))
+    }
+    if (!check_probability (probability)) {
         return NULL;
-    if (!(ctx = get_context (self)))
+    }
+    if (!(ctx = get_context (self))) {
         return NULL;
+    }
     return Py_BuildValue ("i", PGARandomFlip (ctx, probability));
 }
 
 #define check_interval(l,r) do { \
-    if (l > r)                                                             \
-    {                                                                      \
+    if (l > r) {                                                           \
         PyErr_SetString                                                    \
             (PyExc_ValueError, "interval_left must be <= interval_right"); \
         return NULL;                                                       \
@@ -1267,11 +1304,13 @@ static PyObject *PGA_random_interval (PyObject *self0, PyObject *args)
     PGAContext *ctx = NULL;
     int        l, r;
 
-    if (!PyArg_ParseTuple(args, "Oii", &self, &l, &r))
+    if (!PyArg_ParseTuple(args, "Oii", &self, &l, &r)) {
         return NULL;
+    }
     check_interval (l, r);
-    if (!(ctx = get_context (self)))
+    if (!(ctx = get_context (self))) {
         return NULL;
+    }
     return Py_BuildValue ("i", PGARandomInterval (ctx, l, r));
 }
 
@@ -1281,11 +1320,13 @@ static PyObject *PGA_random_uniform (PyObject *self0, PyObject *args)
     PGAContext *ctx;
     double     l, r;
 
-    if (!PyArg_ParseTuple(args, "Odd", &self, &l, &r))
+    if (!PyArg_ParseTuple(args, "Odd", &self, &l, &r)) {
         return NULL;
+    }
     check_interval (l, r);
-    if (!(ctx = get_context (self)))
+    if (!(ctx = get_context (self))) {
         return NULL;
+    }
     return Py_BuildValue ("d", PGARandomUniform (ctx, l, r));
 }
 
@@ -1295,10 +1336,12 @@ static PyObject *PGA_random_gaussian (PyObject *self0, PyObject *args)
     PGAContext *ctx;
     double     l, r;
 
-    if (!PyArg_ParseTuple(args, "Odd", &self, &l, &r))
+    if (!PyArg_ParseTuple(args, "Odd", &self, &l, &r)) {
         return NULL;
-    if (!(ctx = get_context (self)))
+    }
+    if (!(ctx = get_context (self))) {
         return NULL;
+    }
     return Py_BuildValue ("d", PGARandomGaussian (ctx, l, r));
 }
 
@@ -1307,13 +1350,14 @@ static PyObject *PGA_run (PyObject *self0, PyObject *args)
     PyObject *self = NULL;
     PGAContext *ctx = NULL;
 
-    if (!PyArg_ParseTuple(args, "O", &self))
+    if (!PyArg_ParseTuple(args, "O", &self)) {
         return NULL;
-    if (!(ctx = get_context (self)))
+    }
+    if (!(ctx = get_context (self))) {
         return NULL;
+    }
     PGARun      (ctx, evaluate);
-    if (error_occurred)
-    {
+    if (error_occurred) {
         return NULL;
     }
     Py_INCREF   (Py_None);
@@ -1344,6 +1388,9 @@ static PyMethodDef PGA_Methods [] =
   }
 , { "get_fitness",               PGA_get_fitness,               METH_VARARGS
   , "Get fitness of an individual"
+  }
+, { "get_evaluation_up_to_date", PGA_get_evaluation_up_to_date, METH_VARARGS
+  , "Get evaluation up-to-date info"
   }
 , { "get_iteration",             PGA_get_iteration,             METH_VARARGS
   , "Current iteration (GA iter)"

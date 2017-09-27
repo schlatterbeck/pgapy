@@ -26,8 +26,8 @@ class Magic_Square (PGA) :
         p = dict \
             ( maximize             = False
             , integer_init_permute = [1, nsq]
-            , pop_size             = 500
-            , num_replace          = 450
+            , pop_size             = args.population_size
+            , num_replace          = int (args.population_size * 0.9)
             , max_GA_iter          = 1000
             , print_options        = [PGA_REPORT_STRING]
             , random_seed          = args.random_seed
@@ -180,12 +180,13 @@ class Magic_Square (PGA) :
     def evaluate (self, p, pop) :
         best = self.best
         rows, rsum, csum, d1sum, d2sum = self.pheno (p, pop)
-        return \
+        eval = \
             ( sum (abs (x - best) for x in rsum)
             + sum (abs (x - best) for x in csum)
             + abs (d1sum - best)
             + abs (d2sum - best)
             )
+        return (eval) ** (1/50.)
     # end def evaluate
 
     def print_string (self, file, p, pop) :
@@ -208,6 +209,12 @@ class Magic_Square (PGA) :
 
 if __name__ == '__main__' :
     cmd = ArgumentParser ()
+    cmd.add_argument \
+        ( '-p', '--population-size'
+        , type    = int
+        , default = 500
+        , help    = "Population size, default=%(default)s"
+        )
     cmd.add_argument \
         ( '-r', '--random-seed'
         , type    = int
