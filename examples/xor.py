@@ -7,17 +7,8 @@
 
 from __future__ import print_function
 from pga import PGA, PGA_REPORT_STRING
-from operator import mul
 from fann2 import libfann
 import sys
-
-def sgn (x) :
-    if x < 0 :
-        return -1
-    if x > 0 :
-        return 1
-    return 0
-# end def sgn
 
 class Xor (PGA) :
 
@@ -58,7 +49,7 @@ class Xor (PGA) :
         s = 0
         for i1 in range (2) :
             for i2 in range (2) :
-                v = (i1 ^ i2) * 2 - 1
+                v = (i1 ^ i2)
                 r = ann.run ([i1 * 2 - 1, i2 * 2 - 1]) [0]
                 #print (i1, i2, r)
                 s += abs (v - r)
