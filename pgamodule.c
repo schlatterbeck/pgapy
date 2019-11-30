@@ -392,7 +392,7 @@ static int init_sequence
     constdef_t *constcheck, key;
 
     key.cd_name = firstconst;
-    constcheck = bsearch 
+    constcheck = bsearch
             ( &key
             , constdef
             , sizeof (constdef) / sizeof (constdef_t) - 1
@@ -439,9 +439,9 @@ static int check_hamming (PGAContext *ctx, int val, char *name)
         )
     {
         char errmsg [1024];
-        sprintf 
+        sprintf
             (errmsg, "%s: no hamming reporting for non-binary datatype", name);
-        PyErr_SetString 
+        PyErr_SetString
             (PyExc_ValueError, errmsg);
         return 0;
     }
@@ -515,7 +515,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         , NULL
         };
 
-    if  (!PyArg_ParseTupleAndKeywords 
+    if  (!PyArg_ParseTupleAndKeywords
             ( args
             , kw
             , "OOi|OiOOOiiiidOiiOOiiddiOiOiOOdiddi"
@@ -603,7 +603,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
      * supported)
      */
     argv [0] = "huhu";
-    
+
     ctx = PGACreate
         ( &argc
         , argv
@@ -865,7 +865,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
                 }
                 hi = ((double *)i_high) [i];
                 if (init_percent && (hi <= 0 || hi > 1)) {
-                    PyErr_SetString 
+                    PyErr_SetString
                         (PyExc_ValueError, "Percentage must be 0 < p <= 1");
                     return NULL;
                 }
@@ -1027,6 +1027,24 @@ static PyObject *PGA_evaluate (PyObject *self0, PyObject *args)
     return NULL;
 }
 
+/* (Re)compute fitness */
+static PyObject *PGA_fitness (PyObject *self0, PyObject *args)
+{
+    PyObject *self;
+    PGAContext *ctx;
+    int pop;
+
+    if (!PyArg_ParseTuple(args, "Oi", &self, &pop)) {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    PGAFitness (ctx, pop);
+    Py_INCREF   (Py_None);
+    return Py_None;
+}
+
 static PyObject *PGA_len (PyObject *self0, PyObject *args)
 {
     PyObject *self;
@@ -1116,6 +1134,137 @@ static PyObject *PGA_get_allele (PyObject *self0, PyObject *args)
     return Py_None;
 }
 
+static PyObject *PGA_get_evaluation (PyObject *self0, PyObject *args)
+{
+    PyObject *self = NULL;
+    PGAContext *ctx = NULL;
+    int p, pop;
+
+    if (!PyArg_ParseTuple(args, "Oii", &self, &p, &pop))
+    {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    return Py_BuildValue ("d", PGAGetEvaluation (ctx, p, pop));
+}
+
+static PyObject *PGA_get_int_from_binary (PyObject *self0, PyObject *args)
+{
+    PyObject *self = NULL;
+    PGAContext *ctx = NULL;
+    int p, pop, frm, to;
+
+    if (!PyArg_ParseTuple(args, "Oiiii", &self, &p, &pop, &frm, &to)) {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    if (!check_allele (ctx, p, pop, frm)) {
+        return NULL;
+    }
+    if (!check_allele (ctx, p, pop, to)) {
+        return NULL;
+    }
+    if (PGAGetDataType (ctx) != PGA_DATATYPE_BINARY) {
+        char x [50];
+        sprintf (x, "Only valid for binary allele");
+        PyErr_SetString (PyExc_ValueError, x);
+        return NULL;
+    }
+    return Py_BuildValue ("i", PGAGetIntegerFromBinary (ctx, p, pop, frm, to));
+}
+
+static PyObject *PGA_get_int_from_gray_code (PyObject *self0, PyObject *args)
+{
+    PyObject *self = NULL;
+    PGAContext *ctx = NULL;
+    int p, pop, frm, to;
+
+    if (!PyArg_ParseTuple(args, "Oiiii", &self, &p, &pop, &frm, &to)) {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    if (!check_allele (ctx, p, pop, frm)) {
+        return NULL;
+    }
+    if (!check_allele (ctx, p, pop, to)) {
+        return NULL;
+    }
+    if (PGAGetDataType (ctx) != PGA_DATATYPE_BINARY) {
+        char x [50];
+        sprintf (x, "Only valid for binary allele");
+        PyErr_SetString (PyExc_ValueError, x);
+        return NULL;
+    }
+    return Py_BuildValue
+        ("i", PGAGetIntegerFromGrayCode (ctx, p, pop, frm, to));
+}
+
+static PyObject *PGA_get_real_from_binary (PyObject *self0, PyObject *args)
+{
+    PyObject *self = NULL;
+    PGAContext *ctx = NULL;
+    int p, pop, frm, to;
+    double l, u;
+
+    if (!PyArg_ParseTuple(args, "Oiiiidd", &self, &p, &pop, &frm, &to, &l, &u))
+    {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    if (!check_allele (ctx, p, pop, frm)) {
+        return NULL;
+    }
+    if (!check_allele (ctx, p, pop, to)) {
+        return NULL;
+    }
+    if (PGAGetDataType (ctx) != PGA_DATATYPE_BINARY) {
+        char x [50];
+        sprintf (x, "Only valid for binary allele");
+        PyErr_SetString (PyExc_ValueError, x);
+        return NULL;
+    }
+    return Py_BuildValue
+        ("d", PGAGetRealFromBinary (ctx, p, pop, frm, to, l, u));
+}
+
+static PyObject *PGA_get_real_from_gray_code (PyObject *self0, PyObject *args)
+{
+    PyObject *self = NULL;
+    PGAContext *ctx = NULL;
+    int p, pop, frm, to;
+    double l, u;
+
+    if (!PyArg_ParseTuple(args, "Oiiiidd", &self, &p, &pop, &frm, &to, &l, &u))
+    {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    if (!check_allele (ctx, p, pop, frm)) {
+        return NULL;
+    }
+    if (!check_allele (ctx, p, pop, to)) {
+        return NULL;
+    }
+    if (PGAGetDataType (ctx) != PGA_DATATYPE_BINARY) {
+        char x [50];
+        sprintf (x, "Only valid for binary allele");
+        PyErr_SetString (PyExc_ValueError, x);
+        return NULL;
+    }
+    return Py_BuildValue
+        ("d", PGAGetRealFromGrayCode (ctx, p, pop, frm, to, l, u));
+}
+
 static PyObject *PGA_set_allele (PyObject *self0, PyObject *args)
 {
     PyObject *self = NULL, *val = NULL;
@@ -1168,6 +1317,165 @@ static PyObject *PGA_set_allele (PyObject *self0, PyObject *args)
     default :
         assert (0);
     }
+    Py_INCREF   (Py_None);
+    return Py_None;
+}
+
+static PyObject *PGA_set_evaluation (PyObject *self0, PyObject *args)
+{
+    PyObject *self = NULL;
+    PGAContext *ctx = NULL;
+    int p, pop;
+    double val;
+
+    if (!PyArg_ParseTuple(args, "Oiid", &self, &p, &pop, &val)) {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+
+    PGASetEvaluation (ctx, p, pop, val);
+    Py_INCREF   (Py_None);
+    return Py_None;
+}
+
+static PyObject *PGA_set_evaluation_up_to_date (PyObject *self0, PyObject *args)
+{
+    PyObject *self = NULL;
+    PGAContext *ctx = NULL;
+    int p, pop, status;
+
+    if (!PyArg_ParseTuple(args, "Oiii", &self, &p, &pop, &status)) {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+
+    PGASetEvaluationUpToDateFlag (ctx, p, pop, status);
+    Py_INCREF   (Py_None);
+    return Py_None;
+}
+
+static PyObject *PGA_encode_int_as_binary (PyObject *self0, PyObject *args)
+{
+    PyObject *self = NULL;
+    PGAContext *ctx = NULL;
+    int p, pop, frm, to, val;
+
+    if (!PyArg_ParseTuple(args, "Oiiiii", &self, &p, &pop, &frm, &to, &val)) {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    if (!check_allele (ctx, p, pop, frm)) {
+        return NULL;
+    }
+    if (!check_allele (ctx, p, pop, to)) {
+        return NULL;
+    }
+    if (PGAGetDataType (ctx) != PGA_DATATYPE_BINARY) {
+        char x [50];
+        sprintf (x, "Only valid for binary allele");
+        PyErr_SetString (PyExc_ValueError, x);
+        return NULL;
+    }
+    PGAEncodeIntegerAsBinary (ctx, p, pop, frm, to, val);
+    Py_INCREF   (Py_None);
+    return Py_None;
+}
+
+static PyObject *PGA_encode_int_as_gray_code (PyObject *self0, PyObject *args)
+{
+    PyObject *self = NULL;
+    PGAContext *ctx = NULL;
+    int p, pop, frm, to, val;
+
+    if (!PyArg_ParseTuple(args, "Oiiiii", &self, &p, &pop, &frm, &to, &val)) {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    if (!check_allele (ctx, p, pop, frm)) {
+        return NULL;
+    }
+    if (!check_allele (ctx, p, pop, to)) {
+        return NULL;
+    }
+    if (PGAGetDataType (ctx) != PGA_DATATYPE_BINARY) {
+        char x [50];
+        sprintf (x, "Only valid for binary allele");
+        PyErr_SetString (PyExc_ValueError, x);
+        return NULL;
+    }
+    PGAEncodeIntegerAsGrayCode (ctx, p, pop, frm, to, val);
+    Py_INCREF   (Py_None);
+    return Py_None;
+}
+
+static PyObject *PGA_encode_real_as_binary (PyObject *self0, PyObject *args)
+{
+    PyObject *self = NULL;
+    PGAContext *ctx = NULL;
+    int p, pop, frm, to;
+    double l, u, val;
+
+    if (!PyArg_ParseTuple
+         (args, "Oiiiiddd", &self, &p, &pop, &frm, &to, &l, &u, &val))
+    {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    if (!check_allele (ctx, p, pop, frm)) {
+        return NULL;
+    }
+    if (!check_allele (ctx, p, pop, to)) {
+        return NULL;
+    }
+    if (PGAGetDataType (ctx) != PGA_DATATYPE_BINARY) {
+        char x [50];
+        sprintf (x, "Only valid for binary allele");
+        PyErr_SetString (PyExc_ValueError, x);
+        return NULL;
+    }
+    PGAEncodeRealAsBinary (ctx, p, pop, frm, to, l, u, val);
+    Py_INCREF   (Py_None);
+    return Py_None;
+}
+
+static PyObject *PGA_encode_real_as_gray_code (PyObject *self0, PyObject *args)
+{
+    PyObject *self = NULL;
+    PGAContext *ctx = NULL;
+    int p, pop, frm, to;
+    double l, u, val;
+
+    if (!PyArg_ParseTuple
+         (args, "Oiiiiddd", &self, &p, &pop, &frm, &to, &l, &u, &val))
+    {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    if (!check_allele (ctx, p, pop, frm)) {
+        return NULL;
+    }
+    if (!check_allele (ctx, p, pop, to)) {
+        return NULL;
+    }
+    if (PGAGetDataType (ctx) != PGA_DATATYPE_BINARY) {
+        char x [50];
+        sprintf (x, "Only valid for binary allele");
+        PyErr_SetString (PyExc_ValueError, x);
+        return NULL;
+    }
+    PGAEncodeRealAsGrayCode (ctx, p, pop, frm, to, l, u, val);
     Py_INCREF   (Py_None);
     return Py_None;
 }
@@ -1265,7 +1573,7 @@ static PyObject *PGA_get_iteration (PyObject *self0, PyObject *args)
 static int check_probability (double probability)
 {
     if (probability < 0 || probability > 1) {
-        PyErr_SetString 
+        PyErr_SetString
             (PyExc_ValueError, "Probability must be 0 <= p <= 1");
         return 0;
     }
@@ -1377,8 +1685,23 @@ static PyMethodDef PGA_Methods [] =
 , { "check_stopping_conditions", PGA_check_stopping_conditions, METH_VARARGS
   , "Return original stop condition check"
   }
+, { "encode_int_as_binary",      PGA_encode_int_as_binary,      METH_VARARGS
+  , "Encode int as BCD in binary string"
+  }
+, { "encode_int_as_gray_code",   PGA_encode_int_as_gray_code,   METH_VARARGS
+  , "Encode int as gray code in binary string"
+  }
+, { "encode_real_as_binary",     PGA_encode_real_as_binary,     METH_VARARGS
+  , "Encode real as BCD in binary string"
+  }
+, { "encode_real_as_gray_code",  PGA_encode_real_as_gray_code,  METH_VARARGS
+  , "Encode real as gray code in binary string"
+  }
 , { "evaluate",                  PGA_evaluate,                  METH_VARARGS
   , "Evaluate"
+  }
+, { "fitness",                   PGA_fitness,                   METH_VARARGS
+  , "(Re) compute fitness from evaluations"
   }
 , { "get_allele",                PGA_get_allele,                METH_VARARGS
   , "Get allele"
@@ -1386,14 +1709,29 @@ static PyMethodDef PGA_Methods [] =
 , { "get_best_index",            PGA_get_best_index,            METH_VARARGS
   , "Get best index in population pop"
   }
-, { "get_fitness",               PGA_get_fitness,               METH_VARARGS
-  , "Get fitness of an individual"
+, { "get_evaluation",            PGA_get_evaluation,            METH_VARARGS
+  , "Get evaluation"
   }
 , { "get_evaluation_up_to_date", PGA_get_evaluation_up_to_date, METH_VARARGS
   , "Get evaluation up-to-date info"
   }
+, { "get_fitness",               PGA_get_fitness,               METH_VARARGS
+  , "Get fitness of an individual"
+  }
+, { "get_int_from_binary",       PGA_get_int_from_binary,       METH_VARARGS
+  , "Get integer value from binary string encoded in BCD"
+  }
+, { "get_int_from_gray_code",    PGA_get_int_from_gray_code,    METH_VARARGS
+  , "Get integer value from binary string encoded in gray code"
+  }
 , { "get_iteration",             PGA_get_iteration,             METH_VARARGS
   , "Current iteration (GA iter)"
+  }
+, { "get_real_from_binary",      PGA_get_real_from_binary,      METH_VARARGS
+  , "Get real value from binary string encoded in BCD"
+  }
+, { "get_real_from_gray_code",   PGA_get_real_from_gray_code,   METH_VARARGS
+  , "Get real value from binary string encoded in gray code"
   }
 , { "print_string",              PGA_print_string,              METH_VARARGS
   , "Python gene print function -- can be overridden in descendent class."
@@ -1404,20 +1742,26 @@ static PyMethodDef PGA_Methods [] =
 , { "random_flip",               PGA_random_flip,               METH_VARARGS
   , "Random int 0/1 with probability p"
   }
+, { "random_gaussian",           PGA_random_gaussian,           METH_VARARGS
+  , "Random value from gaussian distribution with mean, std_deviation"
+  }
 , { "random_interval",           PGA_random_interval,           METH_VARARGS
   , "Random int [l,r]"
   }
 , { "random_uniform",            PGA_random_uniform,            METH_VARARGS
   , "Random float [l,r]"
   }
-, { "random_gaussian",           PGA_random_gaussian,           METH_VARARGS
-  , "Random value from gaussian distribution with mean, std_deviation"
-  }
 , { "run",                       PGA_run,                       METH_VARARGS
   , "Run optimization"
   }
 , { "set_allele",                PGA_set_allele,                METH_VARARGS
   , "Set allele"
+  }
+, { "set_evaluation",            PGA_set_evaluation,            METH_VARARGS
+  , "Set evaluation"
+  }
+, { "set_evaluation_up_to_date", PGA_set_evaluation_up_to_date, METH_VARARGS
+  , "Set evaluation up to date or not up to date (to True or False)"
   }
 , { "set_random_seed",           PGA_set_random_seed,           METH_VARARGS
   , "Set random seed to integer value"
@@ -1467,7 +1811,7 @@ PyMODINIT_FUNC initpga (void)
     }
     Py_CLEAR(version);
     Py_CLEAR(pga);
-    
+
     /* add methods to class */
     for (def = PGA_Methods; def->ml_name != NULL; def++) {
         PyObject *func   = PyCFunction_New (def,  NULL);
