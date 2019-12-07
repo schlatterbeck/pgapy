@@ -459,6 +459,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     int mutation_type = 0;
     int fitness_type = 0;
     int fitness_min_type = 0;
+    double mutation_value = 0.0;
     double mutation_prob = -1;
     double crossover_prob = 0.85;
     double uniform_crossover_prob = 0.5;
@@ -505,6 +506,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         , "restart_frequency"
         , "mutation_bounded"
         , "mutation_type"
+        , "mutation_value"
         , "mutation_and_crossover"
         , "mutation_or_crossover"
         , "p_tournament_prob"
@@ -518,7 +520,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     if  (!PyArg_ParseTupleAndKeywords
             ( args
             , kw
-            , "OOi|OiOOOiiiidOiiOOiiddiOiOiOOdiddi"
+            , "OOi|OiOOOiiiidOiiOOiiddiOiOidOOdiddi"
             , kwlist
             , &self
             , &type
@@ -547,6 +549,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             , &restart_frequency
             , &mutation_bounded
             , &mutation_type
+            , &mutation_value
             , &mutation_and_crossover
             , &mutation_or_crossover
             , &p_tournament_prob
@@ -925,6 +928,13 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     }
     if (mutation_type) {
         PGASetMutationType (ctx, mutation_type);
+    }
+    if (mutation_value) {
+        if (PGAGetDataType (ctx) == PGA_DATATYPE_REAL) {
+            PGASetMutationRealValue (ctx, mutation_value);
+        } else {
+            PGASetMutationIntegerValue (ctx, (int)mutation_value);
+        }
     }
     if (fitness_type) {
         PGASetFitnessType (ctx, fitness_type);
