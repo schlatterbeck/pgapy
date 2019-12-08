@@ -317,15 +317,17 @@ static void print_gene (PGAContext *ctx, FILE *fp, int p, int pop)
     ERR_CHECK_X (!error_occurred);
     self    = get_self (ctx);
     ERR_CHECK_X (self);
+    fflush (fp);
 #if IS_PY3
     file = PyFile_FromFd (fileno (fp), "", "w", -1, "utf-8", NULL, NULL, 0);
 #else
-    file = PyFile_FromFile (fp, "<PGA_file>", "w", fclose);
+    file = PyFile_FromFile (fp, "<PGA_file>", "w", NULL);
 #endif
     ERR_CHECK_X (file);
     r    = PyObject_CallMethod (self, "print_string", "Oii", file, p, pop);
     ERR_CHECK_X (r);
 errout:
+    Py_CLEAR (file);
     Py_CLEAR (r);
     Py_CLEAR (self);
 }
@@ -348,7 +350,7 @@ static PyObject *PGA_print_string (PyObject *self0, PyObject *args)
         return NULL;
     }
 #if IS_PY3
-    fp = fdopen (PyObject_AsFileDescriptor (file), "w");
+    fp = fdopen (dup (PyObject_AsFileDescriptor (file)), "w");
     if (fp == NULL) {
         return NULL;
     }
@@ -375,6 +377,11 @@ static PyObject *PGA_print_string (PyObject *self0, PyObject *args)
     default :
         assert (0);
     }
+    fflush (fp);
+#if IS_PY3
+    /* We dup/fdopened this, have to close it, only the dup'd file closes */
+    fclose (fp);
+#endif
     Py_INCREF (Py_None);
     return Py_None;
 }
