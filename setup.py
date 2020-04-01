@@ -61,7 +61,7 @@ module1 = Extension \
     , sources       = ['pgamodule.c']
     , define_macros = [('WL', '32')]
     , include_dirs  = ['.', '/usr/include/pgapack-serial']
-    , libraries     = ['pgapack-serial1']
+    , libraries     = ['pgapack-serial']
     )
 
 setup \

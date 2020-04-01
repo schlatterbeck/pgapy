@@ -68,6 +68,7 @@ static constdef_t constdef [] =
     , {"PGA_POPREPL_BEST",          PGA_POPREPL_BEST          }
     , {"PGA_POPREPL_RANDOM_NOREP",  PGA_POPREPL_RANDOM_NOREP  }
     , {"PGA_POPREPL_RANDOM_REP",    PGA_POPREPL_RANDOM_REP    }
+    , {"PGA_POPREPL_RTR",           PGA_POPREPL_RTR           }
     , {"PGA_REPORT_AVERAGE",        PGA_REPORT_AVERAGE        }
     , {"PGA_REPORT_HAMMING",        PGA_REPORT_HAMMING        }
     , {"PGA_REPORT_OFFLINE",        PGA_REPORT_OFFLINE        }
@@ -309,6 +310,31 @@ errout:
 }
 
 /*
+ * Used if the calling object has a gene_difference method.
+ * Otherwise use built-in default for the datatype.
+ * Insert code to compute genetic difference of two individuals.
+ */
+static double gene_difference
+    (PGAContext *ctx, int p1, int pop1, int p2, int pop2)
+{
+    PyObject *self = NULL, *r = NULL;
+    int rr;
+    double retval = 0.0;
+    ERR_CHECK_X (!error_occurred);
+    self = get_self (ctx);
+    ERR_CHECK_X (self);
+    r = PyObject_CallMethod
+        (self, "gene_difference", "iiii", p1, pop1, p2, pop2);
+    ERR_CHECK_X (r);
+    rr = PyArg_Parse (r, "d", &retval);
+    ERR_CHECK_X (rr);
+errout:
+    Py_CLEAR (r);
+    Py_CLEAR (self);
+    return retval;
+}
+
+/*
  * Low-level gene print function
  */
 static void print_gene (PGAContext *ctx, FILE *fp, int p, int pop)
@@ -466,6 +492,8 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     int mutation_type = 0;
     int fitness_type = 0;
     int fitness_min_type = 0;
+    int tournament_size = 0;
+    int rtr_window_size = 0;
     double mutation_value = 0.0;
     double mutation_prob = -1;
     double crossover_prob = 0.85;
@@ -521,13 +549,15 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         , "max_fitness_rank"
         , "fitness_cmax_value"
         , "fitness_min_type"
+        , "tournament_size"
+        , "rtr_window_size"
         , NULL
         };
 
     if  (!PyArg_ParseTupleAndKeywords
             ( args
             , kw
-            , "OOi|OiOOOiiiidOiiOOiiddiOiOidOOdiddi"
+            , "OOi|OiOOOiiiidOiiOOiiddiOiOidOOdiddiii"
             , kwlist
             , &self
             , &type
@@ -564,6 +594,8 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             , &max_fitness_rank
             , &fitness_cmax_value
             , &fitness_min_type
+            , &tournament_size
+            , &rtr_window_size
             )
         )
     {
@@ -638,6 +670,10 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     if (PyObject_HasAttrString (self, "mutation")) {
         PGASetUserFunction (ctx, PGA_USERFUNCTION_MUTATION, (void *)mutation);
     }
+    if (PyObject_HasAttrString (self, "gene_difference")) {
+        PGASetUserFunction
+            (ctx, PGA_USERFUNCTION_GEN_DIFFERENCE, (void *)gene_difference);
+    }
     PGASetUserFunction (ctx, PGA_USERFUNCTION_PRINTSTRING, (void *)print_gene);
     PGASetUserFunction (ctx, PGA_USERFUNCTION_STOPCOND,    (void *)check_stop);
 
@@ -685,6 +721,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         if (  pop_replace_type != PGA_POPREPL_BEST
            && pop_replace_type != PGA_POPREPL_RANDOM_NOREP
            && pop_replace_type != PGA_POPREPL_RANDOM_REP
+           && pop_replace_type != PGA_POPREPL_RTR
            )
         {
             PyErr_SetString (PyExc_ValueError, "invalid pop_replace_type");
@@ -948,6 +985,12 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     }
     if (fitness_min_type) {
         PGASetFitnessMinType (ctx, fitness_min_type);
+    }
+    if (tournament_size) {
+        PGASetTournamentSize (ctx, tournament_size);
+    }
+    if (rtr_window_size) {
+        PGASetRTRWindowSize (ctx, rtr_window_size);
     }
     PGASetUp (ctx);
     /* Set attributes from internal values */
