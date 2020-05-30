@@ -27,7 +27,9 @@ ftp site, it is written in ANSI C and therefore *should* run on most
 platforms. Note that this version is not very actively maintained. I've
 started a `pgapack fork on github`_ where I've ported the library to the
 latest version of the MPI_ standard and have fixed some minor
-inconsistencies in the documentation.
+inconsistencies in the documentation. I've also implemented some new
+features (notably enhancements in selection schemes and a new replacement
+strategy called *restricted tournament replacement*)
 
 I have tested pgapy on Linux only and I'll currently not provide Windows
 versions.  You also can find my `pgapack fork on github`_ this
@@ -40,14 +42,6 @@ of the Debian maintainer of the package, Dirk Eddelbuettel.
 .. _pgapack:          http://ftp.mcs.anl.gov/pub/pgapack/
 .. _`pgapack fork on github`: https://github.com/schlatterbeck/pgapack
 .. _MPI: http://mpi-forum.org/
-
-For the Debian Linux distribution, pgapack is included in oldstable
-(jessie), you can still install this in the current stable release
-(stretch). This version does not yet include the fixes for newer MPI_
-versions and documentation updates.
-
-For debian the pre-built documentation is in
-``/usr/share/doc/pgapack/user_guide.ps.gz``
 
 To get you started, I've included some very simple examples in
 ``examples``, e.g., ``one-max.py`` implements the "Maxbit" example
@@ -74,11 +68,11 @@ several points:
  - We often want to maximize the numbers returned by our evaluation
    function, set the parameter ``maximize`` to False if you want to
    minimize.
- - We can define an array of init values, each entry containing a sequence
-   with lower and upper bound. The array has to have the length of the
-   gene. Note that the upper bound is *included* in the range of
-   possible values (unlike the python range operator but compatible with
-   the pgapack definition).
+ - For non-binary genes we can define an array of init values, each entry
+   containing a sequence with lower and upper bound. The array has to
+   have the length of the gene. Note that the upper bound is *included*
+   in the range of possible values (unlike the python range operator but
+   compatible with the pgapack definition).
  - In the constructor of the class we can add parameters of the genetic
    algorithm. Not all parameters of pgapack are wrapped yet, currently
    you would need to consult the sourcecode of PGAPy to find out which
@@ -155,6 +149,14 @@ or directly install via pypi.
 
 Changes
 -------
+
+Version 0.4: Bundle pgapack
+
+  - The pgapack package is now included as a git submodule. By default we
+    build against this library
+  - License fixes: The module long shipped a COPYING file that includes
+    the 2-clause BSD license. But the headers of setup.py and pgamodule.c
+    still included another license. This has been corrected.
 
 Version 0.3: Feature enhancements, Bug fixes
 

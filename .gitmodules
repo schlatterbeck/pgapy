@@ -1,0 +1,3 @@
+[submodule "pgapack"]
+	path = pgapack
+	url = git@github.com:schlatterbeck/pgapack.git

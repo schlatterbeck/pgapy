@@ -1,6 +1,9 @@
+include COPYING
 include test.py
 include README.rst
 include README.html
 include default.css
 include Version.h
 include Version.py
+include pgapack/include/pgapack.h
+include pgapack/fakempi/mpi.h
