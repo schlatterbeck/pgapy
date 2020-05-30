@@ -4,8 +4,10 @@ from __future__ import print_function
 from pga import PGA, PGA_REPORT_STRING
 from pga import PGA_STOP_MAXITER, PGA_STOP_TOOSIMILAR, PGA_STOP_NOCHANGE
 from pga import PGA_POPREPL_RANDOM_NOREP, PGA_POPREPL_RANDOM_REP
+from pga import PGA_POPREPL_RTR
 from pga import PGA_SELECT_PROPORTIONAL, PGA_SELECT_SUS
 from pga import PGA_SELECT_TOURNAMENT, PGA_SELECT_PTOURNAMENT
+from pga import PGA_SELECT_TRUNCATION
 from argparse import ArgumentParser
 from copy import copy
 
@@ -24,20 +26,20 @@ class Magic_Square (PGA) :
         # crossover operator to preserve the state where we have
         # all numbers from 1 to n**2
         p = dict \
-            ( maximize             = False
-            , integer_init_permute = [1, nsq]
-            , pop_size             = args.population_size
-            , num_replace          = int (args.population_size * 0.9)
-            , max_GA_iter          = 1000
-            , print_options        = [PGA_REPORT_STRING]
-            , random_seed          = args.random_seed
-            , max_no_change        = 10000
-            , select_type          = PGA_SELECT_PTOURNAMENT
-            #, select_type          = PGA_SELECT_PROPORTIONAL
-            #, pop_replace_type     = PGA_POPREPL_RANDOM_NOREP
-            , no_duplicates        = True
+            ( maximize              = False
+            , integer_init_permute  = [1, nsq]
+            , pop_size              = args.population_size
+            , num_replace           = int (args.population_size * 0.9)
+            , max_GA_iter           = 1000
+            , print_options         = [PGA_REPORT_STRING]
+            , random_seed           = args.random_seed
+            , max_no_change         = 10000
+            , select_type           = PGA_SELECT_TRUNCATION
+            , pop_replace_type      = PGA_POPREPL_RTR
+            , no_duplicates         = True
+            , truncation_proportion = 0.4
             #, mutation_and_crossover = True
-            , stopping_rule_types  =
+            , stopping_rule_types   =
                 [PGA_STOP_NOCHANGE, PGA_STOP_MAXITER]
             )
         if args.mutation_rate :

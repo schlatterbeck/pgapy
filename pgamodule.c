@@ -86,6 +86,7 @@ static constdef_t constdef [] =
     , {"PGA_SELECT_PTOURNAMENT",    PGA_SELECT_PTOURNAMENT    }
     , {"PGA_SELECT_SUS",            PGA_SELECT_SUS            }
     , {"PGA_SELECT_TOURNAMENT",     PGA_SELECT_TOURNAMENT     }
+    , {"PGA_SELECT_TRUNCATION",     PGA_SELECT_TRUNCATION     }
     , {"PGA_STOP_MAXITER",          PGA_STOP_MAXITER          }
     , {"PGA_STOP_NOCHANGE",         PGA_STOP_NOCHANGE         }
     , {"PGA_STOP_TOOSIMILAR",       PGA_STOP_TOOSIMILAR       }
@@ -501,6 +502,8 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     int fitness_min_type = 0;
     int tournament_size = 0;
     int rtr_window_size = 0;
+    int tournament_with_replacement = -1;
+    double truncation_proportion = 0.0;
     double mutation_value = 0.0;
     double mutation_prob = -1;
     double crossover_prob = 0.85;
@@ -558,13 +561,15 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         , "fitness_min_type"
         , "tournament_size"
         , "rtr_window_size"
+        , "tournament_with_replacement"
+        , "truncation_proportion"
         , NULL
         };
 
     if  (!PyArg_ParseTupleAndKeywords
             ( args
             , kw
-            , "OOi|OiOOOiiiidOiiOOiiddiOiOidOOdiddiii"
+            , "OOi|OiOOOiiiidOiiOOiiddiOiOidOOdiddiiiid"
             , kwlist
             , &self
             , &type
@@ -603,6 +608,8 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             , &fitness_min_type
             , &tournament_size
             , &rtr_window_size
+            , &tournament_with_replacement
+            , &truncation_proportion
             )
         )
     {
@@ -757,6 +764,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
            && select_type != PGA_SELECT_SUS
            && select_type != PGA_SELECT_TOURNAMENT
            && select_type != PGA_SELECT_PTOURNAMENT
+           && select_type != PGA_SELECT_TRUNCATION
            )
         {
             PyErr_SetString (PyExc_ValueError, "invalid select_type");
@@ -998,6 +1006,13 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     }
     if (rtr_window_size) {
         PGASetRTRWindowSize (ctx, rtr_window_size);
+    }
+    if (tournament_with_replacement >= 0) {
+        int v = tournament_with_replacement ? PGA_TRUE : PGA_FALSE;
+        PGASetTournamentWithReplacement (ctx, v);
+    }
+    if (truncation_proportion) {
+        PGASetTruncationProportion (ctx, truncation_proportion);
     }
     PGASetUp (ctx);
     /* Set attributes from internal values */
