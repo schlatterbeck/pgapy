@@ -56,7 +56,7 @@ module_from_pgapack_submodule = Extension \
     )
 
 # example config for default pga home when installing pga from source
-# contributed by Márk Váradi. You need to comment the module1 below if
+# contributed by MÃ¡rk VÃ¡radi. You need to comment the module1 below if
 # you want to use this setting.
 BASE     = '/usr/local/pga/'	# default pga home in Linux machines
 DEB_BASE = '/usr/include/pgapack-serial' # Default on Debian since lenny

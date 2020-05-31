@@ -1,17 +1,11 @@
 #!/usr/bin/python
 
 from __future__ import print_function
-from pga import PGA, PGA_REPORT_STRING
-from pga import PGA_STOP_MAXITER, PGA_STOP_TOOSIMILAR, PGA_STOP_NOCHANGE
-from pga import PGA_POPREPL_RANDOM_NOREP, PGA_POPREPL_RANDOM_REP
-from pga import PGA_POPREPL_RTR
-from pga import PGA_SELECT_PROPORTIONAL, PGA_SELECT_SUS
-from pga import PGA_SELECT_TOURNAMENT, PGA_SELECT_PTOURNAMENT
-from pga import PGA_SELECT_TRUNCATION
 from argparse import ArgumentParser
 from copy import copy
+import pga
 
-class Magic_Square (PGA) :
+class Magic_Square (pga.PGA) :
 
     def __init__ (self, args) :
         self.args = args
@@ -31,16 +25,15 @@ class Magic_Square (PGA) :
             , pop_size              = args.population_size
             , num_replace           = int (args.population_size * 0.9)
             , max_GA_iter           = 1000
-            , print_options         = [PGA_REPORT_STRING]
+            , max_no_change         = 400
+            , print_options         = [pga.PGA_REPORT_STRING]
             , random_seed           = args.random_seed
-            , max_no_change         = 10000
-            , select_type           = PGA_SELECT_TRUNCATION
-            , pop_replace_type      = PGA_POPREPL_RTR
+            , select_type           = pga.PGA_SELECT_TRUNCATION
+            , pop_replace_type      = pga.PGA_POPREPL_RTR
             , no_duplicates         = True
-            , truncation_proportion = 0.4
-            #, mutation_and_crossover = True
+            , truncation_proportion = 0.5
             , stopping_rule_types   =
-                [PGA_STOP_NOCHANGE, PGA_STOP_MAXITER]
+                [pga.PGA_STOP_NOCHANGE, pga.PGA_STOP_MAXITER]
             )
         if args.mutation_rate :
             p ['mutation_prob'] = args.mutation_rate
@@ -65,7 +58,7 @@ class Magic_Square (PGA) :
                     d2sum += row [-1]
             rows.append (row)
         return rows, rsum, csum, d1sum, d2sum
-    # end def sums
+    # end def pheno
 
     def invert (self, seq) :
         """ Inversion operator, inspired by
@@ -199,15 +192,26 @@ class Magic_Square (PGA) :
             print (' ' * sl, row, rsum [r], file = file)
         fitness = self.get_fitness (p, pop)
         print (f % d2sum, csum, f % d1sum, file = file)
-        print ("Fitness:", fitness)
         print ("Best idx:", self.get_best_index (pop))
-        print ("Up-to-date:", self.get_evaluation_up_to_date (p, pop))
-        print ("p: %s, pop: %s" % (p, pop))
+        # The following two test for old bugs in pgapack and should no
+        # longer happen. 
+        if not self.get_evaluation_up_to_date (p, pop) :
+            print ("OOOPS: Not up-to-date")
         if self.evaluate (p, pop) != fitness :
             print ("OOOPS")
     # end def print_string
 
-# end class Cards
+    def stop_cond (self) :
+        """ Stop when the evaluation has reached 0
+        """
+        best = self.get_best_index (pga.PGA_OLDPOP)
+        eval = self.evaluate (best, pga.PGA_OLDPOP)
+        if eval == 0 :
+            return True
+        return self.check_stopping_conditions ()
+    # end def stop_cond
+
+# end class Magic_Square
 
 if __name__ == '__main__' :
     cmd = ArgumentParser ()
