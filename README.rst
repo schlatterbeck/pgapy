@@ -150,38 +150,44 @@ or directly install via pypi.
 Changes
 -------
 
+Version 0.5: Bug-fix release
+
+- Now the setup.py works, previous version had an encoding problem
+- Wrap some minor new methods
+- Bug-fix in pgapack truncation selection
+
 Version 0.4: Bundle pgapack
 
-  - The pgapack package is now included as a git submodule. By default we
-    build against this library
-  - License fixes: The module long shipped a COPYING file that includes
-    the 2-clause BSD license. But the headers of setup.py and pgamodule.c
-    still included another license. This has been corrected.
+- The pgapack package is now included as a git submodule. By default we
+  build against this library
+- License fixes: The module long shipped a COPYING file that includes
+  the 2-clause BSD license. But the headers of setup.py and pgamodule.c
+  still included another license. This has been corrected.
 
 Version 0.3: Feature enhancements, Bug fixes
 
 Port to Python3, Python2 is still supported, license change.
 
-  - C-Code of wrapper updated to support both, Python2 and Python3
-  - Update documentation
-  - Fix some memory leaks that could result when errors occurred during
-    some callback methods
-  - License change: We now have the 2-clause BSD license (similar to the
-    MPICH license of pgapack), this used to be LGPL.
+- C-Code of wrapper updated to support both, Python2 and Python3
+- Update documentation
+- Fix some memory leaks that could result when errors occurred during
+  some callback methods
+- License change: We now have the 2-clause BSD license (similar to the
+  MPICH license of pgapack), this used to be LGPL.
 
 Version 0.2: Feature enhancements, Bug fixes
 
 64 bit support, more pgapack functions and attributes wrapped,
 Readme-update: Sourceforge logo, Changes chapter.
 
- - Bug-fixes for 64 bit architectures
- - More functions and attributes of pgapack wrapped
- - Add a build-rule to setup.py to allow building for standard-install
-   of pgapack |--| this currently needs editing of setup.py |--| should use
-   autodetect here but this would require that I set up a machine with
-   standard install of pgapack for testing.
- - Add Sourceforge logo as required
- - Add Changes chapter for automagic releases
+- Bug-fixes for 64 bit architectures
+- More functions and attributes of pgapack wrapped
+- Add a build-rule to setup.py to allow building for standard-install
+  of pgapack |--| this currently needs editing of setup.py |--| should use
+  autodetect here but this would require that I set up a machine with
+  standard install of pgapack for testing.
+- Add Sourceforge logo as required
+- Add Changes chapter for automagic releases
 
 Version 0.1: Initial freshmeat announcement
 
@@ -191,4 +197,4 @@ with Python. Pgapack is one of the most complete and accurate genetic
 algorithm implementations out there with a lot of features for
 experimentation.
 
- - Initial Release
+- Initial Release
