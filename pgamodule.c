@@ -503,6 +503,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     int tournament_size = 0;
     int rtr_window_size = 0;
     int tournament_with_replacement = -1;
+    int randomize_select = -1;
     double truncation_proportion = 0.0;
     double mutation_value = 0.0;
     double mutation_prob = -1;
@@ -563,13 +564,14 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         , "rtr_window_size"
         , "tournament_with_replacement"
         , "truncation_proportion"
+        , "randomize_select"
         , NULL
         };
 
     if  (!PyArg_ParseTupleAndKeywords
             ( args
             , kw
-            , "OOi|OiOOOiiiidOiiOOiiddiOiOidOOdiddiiiid"
+            , "OOi|OiOOOiiiidOiiOOiiddiOiOidOOdiddiiiidi"
             , kwlist
             , &self
             , &type
@@ -610,6 +612,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             , &rtr_window_size
             , &tournament_with_replacement
             , &truncation_proportion
+            , &randomize_select
             )
         )
     {
@@ -1013,6 +1016,10 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     }
     if (truncation_proportion) {
         PGASetTruncationProportion (ctx, truncation_proportion);
+    }
+    if (randomize_select >= 0) {
+        int v = randomize_select ? PGA_TRUE : PGA_FALSE;
+        PGASetRandomizeSelect (ctx, v);
     }
     PGASetUp (ctx);
     /* Set attributes from internal values */
@@ -1577,6 +1584,21 @@ static PyObject *PGA_get_best_index (PyObject *self0, PyObject *args)
     return Py_BuildValue ("i", PGAGetBestIndex (ctx, pop));
 }
 
+static PyObject *PGA_select_next_index (PyObject *self0, PyObject *args)
+{
+    PyObject *self = NULL;
+    PGAContext *ctx = NULL;
+    int pop;
+
+    if (!PyArg_ParseTuple(args, "Oi", &self, &pop)) {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    return Py_BuildValue ("i", PGASelectNextIndex (ctx, pop));
+}
+
 static PyObject *PGA_set_random_seed (PyObject *self0, PyObject *args)
 {
     PyObject *self = NULL;
@@ -1847,6 +1869,9 @@ static PyMethodDef PGA_Methods [] =
   }
 , { "set_random_seed",           PGA_set_random_seed,           METH_VARARGS
   , "Set random seed to integer value"
+  }
+, { "select_next_index",         PGA_select_next_index,         METH_VARARGS
+  , "Get index of next individual after selection"
   }
 , {NULL, NULL, 0, NULL}
 };
