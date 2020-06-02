@@ -105,6 +105,50 @@ The following naming conventions were used for the wrapper:
    the class method ``set_allele`` is implemented by the C-function
    ``PGA_set_allele`` in ``pgamodule.c``.
 
+Constants
+---------
+
+The following PGApack constants are available:
+
+========================== ===========================================
+Constant                   Description
+========================== ===========================================
+PGA_CROSSOVER_ONEPT        One-point Crossover
+PGA_CROSSOVER_TWOPT        Two-point Crossover
+PGA_CROSSOVER_UNIFORM      Uniform Crossover
+PGA_FITNESSMIN_CMAX        Map fitness by subtracting worst
+PGA_FITNESSMIN_RECIPROCAL  Map fitness via reciprocal
+PGA_FITNESS_NORMAL         Linear normalization of fitness
+PGA_FITNESS_RANKING        Linear fitness ranking
+PGA_FITNESS_RAW            Identity fitness function
+PGA_MUTATION_CONSTANT      Mutation by adding/subtracting constant
+PGA_MUTATION_GAUSSIAN      Mutation by selecting from Gaussian distribution
+PGA_MUTATION_PERMUTE       Mutation swaps two random genes
+PGA_MUTATION_RANGE         Replace gene with uniform selection from init range
+PGA_MUTATION_UNIFORM       Mutation uniform from interval
+PGA_NEWPOP                 Symbolic constant for new population
+PGA_OLDPOP                 Symbolic constant for old population
+PGA_POPREPL_BEST           Population replacement best strings
+PGA_POPREPL_RANDOM_NOREP   Population replacement random no replacement
+PGA_POPREPL_RANDOM_REP     Population replacement random with replacement
+PGA_POPREPL_RTR            Restricted Tournament Replacement
+PGA_REPORT_AVERAGE         Report average evaluation
+PGA_REPORT_HAMMING         Report hamming distance
+PGA_REPORT_OFFLINE         Report offline
+PGA_REPORT_ONLINE          Report online
+PGA_REPORT_STRING          Report the string
+PGA_REPORT_WORST           Report the worst evaluation
+PGA_SELECT_PROPORTIONAL    Fitness-proportional selection
+PGA_SELECT_PTOURNAMENT     Binary probabilistic tournament selection
+PGA_SELECT_SUS             Stochastic universal selection
+PGA_SELECT_TOURNAMENT      Tournament selection
+PGA_SELECT_TRUNCATION      Truncation selection
+PGA_STOP_MAXITER           Stop on max iterations
+PGA_STOP_NOCHANGE          Stop on max number of generations no change
+PGA_STOP_TOOSIMILAR        Stop when individuals too similar
+========================== ===========================================
+
+
 Missing Features
 ----------------
 As already mentioned, not all functions and constants of pgapack are
