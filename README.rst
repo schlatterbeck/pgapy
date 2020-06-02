@@ -334,6 +334,8 @@ Version 0.6: Major changes in wrapping
 - Now the wrapping uses the standard Python recommendations on how to
   create a custom class.
 - Update documentation
+- Rename fitness_cmax (from fitness_cmax_value)
+- Better error checking of parameters
 
 Version 0.5: Bug-fix release
 
