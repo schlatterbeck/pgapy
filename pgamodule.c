@@ -31,6 +31,7 @@
 #include <pgapack.h>
 #include <stdio.h>
 #undef NDEBUG
+#include <stddef.h>
 #include <assert.h>
 #include <Version.h>
 
@@ -43,11 +44,22 @@
 # define PyString_FromString(x) PyUnicode_FromString((x))
 # define PyFileObject PyObject
 # define PyFile_Check(x) PyObject_IsInstance((x), (PyObject *)&PyIOBase_Type)
+# define FAIL NULL
 # else /* Python 2 */
+# define FAIL
 # endif /* Python 2 */
 
-static PyObject *context        = NULL;
+/*
+ * Global data
+ */
+/* This is a dictionary for retrieving Python PGA objects by PGA ctx */
+static PyObject *contexts       = NULL;
+/* This is used for terminating the search and raising an error outside */
 static int       error_occurred = 0;
+
+/***********************
+ * Constants (in Module)
+ ***********************/
 
 typedef struct
 {
@@ -99,19 +111,13 @@ int compare_constdef (const void *v1, const void *v2)
     return strcmp (p1->cd_name, p2->cd_name);
 }
 
-# if 0
-static void prc (PyObject *o, char *str)
-{
-    fprintf (stderr, "%s: %08X", str, (int)o);
-    if (o) {
-        fprintf (stderr, "%s: Refcount: %d\n", str, o->ob_refcnt);
-    } else {
-        fprintf (stderr, "\n");
-    }
-    fflush  (stderr);
-}
-# endif
+/******************************************************
+ * Helpers for retriving ctx from self or self from ctx
+ ******************************************************/
 
+/*
+ * Retrieve the PGApack ctx from a PGA object
+ */
 static PGAContext *get_context (PyObject *self)
 {
     PyObject   *PGA_ctx = PyObject_GetAttrString (self, "context");
@@ -127,31 +133,40 @@ static PGAContext *get_context (PyObject *self)
     return ctx;
 }
 
+/*
+ * Retrieve the PGA object via the PGApack ctx
+ */
 static PyObject *get_self (PGAContext *ctx)
 {
-    PyObject *self, *PGA_ctx = Py_BuildValue    ("l", (long) ctx);
+    PyObject *self, *PGA_ctx = Py_BuildValue ("l", (long) ctx);
 
     if (!PGA_ctx) {
         return NULL;
     }
-    self = PyObject_GetItem (context, PGA_ctx);
+    self = PyObject_GetItem (contexts, PGA_ctx);
     Py_DECREF (PGA_ctx);
     return self;
 }
 
-#define ERR_CHECK(x,r) do {      \
-    if (!(x)) {                  \
-        error_occurred = 1;      \
-        return r;                \
-    }                            \
+#define ERR_CHECK(x,r) do {   \
+    if (!(x)) {               \
+        error_occurred = 1;   \
+        return r;             \
+    }                         \
 } while (0)
 
-#define ERR_CHECK_X(x) do {    \
-    if (!(x)) {                  \
-        error_occurred = 1;      \
-        goto errout;             \
-    }                            \
+#define ERR_CHECK_X(x) do {   \
+    if (!(x)) {               \
+        error_occurred = 1;   \
+        goto errout;          \
+    }                         \
 } while (0)
+
+/**************************************************
+ * PGApack callback functions
+ * These get a PGApack ctx and retrieve the object.
+ * Then they call into an object method
+ **************************************************/
 
 /*
  * Used if the calling object has an endofgen method.
@@ -366,60 +381,61 @@ errout:
     Py_CLEAR (self);
 }
 
-/*
- * Python gene print function -- can be overridden in descendent class
- */
-static PyObject *PGA_print_string (PyObject *self0, PyObject *args)
-{
-    PyObject     *self = NULL;
-    PyFileObject *file = NULL;
-    PGAContext   *ctx = NULL;
-    int           p, pop;
-    FILE         *fp = NULL;
+/******************
+ * Helper functions
+ ******************/
 
-    if (!PyArg_ParseTuple(args, "OOii", &self, &file, &p, &pop)) {
-        return NULL;
+static int check_allele (PGAContext *ctx, int p, int pop, int i)
+{
+    if (pop != PGA_OLDPOP && pop != PGA_NEWPOP) {
+        char x [50];
+        sprintf (x, "%d: invalid population", pop);
+        PyErr_SetString (PyExc_ValueError, x);
+        return 0;
     }
-    if (!(ctx = get_context (self))) {
-        return NULL;
+    if ((p < 0 || p >= PGAGetPopSize (ctx)) && p != PGA_TEMP1 && p != PGA_TEMP2)
+    {
+        char x [50];
+        sprintf (x, "%d: invalid population index", p);
+        PyErr_SetString (PyExc_ValueError, x);
+        return 0;
     }
-#if IS_PY3
-    fp = fdopen (dup (PyObject_AsFileDescriptor (file)), "w");
-    if (fp == NULL) {
-        return NULL;
+    if (i < 0 || i >= PGAGetStringLength (ctx)) {
+        char x [50];
+        sprintf (x, "%d: allele index out of range", i);
+        PyErr_SetString (PyExc_ValueError, x);
+        return 0;
     }
-#else
-    if (!PyFile_Check (file)) {
-        return NULL;
-    }
-    fp = file->f_fp;
-    assert (fp);
-#endif
-    switch (PGAGetDataType (ctx)) {
-    case PGA_DATATYPE_BINARY :
-        PGABinaryPrintString    (ctx, fp, p, pop);
-        break;
-    case PGA_DATATYPE_CHARACTER :
-        PGACharacterPrintString (ctx, fp, p, pop);
-        break;
-    case PGA_DATATYPE_INTEGER :
-        PGAIntegerPrintString   (ctx, fp, p, pop);
-        break;
-    case PGA_DATATYPE_REAL :
-        PGARealPrintString      (ctx, fp, p, pop);
-        break;
-    default :
-        assert (0);
-    }
-    fflush (fp);
-#if IS_PY3
-    /* We dup/fdopened this, have to close it, only the dup'd file closes */
-    fclose (fp);
-#endif
-    Py_INCREF (Py_None);
-    return Py_None;
+    return 1;
 }
 
+static int check_probability (double probability)
+{
+    if (probability < 0 || probability > 1) {
+        PyErr_SetString
+            (PyExc_ValueError, "Probability must be 0 <= p <= 1");
+        return 0;
+    }
+    return 1;
+}
+
+#define check_interval(l,r) do { \
+    if (l > r) {                                                           \
+        PyErr_SetString                                                    \
+            (PyExc_ValueError, "interval_left must be <= interval_right"); \
+        return NULL;                                                       \
+    }                                                                      \
+} while (0)
+
+/*
+ * Helper method for calling a PGA C function from a Python sequence.
+ * We get a callback method that calls a PGA function with a context as
+ * the first parameter.
+ * The sequence contains integers. We get a pointer into the constants
+ * array and a lenght (number of valid constants for this PGA callback)
+ * Constants are checked against the constants in the arry. Optionally
+ * an additional checkfun is called for each object.
+ */
 static int init_sequence
     ( PyObject   *sequence
     , PGAContext *ctx
@@ -489,7 +505,13 @@ static int check_hamming (PGAContext *ctx, int val, char *name)
     return 1;
 }
 
-static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
+/*************
+ * Constructor
+ *************/
+
+#define INIT_FAIL -1
+
+static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
 {
     int argc = 0, max = 0, length = 0, pop_size = 0, pga_type = 0;
     int random_seed = 0, max_GA_iter = 0, max_no_change = 0;
@@ -507,13 +529,13 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     double truncation_proportion = 0.0;
     double mutation_value = 0.0;
     double mutation_prob = -1;
-    double crossover_prob = 0.85;
-    double uniform_crossover_prob = 0.5;
+    double crossover_prob = -1;
+    double uniform_crossover_prob = -1.0;
     double p_tournament_prob = -1.0;
-    double max_fitness_rank = 1.2;
-    double fitness_cmax_value = 1.01;
+    double max_fitness_rank = -1.0;
+    double fitness_cmax_value = -1.0;
     PyObject *PGA_ctx = NULL;
-    PyObject *self = NULL, *type = NULL, *maximize = NULL, *init = NULL;
+    PyObject *type = NULL, *maximize = NULL, *init = NULL;
     PyObject *init_percent = NULL, *stopping_rule_types = NULL;
     PyObject *integer_init_permute = NULL;
     PyObject *print_options = NULL;
@@ -525,8 +547,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     char *argv [] = {NULL, NULL};
     PGAContext *ctx;
     static char *kwlist[] =
-        { "self"
-        , "type"
+        { "type"
         , "length"
         , "maximize"
         , "pop_size"
@@ -571,9 +592,8 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     if  (!PyArg_ParseTupleAndKeywords
             ( args
             , kw
-            , "OOi|OiOOOiiiidOiiOOiiddiOiOidOOdiddiiiidi"
+            , "Oi|OiOOOiiiidOiiOOiiddiOiOidOOdiddiiiidi"
             , kwlist
-            , &self
             , &type
             , &length
             , &maximize
@@ -616,10 +636,10 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             )
         )
     {
-        return NULL;
+        return INIT_FAIL;
     }
 
-    if (PyObject_IsSubclass      (type, (PyObject *)&PyBool_Type)) {
+    if (PyObject_IsSubclass (type, (PyObject *)&PyBool_Type)) {
         pga_type = PGA_DATATYPE_BINARY;
     }
     else if (  PyObject_IsSubclass (type, (PyObject *)&PyInt_Type)
@@ -644,7 +664,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             ( PyExc_NotImplementedError
             , "Gene type must currently be one of [bool, int, real, string]"
             );
-        return NULL;
+        return INIT_FAIL;
     }
 
     if (maximize) {
@@ -655,8 +675,9 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             ( PyExc_ValueError
             , "Gene length must be at least 2"
             );
-        return NULL;
+        return INIT_FAIL;
     }
+
     /*
      * Get class name (FIXME -- needed if debug options should be
      * supported)
@@ -670,6 +691,14 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         , length
         , max ? PGA_MAXIMIZE : PGA_MINIMIZE
         );
+    PGA_ctx = Py_BuildValue ("l", (long) ctx);
+    PyObject_SetItem        (contexts, PGA_ctx, self);
+    if (PyObject_SetAttrString (self, "context", PGA_ctx) < 0) {
+        Py_CLEAR (PGA_ctx);
+        return INIT_FAIL;
+    }
+    Py_CLEAR (PGA_ctx);
+
     if (PyObject_HasAttrString (self, "check_duplicate")) {
         PGASetUserFunction
             (ctx, PGA_USERFUNCTION_DUPLICATE, (void *)check_duplicate);
@@ -704,7 +733,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
            )
         {
             PyErr_SetString (PyExc_ValueError, "invalid crossover_type");
-            return NULL;
+            return INIT_FAIL;
         }
         PGASetCrossoverType (ctx, crossover_type);
     }
@@ -714,7 +743,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
                 ( PyExc_ValueError
                 , "Iteration count must be at least 2"
                 );
-            return NULL;
+            return INIT_FAIL;
         }
         PGASetMaxGAIterValue (ctx, max_GA_iter);
     }
@@ -724,10 +753,9 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
     if (max_similarity) {
         PGASetMaxSimilarityValue (ctx, max_similarity);
     }
-    if (mutation_prob < 0) {
-        mutation_prob = (double)1.0 / (double)length;
+    if (mutation_prob >= 0) {
+        PGASetMutationProb (ctx, mutation_prob);
     }
-    PGASetMutationProb (ctx, mutation_prob);
     if (no_duplicates && PyObject_IsTrue (no_duplicates)) {
         PGASetNoDuplicatesFlag (ctx, PGA_TRUE);
     }
@@ -742,7 +770,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
            )
         {
             PyErr_SetString (PyExc_ValueError, "invalid pop_replace_type");
-            return NULL;
+            return INIT_FAIL;
         }
         PGASetPopReplaceType (ctx, pop_replace_type);
     }
@@ -752,7 +780,14 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
                 ( PyExc_ValueError
                 , "Population size must be at least 2"
                 );
-            return NULL;
+            return INIT_FAIL;
+        }
+        if (pop_size & 1) {
+            PyErr_SetString \
+                ( PyExc_ValueError
+                , "Population size must be an even number"
+                );
+            return INIT_FAIL;
         }
         PGASetPopSize (ctx, pop_size);
     }
@@ -771,7 +806,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
            )
         {
             PyErr_SetString (PyExc_ValueError, "invalid select_type");
-            return NULL;
+            return INIT_FAIL;
         }
         PGASetSelectType (ctx, select_type);
     }
@@ -799,7 +834,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             )
         )
     {
-        return NULL;
+        return INIT_FAIL;
     }
     if  (!init_sequence
             ( print_options
@@ -812,36 +847,36 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             )
         )
     {
-        return NULL;
+        return INIT_FAIL;
     }
     if (integer_init_permute) {
         int i;
         int len = PySequence_Length (integer_init_permute);
         int permute_lh [2];
         if (len < 0) {
-            return NULL;
+            return INIT_FAIL;
         }
         if (len != 2) {
             PyErr_SetString
                 ( PyExc_ValueError
                 , "Need lower, upper for integer_init_permute"
                 );
-            return NULL;
+            return INIT_FAIL;
         }
         for (i = 0; i < 2; i++) {
             PyObject *x = PySequence_GetItem (integer_init_permute, i);
             PyObject *l = NULL;
             if (!x) {
-                return NULL;
+                return INIT_FAIL;
             }
             l = PyNumber_Long (x);
             Py_CLEAR (x);
             if (!l) {
-                return NULL;
+                return INIT_FAIL;
             }
             if (!PyArg_Parse (l, "i", permute_lh + i)) {
                 Py_CLEAR (l);
-                return NULL;
+                return INIT_FAIL;
             }
             Py_CLEAR (l);
         }
@@ -850,7 +885,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
                 ( PyExc_ValueError
                 , "integer_init_permute: upper - lower must be gene length"
                 );
-            return NULL;
+            return INIT_FAIL;
         }
         PGASetIntegerInitPermute (ctx, permute_lh [0], permute_lh [1]);
     }
@@ -863,23 +898,23 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
 
         if (datatype != PGA_DATATYPE_INTEGER && datatype != PGA_DATATYPE_REAL) {
             PyErr_SetString (PyExc_ValueError, "Init only for int/real");
-            return NULL;
+            return INIT_FAIL;
         }
         if (init && init_percent) {
             PyErr_SetString (PyExc_ValueError, "Only one of init/init_percent");
-            return NULL;
+            return INIT_FAIL;
         }
         if (init_percent && !is_real) {
             PyErr_SetString (PyExc_ValueError, "init_percent only for float");
-            return NULL;
+            return INIT_FAIL;
         }
         len = PySequence_Length (initvals);
         if (len < 0) {
-            return NULL;
+            return INIT_FAIL;
         }
         if (len != PGAGetStringLength (ctx)) {
             PyErr_SetString (PyExc_ValueError, "Init length != string length");
-            return NULL;
+            return INIT_FAIL;
         }
         i_low  = malloc (len * (is_real ? sizeof (double) : sizeof (int)));
         i_high = malloc (len * (is_real ? sizeof (double) : sizeof (int)));
@@ -888,18 +923,18 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
             PyObject *x = PySequence_GetItem (initvals, i);
             PyObject *low = NULL, *high = NULL;
             if (!x) {
-                return NULL;
+                return INIT_FAIL;
             }
             low  = PySequence_GetItem (x, 0);
             if (!low) {
                 Py_CLEAR (x);
-                return NULL;
+                return INIT_FAIL;
             }
             high = PySequence_GetItem (x, 1);
             if (!high) {
                 Py_CLEAR (x);
                 Py_CLEAR (low);
-                return NULL;
+                return INIT_FAIL;
             }
             Py_CLEAR (x);
             if (is_real) {
@@ -909,14 +944,14 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
                 if (!l) {
                     Py_CLEAR (low);
                     Py_CLEAR (high);
-                    return NULL;
+                    return INIT_FAIL;
                 }
                 h = PyNumber_Float (high);
                 if (!h) {
                     Py_CLEAR (low);
                     Py_CLEAR (high);
                     Py_CLEAR (l);
-                    return NULL;
+                    return INIT_FAIL;
                 }
                 Py_CLEAR (low);
                 Py_CLEAR (high);
@@ -926,13 +961,13 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
                 {
                     Py_CLEAR (l);
                     Py_CLEAR (h);
-                    return NULL;
+                    return INIT_FAIL;
                 }
                 hi = ((double *)i_high) [i];
                 if (init_percent && (hi <= 0 || hi > 1)) {
                     PyErr_SetString
                         (PyExc_ValueError, "Percentage must be 0 < p <= 1");
-                    return NULL;
+                    return INIT_FAIL;
                 }
             } else {
                 PyObject *l = NULL, *h = NULL;
@@ -940,14 +975,14 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
                 if (!l) {
                     Py_CLEAR (low);
                     Py_CLEAR (high);
-                    return NULL;
+                    return INIT_FAIL;
                 }
                 h = PyNumber_Long (high);
                 if (!h) {
                     Py_CLEAR (low);
                     Py_CLEAR (high);
                     Py_CLEAR (l);
-                    return NULL;
+                    return INIT_FAIL;
                 }
                 Py_CLEAR (low);
                 Py_CLEAR (high);
@@ -957,7 +992,7 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
                 {
                     Py_CLEAR (l);
                     Py_CLEAR (h);
-                    return NULL;
+                    return INIT_FAIL;
                 }
             }
         }
@@ -1022,91 +1057,161 @@ static PyObject *PGA_init (PyObject *self0, PyObject *args, PyObject *kw)
         PGASetRandomizeSelect (ctx, v);
     }
     PGASetUp (ctx);
-    /* Set attributes from internal values */
-    {
-        PyObject *p;
-        double prob;
-        prob = PGAGetCrossoverProb (ctx);
-        p = Py_BuildValue ("d", prob);
-        if (p) {
-            PyObject_SetAttrString (self, "crossover_prob", p);
-            Py_DECREF (p);
-        }
-        prob = PGAGetMutationProb (ctx);
-        p = Py_BuildValue ("d", prob);
-        if (p) {
-            PyObject_SetAttrString (self, "mutation_prob", p);
-            Py_DECREF (p);
-        }
-        prob = PGAGetUniformCrossoverProb (ctx);
-        p = Py_BuildValue ("d", prob);
-        if (p) {
-            PyObject_SetAttrString (self, "uniform_crossover_prob", p);
-            Py_DECREF (p);
-        }
-        pop_size = PGAGetPopSize (ctx);
-        p = Py_BuildValue ("i", pop_size);
-        if (p) {
-            PyObject_SetAttrString (self, "pop_size", p);
-            Py_DECREF (p);
-        }
-    }
 
-    PGA_ctx = Py_BuildValue ("l", (long) ctx);
-    PyObject_SetItem       (context, PGA_ctx, self);
-    PyObject_SetAttrString (self, "context", PGA_ctx);
-    Py_CLEAR (PGA_ctx);
-    Py_INCREF (Py_None);
-    return Py_None;
+    return 0;
 }
 
-static PyObject *PGA_check_stopping_conditions (PyObject *self0, PyObject *args)
+/***********************
+ * Other special methods
+ ***********************/
+
+/* __len__ */
+Py_ssize_t PGA_len (PyObject *self)
 {
-    PyObject *self;
     PGAContext *ctx;
 
-    if (!PyArg_ParseTuple(args, "O", &self)) {
-        return NULL;
+    if (!(ctx = get_context (self))) {
+        return -1;
     }
+    return PGAGetStringLength (ctx);
+}
+
+
+/****************
+ * Member Methods
+ ****************/
+
+static PyObject *PGA_check_stopping_conditions (PyObject *self, PyObject *args)
+{
+    PGAContext *ctx;
+
     if (!(ctx = get_context (self))) {
         return NULL;
     }
     return Py_BuildValue ("i", PGACheckStoppingConditions (ctx));
 }
 
-static PyObject *PGA_del (PyObject *self0, PyObject *args)
+static PyObject *PGA_encode_int_as_binary (PyObject *self, PyObject *args)
 {
-    PyObject *self;
-    PyObject   *PGA_ctx = NULL;
-    PGAContext *ctx;
+    PGAContext *ctx = NULL;
+    int p, pop, frm, to, val;
 
-    if (!PyArg_ParseTuple(args, "O", &self)) {
+    if (!PyArg_ParseTuple(args, "iiiii", &p, &pop, &frm, &to, &val)) {
         return NULL;
     }
-    Py_INCREF (Py_None);
-    PGA_ctx = PyObject_GetAttrString (self, "context");
-    #if 0
-    fprintf (stderr, "After PGA_ctx in PGA_del: %p\n", PGA_ctx);
-    fflush  (stderr);
-    #endif
-    if (!PGA_ctx) {
-        return Py_None;
+    if (!(ctx = get_context (self))) {
+        return NULL;
     }
-    if (!PyArg_Parse (PGA_ctx, "l", &ctx)) {
-        return Py_None;
+    if (!check_allele (ctx, p, pop, frm)) {
+        return NULL;
     }
-    PyObject_DelItem (context, PGA_ctx);
-    Py_CLEAR         (PGA_ctx);
-    PGADestroy       (ctx);
+    if (!check_allele (ctx, p, pop, to)) {
+        return NULL;
+    }
+    if (PGAGetDataType (ctx) != PGA_DATATYPE_BINARY) {
+        char x [50];
+        sprintf (x, "Only valid for binary allele");
+        PyErr_SetString (PyExc_ValueError, x);
+        return NULL;
+    }
+    PGAEncodeIntegerAsBinary (ctx, p, pop, frm, to, val);
+    Py_INCREF   (Py_None);
     return Py_None;
 }
 
-static PyObject *PGA_evaluate (PyObject *self0, PyObject *args)
+static PyObject *PGA_encode_int_as_gray_code (PyObject *self, PyObject *args)
 {
-    PyObject *self;
+    PGAContext *ctx = NULL;
+    int p, pop, frm, to, val;
+
+    if (!PyArg_ParseTuple(args, "iiiii", &p, &pop, &frm, &to, &val)) {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    if (!check_allele (ctx, p, pop, frm)) {
+        return NULL;
+    }
+    if (!check_allele (ctx, p, pop, to)) {
+        return NULL;
+    }
+    if (PGAGetDataType (ctx) != PGA_DATATYPE_BINARY) {
+        char x [50];
+        sprintf (x, "Only valid for binary allele");
+        PyErr_SetString (PyExc_ValueError, x);
+        return NULL;
+    }
+    PGAEncodeIntegerAsGrayCode (ctx, p, pop, frm, to, val);
+    Py_INCREF   (Py_None);
+    return Py_None;
+}
+
+static PyObject *PGA_encode_real_as_binary (PyObject *self, PyObject *args)
+{
+    PGAContext *ctx = NULL;
+    int p, pop, frm, to;
+    double l, u, val;
+
+    if (!PyArg_ParseTuple (args, "iiiiddd", &p, &pop, &frm, &to, &l, &u, &val))
+    {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    if (!check_allele (ctx, p, pop, frm)) {
+        return NULL;
+    }
+    if (!check_allele (ctx, p, pop, to)) {
+        return NULL;
+    }
+    if (PGAGetDataType (ctx) != PGA_DATATYPE_BINARY) {
+        char x [50];
+        sprintf (x, "Only valid for binary allele");
+        PyErr_SetString (PyExc_ValueError, x);
+        return NULL;
+    }
+    PGAEncodeRealAsBinary (ctx, p, pop, frm, to, l, u, val);
+    Py_INCREF   (Py_None);
+    return Py_None;
+}
+
+static PyObject *PGA_encode_real_as_gray_code (PyObject *self, PyObject *args)
+{
+    PGAContext *ctx = NULL;
+    int p, pop, frm, to;
+    double l, u, val;
+
+    if (!PyArg_ParseTuple (args, "iiiiddd", &p, &pop, &frm, &to, &l, &u, &val))
+    {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    if (!check_allele (ctx, p, pop, frm)) {
+        return NULL;
+    }
+    if (!check_allele (ctx, p, pop, to)) {
+        return NULL;
+    }
+    if (PGAGetDataType (ctx) != PGA_DATATYPE_BINARY) {
+        char x [50];
+        sprintf (x, "Only valid for binary allele");
+        PyErr_SetString (PyExc_ValueError, x);
+        return NULL;
+    }
+    PGAEncodeRealAsGrayCode (ctx, p, pop, frm, to, l, u, val);
+    Py_INCREF   (Py_None);
+    return Py_None;
+}
+
+static PyObject *PGA_evaluate (PyObject *self, PyObject *args)
+{
     int p, pop;
 
-    if (!PyArg_ParseTuple(args, "Oii", &self, &p, &pop)) {
+    if (!PyArg_ParseTuple(args, "ii", &p, &pop)) {
         return NULL;
     }
     PyErr_SetString \
@@ -1117,13 +1222,12 @@ static PyObject *PGA_evaluate (PyObject *self0, PyObject *args)
 }
 
 /* (Re)compute fitness */
-static PyObject *PGA_fitness (PyObject *self0, PyObject *args)
+static PyObject *PGA_fitness (PyObject *self, PyObject *args)
 {
-    PyObject *self;
     PGAContext *ctx;
     int pop;
 
-    if (!PyArg_ParseTuple(args, "Oi", &self, &pop)) {
+    if (!PyArg_ParseTuple(args, "i", &pop)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -1134,54 +1238,15 @@ static PyObject *PGA_fitness (PyObject *self0, PyObject *args)
     return Py_None;
 }
 
-static PyObject *PGA_len (PyObject *self0, PyObject *args)
-{
-    PyObject *self;
-    PGAContext *ctx;
-
-    if (!PyArg_ParseTuple(args, "O", &self)) {
-        return NULL;
-    }
-    if (!(ctx = get_context (self))) {
-        return NULL;
-    }
-    return Py_BuildValue ("i", PGAGetStringLength (ctx));
-}
-
-static int check_allele (PGAContext *ctx, int p, int pop, int i)
-{
-    if (pop != PGA_OLDPOP && pop != PGA_NEWPOP) {
-        char x [50];
-        sprintf (x, "%d: invalid population", pop);
-        PyErr_SetString (PyExc_ValueError, x);
-        return 0;
-    }
-    if ((p < 0 || p >= PGAGetPopSize (ctx)) && p != PGA_TEMP1 && p != PGA_TEMP2)
-    {
-        char x [50];
-        sprintf (x, "%d: invalid population index", p);
-        PyErr_SetString (PyExc_ValueError, x);
-        return 0;
-    }
-    if (i < 0 || i >= PGAGetStringLength (ctx)) {
-        char x [50];
-        sprintf (x, "%d: allele index out of range", i);
-        PyErr_SetString (PyExc_ValueError, x);
-        return 0;
-    }
-    return 1;
-}
-
 /*
  * Get and Set methods.
  */
-static PyObject *PGA_get_allele (PyObject *self0, PyObject *args)
+static PyObject *PGA_get_allele (PyObject *self, PyObject *args)
 {
-    PyObject *self = NULL;
     PGAContext *ctx = NULL;
     int p, pop, i;
 
-    if (!PyArg_ParseTuple(args, "Oiii", &self, &p, &pop, &i)) {
+    if (!PyArg_ParseTuple(args, "iii", &p, &pop, &i)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -1223,13 +1288,26 @@ static PyObject *PGA_get_allele (PyObject *self0, PyObject *args)
     return Py_None;
 }
 
-static PyObject *PGA_get_evaluation (PyObject *self0, PyObject *args)
+static PyObject *PGA_get_best_index (PyObject *self, PyObject *args)
 {
-    PyObject *self = NULL;
+    PGAContext *ctx = NULL;
+    int pop;
+
+    if (!PyArg_ParseTuple(args, "i", &pop)) {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    return Py_BuildValue ("i", PGAGetBestIndex (ctx, pop));
+}
+
+static PyObject *PGA_get_evaluation (PyObject *self, PyObject *args)
+{
     PGAContext *ctx = NULL;
     int p, pop;
 
-    if (!PyArg_ParseTuple(args, "Oii", &self, &p, &pop))
+    if (!PyArg_ParseTuple(args, "ii", &p, &pop))
     {
         return NULL;
     }
@@ -1239,13 +1317,40 @@ static PyObject *PGA_get_evaluation (PyObject *self0, PyObject *args)
     return Py_BuildValue ("d", PGAGetEvaluation (ctx, p, pop));
 }
 
-static PyObject *PGA_get_int_from_binary (PyObject *self0, PyObject *args)
+static PyObject *PGA_get_evaluation_up_to_date (PyObject *self, PyObject *args)
 {
-    PyObject *self = NULL;
+    PGAContext *ctx = NULL;
+    int p, pop;
+
+    if (!PyArg_ParseTuple(args, "ii", &p, &pop)) {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    return Py_BuildValue ("i", PGAGetEvaluationUpToDateFlag (ctx, p, pop));
+}
+
+static PyObject *PGA_get_fitness (PyObject *self, PyObject *args)
+{
+    PGAContext *ctx = NULL;
+    int p, pop;
+
+    if (!PyArg_ParseTuple(args, "ii", &p, &pop)) {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    return Py_BuildValue ("d", PGAGetFitness (ctx, p, pop));
+}
+
+static PyObject *PGA_get_int_from_binary (PyObject *self, PyObject *args)
+{
     PGAContext *ctx = NULL;
     int p, pop, frm, to;
 
-    if (!PyArg_ParseTuple(args, "Oiiii", &self, &p, &pop, &frm, &to)) {
+    if (!PyArg_ParseTuple(args, "iiii", &p, &pop, &frm, &to)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -1266,13 +1371,12 @@ static PyObject *PGA_get_int_from_binary (PyObject *self0, PyObject *args)
     return Py_BuildValue ("i", PGAGetIntegerFromBinary (ctx, p, pop, frm, to));
 }
 
-static PyObject *PGA_get_int_from_gray_code (PyObject *self0, PyObject *args)
+static PyObject *PGA_get_int_from_gray_code (PyObject *self, PyObject *args)
 {
-    PyObject *self = NULL;
     PGAContext *ctx = NULL;
     int p, pop, frm, to;
 
-    if (!PyArg_ParseTuple(args, "Oiiii", &self, &p, &pop, &frm, &to)) {
+    if (!PyArg_ParseTuple(args, "iiii", &p, &pop, &frm, &to)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -1294,14 +1398,23 @@ static PyObject *PGA_get_int_from_gray_code (PyObject *self0, PyObject *args)
         ("i", PGAGetIntegerFromGrayCode (ctx, p, pop, frm, to));
 }
 
-static PyObject *PGA_get_real_from_binary (PyObject *self0, PyObject *args)
+static PyObject *PGA_get_iteration (PyObject *self, PyObject *args)
 {
-    PyObject *self = NULL;
+    PGAContext *ctx = NULL;
+
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    return Py_BuildValue ("i", PGAGetGAIterValue (ctx));
+}
+
+static PyObject *PGA_get_real_from_binary (PyObject *self, PyObject *args)
+{
     PGAContext *ctx = NULL;
     int p, pop, frm, to;
     double l, u;
 
-    if (!PyArg_ParseTuple(args, "Oiiiidd", &self, &p, &pop, &frm, &to, &l, &u))
+    if (!PyArg_ParseTuple(args, "iiiidd", &p, &pop, &frm, &to, &l, &u))
     {
         return NULL;
     }
@@ -1324,14 +1437,13 @@ static PyObject *PGA_get_real_from_binary (PyObject *self0, PyObject *args)
         ("d", PGAGetRealFromBinary (ctx, p, pop, frm, to, l, u));
 }
 
-static PyObject *PGA_get_real_from_gray_code (PyObject *self0, PyObject *args)
+static PyObject *PGA_get_real_from_gray_code (PyObject *self, PyObject *args)
 {
-    PyObject *self = NULL;
     PGAContext *ctx = NULL;
     int p, pop, frm, to;
     double l, u;
 
-    if (!PyArg_ParseTuple(args, "Oiiiidd", &self, &p, &pop, &frm, &to, &l, &u))
+    if (!PyArg_ParseTuple(args, "iiiidd", &p, &pop, &frm, &to, &l, &u))
     {
         return NULL;
     }
@@ -1354,13 +1466,166 @@ static PyObject *PGA_get_real_from_gray_code (PyObject *self0, PyObject *args)
         ("d", PGAGetRealFromGrayCode (ctx, p, pop, frm, to, l, u));
 }
 
-static PyObject *PGA_set_allele (PyObject *self0, PyObject *args)
+/*
+ * Python gene print function -- can be overridden in descendent class
+ */
+static PyObject *PGA_print_string (PyObject *self, PyObject *args)
 {
-    PyObject *self = NULL, *val = NULL;
+    PyFileObject *file = NULL;
+    PGAContext   *ctx = NULL;
+    int           p, pop;
+    FILE         *fp = NULL;
+
+    if (!PyArg_ParseTuple(args, "Oii", &file, &p, &pop)) {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+#if IS_PY3
+    fp = fdopen (dup (PyObject_AsFileDescriptor (file)), "w");
+    if (fp == NULL) {
+        return NULL;
+    }
+#else
+    if (!PyFile_Check (file)) {
+        return NULL;
+    }
+    fp = file->f_fp;
+    assert (fp);
+#endif
+    switch (PGAGetDataType (ctx)) {
+    case PGA_DATATYPE_BINARY :
+        PGABinaryPrintString    (ctx, fp, p, pop);
+        break;
+    case PGA_DATATYPE_CHARACTER :
+        PGACharacterPrintString (ctx, fp, p, pop);
+        break;
+    case PGA_DATATYPE_INTEGER :
+        PGAIntegerPrintString   (ctx, fp, p, pop);
+        break;
+    case PGA_DATATYPE_REAL :
+        PGARealPrintString      (ctx, fp, p, pop);
+        break;
+    default :
+        assert (0);
+    }
+    fflush (fp);
+#if IS_PY3
+    /* We dup/fdopened this, have to close it, only the dup'd file closes */
+    fclose (fp);
+#endif
+    Py_INCREF (Py_None);
+    return Py_None;
+}
+
+static PyObject *PGA_random_01 (PyObject *self, PyObject *args)
+{
+    PGAContext *ctx = NULL;
+
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    return Py_BuildValue ("d", PGARandom01 (ctx, 0));
+}
+
+static PyObject *PGA_random_flip (PyObject *self, PyObject *args)
+{
+    PGAContext *ctx = NULL;
+    double     probability;
+
+    if (!PyArg_ParseTuple(args, "d", &probability)) {
+        return NULL;
+    }
+    if (!check_probability (probability)) {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    return Py_BuildValue ("i", PGARandomFlip (ctx, probability));
+}
+
+static PyObject *PGA_random_gaussian (PyObject *self, PyObject *args)
+{
+    PGAContext *ctx;
+    double     l, r;
+
+    if (!PyArg_ParseTuple(args, "dd", &l, &r)) {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    return Py_BuildValue ("d", PGARandomGaussian (ctx, l, r));
+}
+
+static PyObject *PGA_random_interval (PyObject *self, PyObject *args)
+{
+    PGAContext *ctx = NULL;
+    int        l, r;
+
+    if (!PyArg_ParseTuple(args, "ii", &l, &r)) {
+        return NULL;
+    }
+    check_interval (l, r);
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    return Py_BuildValue ("i", PGARandomInterval (ctx, l, r));
+}
+
+static PyObject *PGA_random_uniform (PyObject *self, PyObject *args)
+{
+    PGAContext *ctx;
+    double     l, r;
+
+    if (!PyArg_ParseTuple(args, "dd", &l, &r)) {
+        return NULL;
+    }
+    check_interval (l, r);
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    return Py_BuildValue ("d", PGARandomUniform (ctx, l, r));
+}
+
+static PyObject *PGA_run (PyObject *self, PyObject *args)
+{
+    PGAContext *ctx = NULL;
+
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    PGARun      (ctx, evaluate);
+    if (error_occurred) {
+        return NULL;
+    }
+    Py_INCREF   (Py_None);
+    return Py_None;
+}
+
+static PyObject *PGA_select_next_index (PyObject *self, PyObject *args)
+{
+    PGAContext *ctx = NULL;
+    int pop;
+
+    if (!PyArg_ParseTuple(args, "i", &pop)) {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    return Py_BuildValue ("i", PGASelectNextIndex (ctx, pop));
+}
+
+static PyObject *PGA_set_allele (PyObject *self, PyObject *args)
+{
+    PyObject *val = NULL;
     PGAContext *ctx = NULL;
     int p, pop, i;
 
-    if (!PyArg_ParseTuple(args, "OiiiO", &self, &p, &pop, &i, &val)) {
+    if (!PyArg_ParseTuple(args, "iiiO", &p, &pop, &i, &val)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -1410,14 +1675,13 @@ static PyObject *PGA_set_allele (PyObject *self0, PyObject *args)
     return Py_None;
 }
 
-static PyObject *PGA_set_evaluation (PyObject *self0, PyObject *args)
+static PyObject *PGA_set_evaluation (PyObject *self, PyObject *args)
 {
-    PyObject *self = NULL;
     PGAContext *ctx = NULL;
     int p, pop;
     double val;
 
-    if (!PyArg_ParseTuple(args, "Oiid", &self, &p, &pop, &val)) {
+    if (!PyArg_ParseTuple(args, "iid", &p, &pop, &val)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -1429,13 +1693,12 @@ static PyObject *PGA_set_evaluation (PyObject *self0, PyObject *args)
     return Py_None;
 }
 
-static PyObject *PGA_set_evaluation_up_to_date (PyObject *self0, PyObject *args)
+static PyObject *PGA_set_evaluation_up_to_date (PyObject *self, PyObject *args)
 {
-    PyObject *self = NULL;
     PGAContext *ctx = NULL;
     int p, pop, status;
 
-    if (!PyArg_ParseTuple(args, "Oiii", &self, &p, &pop, &status)) {
+    if (!PyArg_ParseTuple(args, "iii", &p, &pop, &status)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -1447,165 +1710,12 @@ static PyObject *PGA_set_evaluation_up_to_date (PyObject *self0, PyObject *args)
     return Py_None;
 }
 
-static PyObject *PGA_encode_int_as_binary (PyObject *self0, PyObject *args)
+static PyObject *PGA_set_random_seed (PyObject *self, PyObject *args)
 {
-    PyObject *self = NULL;
-    PGAContext *ctx = NULL;
-    int p, pop, frm, to, val;
-
-    if (!PyArg_ParseTuple(args, "Oiiiii", &self, &p, &pop, &frm, &to, &val)) {
-        return NULL;
-    }
-    if (!(ctx = get_context (self))) {
-        return NULL;
-    }
-    if (!check_allele (ctx, p, pop, frm)) {
-        return NULL;
-    }
-    if (!check_allele (ctx, p, pop, to)) {
-        return NULL;
-    }
-    if (PGAGetDataType (ctx) != PGA_DATATYPE_BINARY) {
-        char x [50];
-        sprintf (x, "Only valid for binary allele");
-        PyErr_SetString (PyExc_ValueError, x);
-        return NULL;
-    }
-    PGAEncodeIntegerAsBinary (ctx, p, pop, frm, to, val);
-    Py_INCREF   (Py_None);
-    return Py_None;
-}
-
-static PyObject *PGA_encode_int_as_gray_code (PyObject *self0, PyObject *args)
-{
-    PyObject *self = NULL;
-    PGAContext *ctx = NULL;
-    int p, pop, frm, to, val;
-
-    if (!PyArg_ParseTuple(args, "Oiiiii", &self, &p, &pop, &frm, &to, &val)) {
-        return NULL;
-    }
-    if (!(ctx = get_context (self))) {
-        return NULL;
-    }
-    if (!check_allele (ctx, p, pop, frm)) {
-        return NULL;
-    }
-    if (!check_allele (ctx, p, pop, to)) {
-        return NULL;
-    }
-    if (PGAGetDataType (ctx) != PGA_DATATYPE_BINARY) {
-        char x [50];
-        sprintf (x, "Only valid for binary allele");
-        PyErr_SetString (PyExc_ValueError, x);
-        return NULL;
-    }
-    PGAEncodeIntegerAsGrayCode (ctx, p, pop, frm, to, val);
-    Py_INCREF   (Py_None);
-    return Py_None;
-}
-
-static PyObject *PGA_encode_real_as_binary (PyObject *self0, PyObject *args)
-{
-    PyObject *self = NULL;
-    PGAContext *ctx = NULL;
-    int p, pop, frm, to;
-    double l, u, val;
-
-    if (!PyArg_ParseTuple
-         (args, "Oiiiiddd", &self, &p, &pop, &frm, &to, &l, &u, &val))
-    {
-        return NULL;
-    }
-    if (!(ctx = get_context (self))) {
-        return NULL;
-    }
-    if (!check_allele (ctx, p, pop, frm)) {
-        return NULL;
-    }
-    if (!check_allele (ctx, p, pop, to)) {
-        return NULL;
-    }
-    if (PGAGetDataType (ctx) != PGA_DATATYPE_BINARY) {
-        char x [50];
-        sprintf (x, "Only valid for binary allele");
-        PyErr_SetString (PyExc_ValueError, x);
-        return NULL;
-    }
-    PGAEncodeRealAsBinary (ctx, p, pop, frm, to, l, u, val);
-    Py_INCREF   (Py_None);
-    return Py_None;
-}
-
-static PyObject *PGA_encode_real_as_gray_code (PyObject *self0, PyObject *args)
-{
-    PyObject *self = NULL;
-    PGAContext *ctx = NULL;
-    int p, pop, frm, to;
-    double l, u, val;
-
-    if (!PyArg_ParseTuple
-         (args, "Oiiiiddd", &self, &p, &pop, &frm, &to, &l, &u, &val))
-    {
-        return NULL;
-    }
-    if (!(ctx = get_context (self))) {
-        return NULL;
-    }
-    if (!check_allele (ctx, p, pop, frm)) {
-        return NULL;
-    }
-    if (!check_allele (ctx, p, pop, to)) {
-        return NULL;
-    }
-    if (PGAGetDataType (ctx) != PGA_DATATYPE_BINARY) {
-        char x [50];
-        sprintf (x, "Only valid for binary allele");
-        PyErr_SetString (PyExc_ValueError, x);
-        return NULL;
-    }
-    PGAEncodeRealAsGrayCode (ctx, p, pop, frm, to, l, u, val);
-    Py_INCREF   (Py_None);
-    return Py_None;
-}
-
-static PyObject *PGA_get_best_index (PyObject *self0, PyObject *args)
-{
-    PyObject *self = NULL;
-    PGAContext *ctx = NULL;
-    int pop;
-
-    if (!PyArg_ParseTuple(args, "Oi", &self, &pop)) {
-        return NULL;
-    }
-    if (!(ctx = get_context (self))) {
-        return NULL;
-    }
-    return Py_BuildValue ("i", PGAGetBestIndex (ctx, pop));
-}
-
-static PyObject *PGA_select_next_index (PyObject *self0, PyObject *args)
-{
-    PyObject *self = NULL;
-    PGAContext *ctx = NULL;
-    int pop;
-
-    if (!PyArg_ParseTuple(args, "Oi", &self, &pop)) {
-        return NULL;
-    }
-    if (!(ctx = get_context (self))) {
-        return NULL;
-    }
-    return Py_BuildValue ("i", PGASelectNextIndex (ctx, pop));
-}
-
-static PyObject *PGA_set_random_seed (PyObject *self0, PyObject *args)
-{
-    PyObject *self = NULL;
     PGAContext *ctx = NULL;
     int seed;
 
-    if (!PyArg_ParseTuple(args, "Oi", &self, &seed)) {
+    if (!PyArg_ParseTuple(args, "i", &seed)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -1616,177 +1726,8 @@ static PyObject *PGA_set_random_seed (PyObject *self0, PyObject *args)
     return Py_None;
 }
 
-static PyObject *PGA_random_01 (PyObject *self0, PyObject *args)
-{
-    PyObject   *self = NULL;
-    PGAContext *ctx = NULL;
-
-    if (!PyArg_ParseTuple(args, "O", &self)) {
-        return NULL;
-    }
-    if (!(ctx = get_context (self))) {
-        return NULL;
-    }
-    return Py_BuildValue ("d", PGARandom01 (ctx, 0));
-}
-
-static PyObject *PGA_get_fitness (PyObject *self0, PyObject *args)
-{
-    PyObject *self = NULL;
-    PGAContext *ctx = NULL;
-    int p, pop;
-
-    if (!PyArg_ParseTuple(args, "Oii", &self, &p, &pop)) {
-        return NULL;
-    }
-    if (!(ctx = get_context (self))) {
-        return NULL;
-    }
-    return Py_BuildValue ("d", PGAGetFitness (ctx, p, pop));
-}
-
-static PyObject *PGA_get_evaluation_up_to_date (PyObject *self0, PyObject *args)
-{
-    PyObject *self = NULL;
-    PGAContext *ctx = NULL;
-    int p, pop;
-
-    if (!PyArg_ParseTuple(args, "Oii", &self, &p, &pop)) {
-        return NULL;
-    }
-    if (!(ctx = get_context (self))) {
-        return NULL;
-    }
-    return Py_BuildValue ("i", PGAGetEvaluationUpToDateFlag (ctx, p, pop));
-}
-
-static PyObject *PGA_get_iteration (PyObject *self0, PyObject *args)
-{
-    PyObject *self = NULL;
-    PGAContext *ctx = NULL;
-
-    if (!PyArg_ParseTuple(args, "O", &self)) {
-        return NULL;
-    }
-    if (!(ctx = get_context (self))) {
-        return NULL;
-    }
-    return Py_BuildValue ("i", PGAGetGAIterValue (ctx));
-}
-
-static int check_probability (double probability)
-{
-    if (probability < 0 || probability > 1) {
-        PyErr_SetString
-            (PyExc_ValueError, "Probability must be 0 <= p <= 1");
-        return 0;
-    }
-    return 1;
-}
-
-static PyObject *PGA_random_flip (PyObject *self0, PyObject *args)
-{
-    PyObject   *self = NULL;
-    PGAContext *ctx = NULL;
-    double     probability;
-
-    if (!PyArg_ParseTuple(args, "Od", &self, &probability)) {
-        return NULL;
-    }
-    if (!check_probability (probability)) {
-        return NULL;
-    }
-    if (!(ctx = get_context (self))) {
-        return NULL;
-    }
-    return Py_BuildValue ("i", PGARandomFlip (ctx, probability));
-}
-
-#define check_interval(l,r) do { \
-    if (l > r) {                                                           \
-        PyErr_SetString                                                    \
-            (PyExc_ValueError, "interval_left must be <= interval_right"); \
-        return NULL;                                                       \
-    }                                                                      \
-} while (0)
-
-static PyObject *PGA_random_interval (PyObject *self0, PyObject *args)
-{
-    PyObject   *self = NULL;
-    PGAContext *ctx = NULL;
-    int        l, r;
-
-    if (!PyArg_ParseTuple(args, "Oii", &self, &l, &r)) {
-        return NULL;
-    }
-    check_interval (l, r);
-    if (!(ctx = get_context (self))) {
-        return NULL;
-    }
-    return Py_BuildValue ("i", PGARandomInterval (ctx, l, r));
-}
-
-static PyObject *PGA_random_uniform (PyObject *self0, PyObject *args)
-{
-    PyObject   *self;
-    PGAContext *ctx;
-    double     l, r;
-
-    if (!PyArg_ParseTuple(args, "Odd", &self, &l, &r)) {
-        return NULL;
-    }
-    check_interval (l, r);
-    if (!(ctx = get_context (self))) {
-        return NULL;
-    }
-    return Py_BuildValue ("d", PGARandomUniform (ctx, l, r));
-}
-
-static PyObject *PGA_random_gaussian (PyObject *self0, PyObject *args)
-{
-    PyObject   *self;
-    PGAContext *ctx;
-    double     l, r;
-
-    if (!PyArg_ParseTuple(args, "Odd", &self, &l, &r)) {
-        return NULL;
-    }
-    if (!(ctx = get_context (self))) {
-        return NULL;
-    }
-    return Py_BuildValue ("d", PGARandomGaussian (ctx, l, r));
-}
-
-static PyObject *PGA_run (PyObject *self0, PyObject *args)
-{
-    PyObject *self = NULL;
-    PGAContext *ctx = NULL;
-
-    if (!PyArg_ParseTuple(args, "O", &self)) {
-        return NULL;
-    }
-    if (!(ctx = get_context (self))) {
-        return NULL;
-    }
-    PGARun      (ctx, evaluate);
-    if (error_occurred) {
-        return NULL;
-    }
-    Py_INCREF   (Py_None);
-    return Py_None;
-}
-
-static PyMethodDef PGA_Methods [] =
-{ { "__del__",                   PGA_del,                       METH_VARARGS
-  , "Delete object and PGA data structures"
-  }
-, { "__init__",     (PyCFunction)PGA_init,      METH_VARARGS | METH_KEYWORDS
-  , "Init object"
-  }
-, { "__len__",                   PGA_len,                       METH_VARARGS
-  , "Return length of gene"
-  }
-, { "check_stopping_conditions", PGA_check_stopping_conditions, METH_VARARGS
+static PyMethodDef PGA_methods [] =
+{ { "check_stopping_conditions", PGA_check_stopping_conditions, METH_VARARGS
   , "Return original stop condition check"
   }
 , { "encode_int_as_binary",      PGA_encode_int_as_binary,      METH_VARARGS
@@ -1858,6 +1799,9 @@ static PyMethodDef PGA_Methods [] =
 , { "run",                       PGA_run,                       METH_VARARGS
   , "Run optimization"
   }
+, { "select_next_index",         PGA_select_next_index,         METH_VARARGS
+  , "Get index of next individual after selection"
+  }
 , { "set_allele",                PGA_set_allele,                METH_VARARGS
   , "Set allele"
   }
@@ -1870,12 +1814,162 @@ static PyMethodDef PGA_Methods [] =
 , { "set_random_seed",           PGA_set_random_seed,           METH_VARARGS
   , "Set random seed to integer value"
   }
-, { "select_next_index",         PGA_select_next_index,         METH_VARARGS
-  , "Get index of next individual after selection"
-  }
-, {NULL, NULL, 0, NULL}
+, {} /* EMPTY VALUE AS END-MARKER */
 };
 
+/**********************************
+ * Getters (and optionally setters)
+ **********************************/
+
+static PyObject *PGA_getzoppel (PyObject *self, void *closure)
+{
+    return Py_BuildValue ("d", 23.175);
+}
+
+#define XSTR(x) #x
+#define GETTER_FUNCTION(pganame, attrname, arg) \
+    static PyObject *PGA_ ## attrname (PyObject *self, void *closure) \
+    {                                                                 \
+        PGAContext *ctx;                                              \
+        if (!(ctx = get_context (self))) {                            \
+            return NULL;                                              \
+        }                                                             \
+        return Py_BuildValue (XSTR(arg), pganame (ctx));              \
+    }
+
+/* These do *NOT* end in semicolon */
+GETTER_FUNCTION (PGAGetCrossoverProb,            crossover_prob,         d)
+GETTER_FUNCTION (PGAGetFitnessCmaxValue,         fitness_cmax_value,     d)
+GETTER_FUNCTION (PGAGetGAIterValue,              GA_iter,                i)
+GETTER_FUNCTION (PGAGetMaxFitnessRank,           max_fitness_rank,       d)
+GETTER_FUNCTION (PGAGetMaxGAIterValue,           max_GA_iter,            i)
+GETTER_FUNCTION (PGAGetMutationAndCrossoverFlag, mutation_and_crossover, i)
+GETTER_FUNCTION (PGAGetMutationOrCrossoverFlag,  mutation_or_crossover,  i)
+GETTER_FUNCTION (PGAGetMutationBoundedFlag,      mutation_bounded,       i)
+GETTER_FUNCTION (PGAGetMutationProb,             mutation_prob,          d)
+GETTER_FUNCTION (PGAGetNumReplaceValue,          num_replace,            i)
+GETTER_FUNCTION (PGAGetPopSize,                  pop_size,               i)
+GETTER_FUNCTION (PGAGetPrintFrequencyValue,      print_frequency,        i)
+GETTER_FUNCTION (PGAGetPTournamentProb,          p_tournament_prob,      d)
+GETTER_FUNCTION (PGAGetRandomizeSelect,          randomize_select,       i)
+GETTER_FUNCTION (PGAGetRandomSeed,               random_seed,            i)
+GETTER_FUNCTION (PGAGetRestartFlag,              restart,                i)
+GETTER_FUNCTION (PGAGetRestartFrequencyValue,    restart_frequency,      i)
+GETTER_FUNCTION (PGAGetRTRWindowSize,            rtr_window_size,        i)
+GETTER_FUNCTION (PGAGetStringLength,             string_length,          i)
+GETTER_FUNCTION (PGAGetTournamentSize,           tournament_size,        i)
+GETTER_FUNCTION (PGAGetTournamentWithReplacement, tournament_with_replacement, i)
+GETTER_FUNCTION (PGAGetTruncationProportion,     truncation_proportion,  d)
+GETTER_FUNCTION (PGAGetUniformCrossoverProb,     uniform_crossover_prob, d)
+
+static PyObject *PGA_mutation_value (PyObject *self, void *closure)
+{
+    PGAContext *ctx;
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    if (PGAGetDataType (ctx) == PGA_DATATYPE_REAL) {
+        return Py_BuildValue ("d", PGAGetMutationRealValue (ctx));
+    } else if (PGAGetDataType (ctx) == PGA_DATATYPE_INTEGER) {
+	return Py_BuildValue ("i", PGAGetMutationIntegerValue (ctx));
+    }
+    Py_INCREF (Py_None);
+    return Py_None;
+}
+
+#define GETTER_ENTRY(name) \
+    { XSTR(name), PGA_ ## name }
+
+static PyGetSetDef PGA_getset [] =
+/*  name      .get                  .set   .doc .closure */
+{ { "zoppel", PGA_getzoppel }
+, GETTER_ENTRY (crossover_prob)
+, GETTER_ENTRY (fitness_cmax_value)
+, GETTER_ENTRY (GA_iter)
+, GETTER_ENTRY (max_fitness_rank)
+, GETTER_ENTRY (max_GA_iter)
+, GETTER_ENTRY (mutation_and_crossover)
+, GETTER_ENTRY (mutation_or_crossover)
+, GETTER_ENTRY (mutation_bounded)
+, GETTER_ENTRY (mutation_prob)
+, GETTER_ENTRY (mutation_value)
+, GETTER_ENTRY (num_replace)
+, GETTER_ENTRY (pop_size)
+, GETTER_ENTRY (print_frequency)
+, GETTER_ENTRY (p_tournament_prob)
+, GETTER_ENTRY (randomize_select)
+, GETTER_ENTRY (random_seed)
+, GETTER_ENTRY (restart)
+, GETTER_ENTRY (restart_frequency)
+, GETTER_ENTRY (rtr_window_size)
+, GETTER_ENTRY (string_length)
+, GETTER_ENTRY (tournament_size)
+, GETTER_ENTRY (tournament_with_replacement)
+, GETTER_ENTRY (truncation_proportion)
+, GETTER_ENTRY (uniform_crossover_prob)
+, {}
+};
+
+/***************************
+ * Creation of the PGA Class
+ ***************************/
+
+typedef struct {
+    PyObject_HEAD
+    PyObject *inst_dict;
+    PyObject *weakreflist;
+} PGAObject;
+
+static void PGA_dealloc (PyObject *self)
+{
+    PGAContext *ctx;
+
+    ctx = get_context (self);
+    #if 1
+    fprintf (stderr, "After ctx in PGA_dealloc: %p\n", ctx);
+    fflush  (stderr);
+    #endif
+    if (ctx != NULL) {
+        PGADestroy (ctx);
+    }
+    self->ob_type->tp_free (self);
+}
+
+static PyObject *PGA_new (PyTypeObject *type, PyObject *args, PyObject *kwds)
+{
+    PGAObject *self = NULL;
+    self = (PGAObject *) type->tp_alloc (type, 0);
+    return (PyObject *) self;
+}
+
+static PyMappingMethods PGA_mm = {
+    .mp_length         = PGA_len,
+};
+
+static PyTypeObject PGA_Type = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name           = "pga.PGA",
+    .tp_doc            = "PGApack wrapper class",
+    .tp_as_mapping     = &PGA_mm,
+    .tp_weaklistoffset = offsetof (PGAObject, weakreflist),
+    .tp_dictoffset     = offsetof (PGAObject, inst_dict),
+    .tp_basicsize      = sizeof (PGAObject),
+    .tp_itemsize       = 0,
+    .tp_flags          = ( Py_TPFLAGS_DEFAULT
+                         | Py_TPFLAGS_BASETYPE
+                         ),
+    .tp_new            = PGA_new,
+    .tp_init           = (initproc)   PGA_init,
+    .tp_dealloc        = (destructor) PGA_dealloc,
+    .tp_getset         = PGA_getset,
+    .tp_methods        = PGA_methods,
+};
+
+/*****************
+ * Module creation
+ *****************/
+
+/* Empty module methods */
 static PyMethodDef Module_Methods[] = { {NULL, NULL, 0, NULL} };
 
 #if IS_PY3
@@ -1892,53 +1986,34 @@ static struct PyModuleDef module_definition =
 
 PyMODINIT_FUNC initpga (void)
 {
-    PyMethodDef *def;
+    PyObject *module = NULL;
     constdef_t  *cd;
-    PyObject *class_Name  = PyString_FromString ("PGA");
-    PyObject *class_Dict  = PyDict_New          ();
-#if IS_PY3
-    PyObject *module      = PyModule_Create     (&module_definition);
-#else
-    PyObject *module      = Py_InitModule       ("pga", Module_Methods);
-#endif
-    PyObject *bases       = PyTuple_New         (0);
-    PyObject *pga_Class   = NULL;
-    PyObject *module_Dict = PyModule_GetDict    (module);
-    PyObject *version     = PyString_FromString (VERSION);
-    PyObject *pga         = PyString_FromString ("pga");
-    context               = Py_BuildValue       ("{}");
-    PyDict_SetItemString (module_Dict, "context",    context);
-    PyDict_SetItemString (module_Dict, "VERSION",    version);
-    PyDict_SetItemString (class_Dict,  "__module__", pga);
+    PyObject *module_Dict;
+    PyObject *version = PyString_FromString (VERSION);
+    contexts          = Py_BuildValue       ("{}");
 
+    if (PyType_Ready (&PGA_Type) < 0) {
+        return FAIL;
+    }
+#if IS_PY3
+    module = PyModule_Create (&module_definition);
+#else
+    module = Py_InitModule   ("pga", Module_Methods);
+#endif
+    if (module == NULL) {
+        return FAIL;
+    }
+    Py_INCREF (&PGA_Type);
+    PyModule_AddObject (module, "PGA", (PyObject *) &PGA_Type);
+    module_Dict = PyModule_GetDict (module);
+    PyDict_SetItemString (module_Dict, "contexts", contexts);
+    PyDict_SetItemString (module_Dict, "VERSION", version);
     for (cd = constdef; cd->cd_name; cd++) {
         PyObject *constant = Py_BuildValue    ("i", cd->cd_value);
         PyDict_SetItemString (module_Dict, cd->cd_name, constant);
         Py_DECREF (constant);
     }
-    Py_CLEAR(version);
-    Py_CLEAR(pga);
 
-    /* add methods to class */
-    for (def = PGA_Methods; def->ml_name != NULL; def++) {
-        PyObject *func   = PyCFunction_New (def,  NULL);
-#if IS_PY3
-        PyObject *method = PyInstanceMethod_New (func);
-#else
-        PyObject *method = PyMethod_New (func, NULL, pga_Class);
-#endif
-        PyDict_SetItemString (class_Dict, def->ml_name, method);
-        Py_CLEAR (func);
-        Py_CLEAR (method);
-    }
-    pga_Class = PyObject_CallFunctionObjArgs
-        ((PyObject *)&PyType_Type, class_Name, bases, class_Dict, NULL);
-    PyDict_SetItemString (module_Dict, "PGA", pga_Class);
-
-    Py_CLEAR(bases);
-    Py_CLEAR(class_Name);
-    Py_CLEAR(pga_Class);
-    Py_CLEAR(class_Dict);
 #if IS_PY3
     return module;
 #endif
