@@ -533,7 +533,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     double uniform_crossover_prob = -1.0;
     double p_tournament_prob = -1.0;
     double max_fitness_rank = -1.0;
-    double fitness_cmax_value = -1.0;
+    double fitness_cmax = -1.0;
     PyObject *PGA_ctx = NULL;
     PyObject *type = NULL, *maximize = NULL, *init = NULL;
     PyObject *init_percent = NULL, *stopping_rule_types = NULL;
@@ -579,7 +579,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         , "p_tournament_prob"
         , "fitness_type"
         , "max_fitness_rank"
-        , "fitness_cmax_value"
+        , "fitness_cmax"
         , "fitness_min_type"
         , "tournament_size"
         , "rtr_window_size"
@@ -626,7 +626,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             , &p_tournament_prob
             , &fitness_type
             , &max_fitness_rank
-            , &fitness_cmax_value
+            , &fitness_cmax
             , &fitness_min_type
             , &tournament_size
             , &rtr_window_size
@@ -819,8 +819,8 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     if (max_fitness_rank >= 0) {
         PGASetMaxFitnessRank (ctx, max_fitness_rank);
     }
-    if (fitness_cmax_value >= 0) {
-        PGASetFitnessCmaxValue (ctx, fitness_cmax_value);
+    if (fitness_cmax >= 0) {
+        PGASetFitnessCmaxValue (ctx, fitness_cmax);
     }
 
     if  (!init_sequence
@@ -1024,6 +1024,34 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         PGASetMutationOrCrossoverFlag (ctx, PGA_TRUE);
     }
     if (mutation_type) {
+        int data_type = PGAGetDataType (ctx);
+        if (data_type != PGA_DATATYPE_REAL && data_type != PGA_DATATYPE_INTEGER)
+        {
+            PyErr_SetString
+                (PyExc_ValueError, "mutation_type only for int and float");
+            return INIT_FAIL;
+        }
+        if (PGAGetDataType (ctx) == PGA_DATATYPE_REAL
+           && mutation_type != PGA_MUTATION_CONSTANT
+           && mutation_type != PGA_MUTATION_GAUSSIAN
+           && mutation_type != PGA_MUTATION_RANGE
+           && mutation_type != PGA_MUTATION_UNIFORM
+           )
+        {
+            PyErr_SetString
+                (PyExc_ValueError, "invalid mutation_type for float");
+            return INIT_FAIL;
+        }
+        if (PGAGetDataType (ctx) == PGA_DATATYPE_INTEGER
+           && mutation_type != PGA_MUTATION_CONSTANT
+           && mutation_type != PGA_MUTATION_PERMUTE
+           && mutation_type != PGA_MUTATION_RANGE
+           )
+        {
+            PyErr_SetString
+                (PyExc_ValueError, "invalid mutation_type for int");
+            return INIT_FAIL;
+        }
         PGASetMutationType (ctx, mutation_type);
     }
     if (mutation_value) {
@@ -1034,9 +1062,24 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         }
     }
     if (fitness_type) {
+        if (  fitness_type != PGA_FITNESS_RANKING
+           && fitness_type != PGA_FITNESS_RAW
+           && fitness_type != PGA_FITNESS_NORMAL
+           )
+        {
+            PyErr_SetString (PyExc_ValueError, "invalid fitness_type");
+            return INIT_FAIL;
+        }
         PGASetFitnessType (ctx, fitness_type);
     }
     if (fitness_min_type) {
+        if (  fitness_min_type != PGA_FITNESSMIN_CMAX
+           && fitness_min_type != PGA_FITNESSMIN_RECIPROCAL
+           )
+        {
+            PyErr_SetString (PyExc_ValueError, "invalid fitness_min_type");
+            return INIT_FAIL;
+        }
         PGASetFitnessMinType (ctx, fitness_min_type);
     }
     if (tournament_size) {
@@ -1839,7 +1882,7 @@ static PyObject *PGA_getzoppel (PyObject *self, void *closure)
 
 /* These do *NOT* end in semicolon */
 GETTER_FUNCTION (PGAGetCrossoverProb,            crossover_prob,         d)
-GETTER_FUNCTION (PGAGetFitnessCmaxValue,         fitness_cmax_value,     d)
+GETTER_FUNCTION (PGAGetFitnessCmaxValue,         fitness_cmax,           d)
 GETTER_FUNCTION (PGAGetGAIterValue,              GA_iter,                i)
 GETTER_FUNCTION (PGAGetMaxFitnessRank,           max_fitness_rank,       d)
 GETTER_FUNCTION (PGAGetMaxGAIterValue,           max_GA_iter,            i)
@@ -1858,7 +1901,7 @@ GETTER_FUNCTION (PGAGetRestartFrequencyValue,    restart_frequency,      i)
 GETTER_FUNCTION (PGAGetRTRWindowSize,            rtr_window_size,        i)
 GETTER_FUNCTION (PGAGetStringLength,             string_length,          i)
 GETTER_FUNCTION (PGAGetTournamentSize,           tournament_size,        i)
-GETTER_FUNCTION (PGAGetTournamentWithReplacement, tournament_with_replacement, i)
+GETTER_FUNCTION (PGAGetTournamentWithReplacement,tournament_with_replacement,i)
 GETTER_FUNCTION (PGAGetTruncationProportion,     truncation_proportion,  d)
 GETTER_FUNCTION (PGAGetUniformCrossoverProb,     uniform_crossover_prob, d)
 
@@ -1884,7 +1927,7 @@ static PyGetSetDef PGA_getset [] =
 /*  name      .get                  .set   .doc .closure */
 { { "zoppel", PGA_getzoppel }
 , GETTER_ENTRY (crossover_prob)
-, GETTER_ENTRY (fitness_cmax_value)
+, GETTER_ENTRY (fitness_cmax)
 , GETTER_ENTRY (GA_iter)
 , GETTER_ENTRY (max_fitness_rank)
 , GETTER_ENTRY (max_GA_iter)
