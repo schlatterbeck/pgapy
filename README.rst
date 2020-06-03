@@ -55,35 +55,35 @@ by the book "Genetic Algorithms in Python" but are written from scratch
 and don't include any code from the book. The examples illustrates
 several points:
 
- - Your class implementing the genetic algorithm needs to inherit from
-   pga.PGA (pga is the PGAPy wrapper module).
- - You need to define an evaluation function called ``evaluate`` that
-   returns a number indicating the fitness of the gene given with the
-   parameters ``p`` and ``pop`` that can be used to fetch allele values from
-   the gene using the ``get_allele`` method, for more details refer to the
-   PGAPack documentation.
- - You *can* define additional functions overriding built-in functions
-   of the PGAPack library, illustrated by the example of
-   ``print_string``.  Note that we could call the original print_string
-   method of our PGA superclass.  In the same way you can implement,
-   e.g., your own crossover method.
- - The constructor of the class needs to define the Gene type, in the
-   examples we use int and bool built-in datatypes.
- - The length of the gene needs to be given in the constructor.
- - We often want to maximize the numbers returned by our evaluation
-   function, set the parameter ``maximize`` to False if you want to
-   minimize.
- - For non-binary genes we can define an array of init values, each entry
-   containing a sequence with lower and upper bound. The array has to
-   have the length of the gene. Note that the upper bound is *included*
-   in the range of possible values (unlike the python range operator but
-   compatible with the PGAPack definition).
- - In the constructor of the class we can add parameters of the genetic
-   algorithm. Not all parameters of PGAPack are wrapped yet, currently
-   you would need to consult the sourcecode of PGAPy to find out which
-   parameters are wrapped. In the example we define several print
-   options.
- - Finally the genetic algorithm is started with the ``run`` method.
+- Your class implementing the genetic algorithm needs to inherit from
+  pga.PGA (pga is the PGAPy wrapper module).
+- You need to define an evaluation function called ``evaluate`` that
+  returns a number indicating the fitness of the gene given with the
+  parameters ``p`` and ``pop`` that can be used to fetch allele values from
+  the gene using the ``get_allele`` method, for more details refer to the
+  PGAPack documentation.
+- You *can* define additional functions overriding built-in functions
+  of the PGAPack library, illustrated by the example of
+  ``print_string``.  Note that we could call the original print_string
+  method of our PGA superclass.  In the same way you can implement,
+  e.g., your own crossover method.
+- The constructor of the class needs to define the Gene type, in the
+  examples we use int and bool built-in datatypes.
+- The length of the gene needs to be given in the constructor.
+- We often want to maximize the numbers returned by our evaluation
+  function, set the parameter ``maximize`` to False if you want to
+  minimize.
+- For non-binary genes we can define an array of init values, each entry
+  containing a sequence with lower and upper bound. The array has to
+  have the length of the gene. Note that the upper bound is *included*
+  in the range of possible values (unlike the python range operator but
+  compatible with the PGAPack definition).
+- In the constructor of the class we can add parameters of the genetic
+  algorithm. Not all parameters of PGAPack are wrapped yet, currently
+  you would need to consult the sourcecode of PGAPy to find out which
+  parameters are wrapped. In the example we define several print
+  options.
+- Finally the genetic algorithm is started with the ``run`` method.
 
 Naming conventions in PGAPy
 ---------------------------
@@ -93,35 +93,35 @@ wrapped yet and you may need additional functions |--| you should stick to
 my naming conventions when making changes.
 The following naming conventions were used for the wrapper:
 
- - Constants of PGAPack like ``PGA_REPORT_STRING`` are used as-is in
-   uppercase. These constants can be directly imported from the wrapper
-   module. Not all constants are wrapped so far, if you need more, add
-   them to the constdef array in pgamodule.c and send_ me a patch.
- - For methods of the pga.PGA class I've removed the ``PGA`` prefix used
-   throughout PGAPack and converted the method to lowercase with
-   underscores between uppercase words in the original function name, so
-   ``PGARun`` becomes ``run``, ``PGACheckStoppingConditions`` becomes
-   ``check_stopping_conditions``. An exception of the lowercase-rule is
-   whenever a name contains "GA" (for "genetic algorithm"), So
-   PGASetMaxGAIterValue becomes max_GA_iter.
- - Where possible I've made a single class method where PGAPack needs a
-   separate function for each datatype, so ``PGAGetBinaryAllele``,
-   ``PGAGetCharacterAllele``, ``PGAGetIntegerAllele``, ``PGAGetRealAllele`` all
-   become ``get_allele``. Same holds true for ``set_allele``.
- - Whenever a name in PGApack has a "Value" or "Flag" suffix, I've left
-   this out, so ``PGAGetFitnessCmaxValue`` becomes ``fitness_cmax``
-   and ``PGAGetMutationAndCrossoverFlag`` becomes
-   ``mutation_and_crossover``, the only exception to this rule is for the
-   two functions ``PGAGetMutationRealValue`` and
-   ``PGAGetMutationIntegerValue`` which become ``mutation_value`` not
-   just ``mutation``.
- - Some fields can take multiple values (they are implemented by ORing
-   integer constants, in python they are specified as a list or tuple of
-   constants). These are converted to plural (if not already plural in
-   PGApack), e.g., ``PGASetStoppingRuleType`` becomes ``stopping_rule_types``.
- - Internal method names in the wrapper program have a leading PGA\_ |--| so
-   the class method ``set_allele`` is implemented by the C-function
-   ``PGA_set_allele`` in ``pgamodule.c``.
+- Constants of PGAPack like ``PGA_REPORT_STRING`` are used as-is in
+  uppercase. These constants can be directly imported from the wrapper
+  module. Not all constants are wrapped so far, if you need more, add
+  them to the constdef array in pgamodule.c and send_ me a patch.
+- For methods of the pga.PGA class I've removed the ``PGA`` prefix used
+  throughout PGAPack and converted the method to lowercase with
+  underscores between uppercase words in the original function name, so
+  ``PGARun`` becomes ``run``, ``PGACheckStoppingConditions`` becomes
+  ``check_stopping_conditions``. An exception of the lowercase-rule is
+  whenever a name contains "GA" (for "genetic algorithm"), So
+  ``PGASetMaxGAIterValue`` becomes ``max_GA_iter``.
+- Where possible I've made a single class method where PGAPack needs a
+  separate function for each datatype, so ``PGAGetBinaryAllele``,
+  ``PGAGetCharacterAllele``, ``PGAGetIntegerAllele``, ``PGAGetRealAllele`` all
+  become ``get_allele``. Same holds true for ``set_allele``.
+- Whenever a name in PGApack has a "Value" or "Flag" suffix, I've left
+  this out, so ``PGAGetFitnessCmaxValue`` becomes ``fitness_cmax``
+  and ``PGAGetMutationAndCrossoverFlag`` becomes
+  ``mutation_and_crossover``, the only exception to this rule is for the
+  two functions ``PGAGetMutationRealValue`` and
+  ``PGAGetMutationIntegerValue`` which become ``mutation_value`` not
+  just ``mutation``.
+- Some fields can take multiple values (they are implemented by ORing
+  integer constants, in python they are specified as a list or tuple of
+  constants). These are converted to plural (if not already plural in
+  PGApack), e.g., ``PGASetStoppingRuleType`` becomes ``stopping_rule_types``.
+- Internal method names in the wrapper program have a leading PGA\_ |--| so
+  the class method ``set_allele`` is implemented by the C-function
+  ``PGA_set_allele`` in ``pgamodule.c``.
 
 Constructor Parameters
 ----------------------
@@ -139,7 +139,7 @@ is implemented in PGApack, in other cases returning a numeric value that
 has a symbolic constant in PGApy doesn't make much sense.
 The properties have the same name as the constructor parameter.
 There is one Property that is no constructor parameter, namely the
-GA_iter property that returns the current GA generation. In the type
+``GA_iter`` property that returns the current GA generation. In the type
 column I'm listing the Python type. If the type is followed by a number,
 more than one item of that type is specified (a sequence in Python). Some
 entries contain "sym", these are integer values with a symbolic constant,
@@ -206,9 +206,9 @@ PGA Object Methods
 ------------------
 
 The following are the methods that can be used during the run of the
-genetic search. The *run* method is used to start the search. This can
+genetic search. The ``run`` method is used to start the search. This can
 be used, to, e.g., set an allele during hill-climbing in a custom
-endofgen method. Note that some methods only apply to certain gene
+``endofgen`` method. Note that some methods only apply to certain gene
 types, e.g. the ``encode_int_`` methods can only be used on binary
 alleles (they encode an integer value as a binary or gray code
 representation into the gene). Other methods take or return different
@@ -239,7 +239,7 @@ Method                        Parameters         Return
 ``get_fitness``               *p, pop*           fitness of *p* (float)
 ``get_int_from_binary``       *p, pop, frm, to*  int
 ``get_int_from_gray_code``    *p, pop, frm, to*  int
-``get_iteration``                                deprecated, use GA_iter
+``get_iteration``                                deprecated, use ``GA_iter``
 ``get_real_from_binary``      *p, pop,*          float
                               *frm, to, l, u*
 ``get_real_from_gray_code``   *p, pop,*          float
@@ -263,7 +263,7 @@ User-Methods
 PGApack has the concept of user functions. These allow customization of
 different areas of a genetic algorihm. In Python they are implemented as
 methods that can be changed in a derived class. One of the methods that
-*must* be implemented in a derived class is the evaluate function
+*must* be implemented in a derived class is the ``evaluate`` function
 (although technically it is not a user function in PGApack). It
 interprets the gene and returns an evaluation value. PGApack computes a
 fitness from the raw evaluation value. For some methods an up-call into
@@ -360,11 +360,11 @@ Reporting Bugs
 --------------
 Please use the `Sourceforge Bug Tracker`_  or the `Github Bug Tracker`_ and
 
- - give a short description of what you think is the correct behaviour
- - give a description of the observed behaviour
- - tell me exactly what you did.
- - if you can publish your source code this makes it a lot easier to
-   debug for me
+- give a short description of what you think is the correct behaviour
+- give a description of the observed behaviour
+- tell me exactly what you did.
+- if you can publish your source code this makes it a lot easier to
+  debug for me
 
 .. _`Sourceforge Bug Tracker`:
     http://sourceforge.net/tracker/?group_id=152022&atid=782852
