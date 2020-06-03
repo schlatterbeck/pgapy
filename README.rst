@@ -436,6 +436,9 @@ Readme-update: Sourceforge logo, Changes chapter.
   standard install of PGAPack for testing.
 - Add Sourceforge logo as required
 - Add Changes chapter for automagic releases
+- Add the ``__module__`` string to class ``PGA`` in module ``pga``. Now
+  calling:: ``help (pga)`` in python works as expected, previously no
+  help-text was given for the included module
 
 Version 0.1: Initial freshmeat announcement
 
