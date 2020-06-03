@@ -21,6 +21,10 @@ why I wanted to use it in Python, too.
 There currently is not much documentation for PGAPy.
 You really, absolutely need to read the documentation that comes
 with PGAPack |--| and of course you need the PGAPack library.
+The PGAPack user guide is now shipped together with PGAPy. It is
+installed together with some examples in share/pgapy, wherever the
+Python installer decides to place this in the final installation
+(usually ``/usr/local/share`` on Linux).
 
 The original PGAPack library can still be downloaded from the PGAPack_
 ftp site, it is written in ANSI C and therefore *should* run on most
