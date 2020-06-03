@@ -345,6 +345,7 @@ PGA_STOP_TOOSIMILAR        Stop when individuals too similar
 
 Missing Features
 ----------------
+
 As already mentioned, not all functions and constants of PGAPack are
 wrapped yet |--| still for many applications the given set should be
 enough. If you need additional functions, you may want to wrap these and
@@ -358,6 +359,7 @@ problems implementing these, though.
 
 Reporting Bugs
 --------------
+
 Please use the `Sourceforge Bug Tracker`_  or the `Github Bug Tracker`_ and
 
 - give a short description of what you think is the correct behaviour
@@ -393,12 +395,12 @@ Version 0.6: Major changes in wrapping
 - Now the wrapping uses the standard Python recommendations on how to
   create a custom class.
 - Update documentation
-- Rename fitness_cmax (from fitness_cmax_value)
+- Rename ``fitness_cmax`` (from ``fitness_cmax_value``)
 - Better error checking of parameters
 
 Version 0.5: Bug-fix release
 
-- Now the setup.py works, previous version had an encoding problem
+- Now the ``setup.py`` works, previous version had an encoding problem
 - Wrap some minor new methods
 - Bug-fix in PGAPack truncation selection
 
@@ -406,8 +408,8 @@ Version 0.4: Bundle PGAPack
 
 - The PGAPack package is now included as a git submodule. By default we
   build against this library
-- License fixes: The module long shipped a COPYING file that includes
-  the 2-clause BSD license. But the headers of setup.py and pgamodule.c
+- License fixes: The module long shipped a ``COPYING`` file that includes
+  the 2-clause BSD license. But the headers of ``setup.py`` and ``pgamodule.c``
   still included another license. This has been corrected.
 
 Version 0.3: Feature enhancements, Bug fixes
@@ -428,8 +430,8 @@ Readme-update: Sourceforge logo, Changes chapter.
 
 - Bug-fixes for 64 bit architectures
 - More functions and attributes of PGAPack wrapped
-- Add a build-rule to setup.py to allow building for standard-install
-  of PGAPack |--| this currently needs editing of setup.py |--| should use
+- Add a build-rule to ``setup.py`` to allow building for standard-install
+  of PGAPack |--| this currently needs editing of ``setup.py`` |--| should use
   autodetect here but this would require that I set up a machine with
   standard install of PGAPack for testing.
 - Add Sourceforge logo as required
