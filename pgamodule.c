@@ -134,6 +134,24 @@ static PGAContext *get_context (PyObject *self)
 }
 
 /*
+ * Retrieve the FILE *fp from the PGA object
+ */
+static FILE *get_fp (PyObject *self)
+{
+    PyObject   *pyfp = PyObject_GetAttrString (self, "_fp");
+    FILE *fp;
+    if (!pyfp) {
+        return NULL;
+    }
+    if (!PyArg_Parse (pyfp, "l", &fp)) {
+        Py_DECREF   (pyfp);
+        return NULL;
+    }
+    Py_DECREF   (pyfp);
+    return fp;
+}
+
+/*
  * Retrieve the PGA object via the PGApack ctx
  */
 static PyObject *get_self (PGAContext *ctx)
@@ -359,6 +377,16 @@ errout:
 
 /*
  * Low-level gene print function
+ * Note: We do a hack here and store both, the original FILE *fp and the
+ * generated python file object into member variables _fp and _file,
+ * respectively. These are reused in the print_gene function (and the
+ * called print_string python method). This avoids garbage collection
+ * and/or memory leak issues with files and FILE * variables. There is
+ * no way to temporarily create a FILE * and avoiding the unterlying
+ * file descriptor being closed in C. The previous version used dup2 to
+ * duplicate the file descriptor but this is non-portable. The issue is
+ * further complicated by the fact that Python3 (as opposed to Python2)
+ * uses file descriptors not FILE* for generating a file object.
  */
 static void print_gene (PGAContext *ctx, FILE *fp, int p, int pop)
 {
@@ -367,12 +395,28 @@ static void print_gene (PGAContext *ctx, FILE *fp, int p, int pop)
     self    = get_self (ctx);
     ERR_CHECK_X (self);
     fflush (fp);
+    if (!PyObject_HasAttrString (self, "_file")) {
+        PyObject *pyfp = NULL;
 #if IS_PY3
-    file = PyFile_FromFd (fileno (fp), "", "w", -1, "utf-8", NULL, NULL, 0);
+        file = PyFile_FromFd (fileno (fp), "", "w", -1, "utf-8", NULL, NULL, 0);
 #else
-    file = PyFile_FromFile (fp, "<PGA_file>", "w", NULL);
+        file = PyFile_FromFile (fp, "<PGA_file>", "w", NULL);
 #endif
-    ERR_CHECK_X (file);
+        ERR_CHECK_X (file);
+        if (PyObject_SetAttrString (self, "_file", file) < 0) {
+            error_occurred = 1;
+            goto errout;
+        }
+        pyfp = Py_BuildValue ("l", (long) fp);
+        ERR_CHECK_X (pyfp);
+        if (PyObject_SetAttrString (self, "_fp", pyfp) < 0) {
+            error_occurred = 1;
+            goto errout;
+        }
+    } else {
+        file = PyObject_GetAttrString (self, "_file");
+        ERR_CHECK_X (file);
+    }
     r    = PyObject_CallMethod (self, "print_string", "Oii", file, p, pop);
     ERR_CHECK_X (r);
 errout:
@@ -1525,18 +1569,9 @@ static PyObject *PGA_print_string (PyObject *self, PyObject *args)
     if (!(ctx = get_context (self))) {
         return NULL;
     }
-#if IS_PY3
-    fp = fdopen (dup (PyObject_AsFileDescriptor (file)), "w");
-    if (fp == NULL) {
+    if (!(fp = get_fp (self))) {
         return NULL;
     }
-#else
-    if (!PyFile_Check (file)) {
-        return NULL;
-    }
-    fp = file->f_fp;
-    assert (fp);
-#endif
     switch (PGAGetDataType (ctx)) {
     case PGA_DATATYPE_BINARY :
         PGABinaryPrintString    (ctx, fp, p, pop);
@@ -1554,10 +1589,6 @@ static PyObject *PGA_print_string (PyObject *self, PyObject *args)
         assert (0);
     }
     fflush (fp);
-#if IS_PY3
-    /* We dup/fdopened this, have to close it, only the dup'd file closes */
-    fclose (fp);
-#endif
     Py_INCREF (Py_None);
     return Py_None;
 }
