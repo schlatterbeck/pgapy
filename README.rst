@@ -202,6 +202,61 @@ PGApack name                         Constructor parameter           Type   Prop
 ``PGASetUniformCrossoverProb``       ``uniform_crossover_prob``      float  yes
 ==================================== =============================== ====== ====
 
+PGA Object Methods
+------------------
+
+The following are the methods that can be used during the run of the
+genetic search. The *run* method is used to start the search. This can
+be used, to, e.g., set an allele during hill-climbing in a custom
+endofgen method. Note that some methods only apply to certain gene
+types, e.g. the ``encode_int_`` methods can only be used on binary
+alleles (they encode an integer value as a binary or gray code
+representation into the gene). Other methods take or return different
+types depending on the type of gene, e.g. ``get_allele`` or
+``set_allele``, they call different backend functions depending on the
+gene type. With the ``set_random_seed`` method, the random number
+generator can be re-seeded. It is usually best to seed the generator
+once at (before) the beginning by specifying ``random_seed`` in the
+constructor. For further details consult the user guide.
+
+============================= ================== ===========================
+Method                        Parameters         Return
+============================= ================== ===========================
+``check_stopping_conditions``                    True if stop should occur
+``encode_int_as_binary``      *p, pop,*          None
+                              *frm, to, val*
+``encode_int_as_gray_code``   *p, pop,*          None
+                              *frm, to, val*
+``encode_real_as_binary``     *p, pop, frm, to*  None
+                              *l, u, val*
+``encode_real_as_gray_code``  *p, pop, frm, to*  None
+                              *l, u, val*
+``fitness``                   *pop*              None
+``get_allele``                *p, pop, index*    allele value
+``get_best_index``            *pop*              index of best string
+``get_evaluation``            *p, pop*           evaluation of *p* (float)
+``get_evaluation_up_to_date`` *p, pop*           True if up-to-date
+``get_fitness``               *p, pop*           fitness of *p* (float)
+``get_int_from_binary``       *p, pop, frm, to*  int
+``get_int_from_gray_code``    *p, pop, frm, to*  int
+``get_iteration``                                deprecated, use GA_iter
+``get_real_from_binary``      *p, pop,*          float
+                              *frm, to, l, u*
+``get_real_from_gray_code``   *p, pop,*          float
+                              *frm, to, l, u*
+``random01``                                     float between 0 and 1
+``random_flip``               *probability*      0 or 1
+``random_gaussian``           *mean, stddev*     float
+``random_interval``           *l, r*             int between l, r
+``random_uniform``            *l, r*             float between l, r
+``run``                                          None
+``select_next_index``         *pop*              index selected individual
+``set_allele``                *p, pop, i, value* None
+``set_evaluation``            *p, pop, value*    None
+``set_evaluation_up_to_date`` *p, pop, status*   None
+``set_random_seed``           *seed*             None (use constructor!)
+============================= ================== ===========================
+
 User-Methods
 ------------
 
