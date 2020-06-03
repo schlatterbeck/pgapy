@@ -7,3 +7,4 @@ include Version.h
 include Version.py
 include pgapack/include/pgapack.h
 include pgapack/fakempi/mpi.h
+include pgapack/docs/user_guide.pdf

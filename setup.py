@@ -92,6 +92,9 @@ setup \
     , data_files       = [ ( 'share/pgapy/examples'
                            , ['examples/xor.py', 'examples/magic_square.py']
                            )
+                         , ( 'share/pgapy'
+                           , ['pgapack/docs/user_guide.pdf']
+                           )
                          ]
     , author           = "Ralf Schlatterbeck"
     , author_email     = "rsc@runtux.com"
