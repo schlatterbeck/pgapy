@@ -85,6 +85,7 @@ static constdef_t constdef [] =
     , {"PGA_NEWPOP",                PGA_NEWPOP                }
     , {"PGA_OLDPOP",                PGA_OLDPOP                }
     , {"PGA_POPREPL_BEST",          PGA_POPREPL_BEST          }
+    , {"PGA_POPREPL_PAIRWISE_BEST", PGA_POPREPL_PAIRWISE_BEST }
     , {"PGA_POPREPL_RANDOM_NOREP",  PGA_POPREPL_RANDOM_NOREP  }
     , {"PGA_POPREPL_RANDOM_REP",    PGA_POPREPL_RANDOM_REP    }
     , {"PGA_POPREPL_RTR",           PGA_POPREPL_RTR           }
@@ -94,6 +95,7 @@ static constdef_t constdef [] =
     , {"PGA_REPORT_ONLINE",         PGA_REPORT_ONLINE         }
     , {"PGA_REPORT_STRING",         PGA_REPORT_STRING         }
     , {"PGA_REPORT_WORST",          PGA_REPORT_WORST          }
+    , {"PGA_SELECT_LINEAR",         PGA_SELECT_LINEAR         }
     , {"PGA_SELECT_PROPORTIONAL",   PGA_SELECT_PROPORTIONAL   }
     , {"PGA_SELECT_PTOURNAMENT",    PGA_SELECT_PTOURNAMENT    }
     , {"PGA_SELECT_SUS",            PGA_SELECT_SUS            }
@@ -373,6 +375,20 @@ errout:
     Py_CLEAR (r);
     Py_CLEAR (self);
     return retval;
+}
+
+static void pre_eval (PGAContext *ctx)
+{
+    PyObject *self = NULL, *r = NULL;
+    ERR_CHECK_X (!error_occurred);
+    self = get_self (ctx);
+    ERR_CHECK_X (self);
+    r = PyObject_CallMethod (self, "pre_eval", "");
+    ERR_CHECK_X (r);
+errout:
+    Py_CLEAR (r);
+    Py_CLEAR (self);
+    return;
 }
 
 /*
@@ -764,6 +780,10 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         PGASetUserFunction
             (ctx, PGA_USERFUNCTION_GEN_DIFFERENCE, (void *)gene_difference);
     }
+    if (PyObject_HasAttrString (self, "pre_eval")) {
+        PGASetUserFunction
+            (ctx, PGA_USERFUNCTION_PRE_EVAL, (void *)pre_eval);
+    }
     PGASetUserFunction (ctx, PGA_USERFUNCTION_PRINTSTRING, (void *)print_gene);
     PGASetUserFunction (ctx, PGA_USERFUNCTION_STOPCOND,    (void *)check_stop);
 
@@ -811,6 +831,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
            && pop_replace_type != PGA_POPREPL_RANDOM_NOREP
            && pop_replace_type != PGA_POPREPL_RANDOM_REP
            && pop_replace_type != PGA_POPREPL_RTR
+           && pop_replace_type != PGA_POPREPL_PAIRWISE_BEST
            )
         {
             PyErr_SetString (PyExc_ValueError, "invalid pop_replace_type");
@@ -847,6 +868,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
            && select_type != PGA_SELECT_TOURNAMENT
            && select_type != PGA_SELECT_PTOURNAMENT
            && select_type != PGA_SELECT_TRUNCATION
+           && select_type != PGA_SELECT_LINEAR
            )
         {
             PyErr_SetString (PyExc_ValueError, "invalid select_type");
@@ -1292,6 +1314,32 @@ static PyObject *PGA_encode_real_as_gray_code (PyObject *self, PyObject *args)
     PGAEncodeRealAsGrayCode (ctx, p, pop, frm, to, l, u, val);
     Py_INCREF   (Py_None);
     return Py_None;
+}
+
+static PyObject *PGA_euclidian_distance (PyObject *self, PyObject *args)
+{
+    int p1, pop1, p2, pop2;
+    double dist = 0.0;
+    PGAContext *ctx;
+
+    if (!PyArg_ParseTuple(args, "iiii", &p1, &pop1, &p2, &pop2)) {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    if (PGAGetDataType (ctx) == PGA_DATATYPE_INTEGER) {
+        dist = PGAIntegerEuclidianDistance (ctx, p1, pop1, p2, pop2);
+    } else if (PGAGetDataType (ctx) == PGA_DATATYPE_REAL) {
+        dist = PGARealEuclidianDistance (ctx, p1, pop1, p2, pop2);
+    } else {
+        PyErr_SetString \
+            ( PyExc_NotImplementedError
+            , "No euclidian distance method for this data type"
+            );
+        return NULL;
+    }
+    return Py_BuildValue ("d", dist);
 }
 
 static PyObject *PGA_evaluate (PyObject *self, PyObject *args)
@@ -1815,6 +1863,9 @@ static PyMethodDef PGA_methods [] =
   }
 , { "encode_real_as_gray_code",  PGA_encode_real_as_gray_code,  METH_VARARGS
   , "Encode real as gray code in binary string"
+  }
+, { "euclidian_distance",        PGA_euclidian_distance,        METH_VARARGS
+  , "Get euclidian distance betwee two strings"
   }
 , { "evaluate",                  PGA_evaluate,                  METH_VARARGS
   , "Evaluate"

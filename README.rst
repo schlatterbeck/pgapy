@@ -231,6 +231,8 @@ Method                        Parameters         Return
                               *l, u, val*
 ``encode_real_as_gray_code``  *p, pop, frm, to*  None
                               *l, u, val*
+``euclidian_distance``        *p1, pop1*         float
+                              *p2, pop2*
 ``fitness``                   *pop*              None
 ``get_allele``                *p, pop, index*    allele value
 ``get_best_index``            *pop*              index of best string
@@ -296,6 +298,7 @@ Method              Call Signature                 Return Value Up-Call
 ``gene_difference`` *p1, pop1, p2, pop2*           float        no
 ``initstring``      *p, pop*                       None         no
 ``mutation``        *p, pop, propability*          #mutations   no
+``pre_eval``                                       None         no
 ``print_string``    *file, p, pop*                 None         yes
 =================== ============================== ============ =======
 
@@ -323,6 +326,7 @@ PGA_MUTATION_UNIFORM       Mutation uniform from interval
 PGA_NEWPOP                 Symbolic constant for new population
 PGA_OLDPOP                 Symbolic constant for old population
 PGA_POPREPL_BEST           Population replacement best strings
+PGA_POPREPL_PAIRWISE_BEST  Compare same index in old and new population
 PGA_POPREPL_RANDOM_NOREP   Population replacement random no replacement
 PGA_POPREPL_RANDOM_REP     Population replacement random with replacement
 PGA_POPREPL_RTR            Restricted Tournament Replacement
@@ -332,6 +336,7 @@ PGA_REPORT_OFFLINE         Report offline
 PGA_REPORT_ONLINE          Report online
 PGA_REPORT_STRING          Report the string
 PGA_REPORT_WORST           Report the worst evaluation
+PGA_SELECT_LINEAR          Return individuals in population order
 PGA_SELECT_PROPORTIONAL    Fitness-proportional selection
 PGA_SELECT_PTOURNAMENT     Binary probabilistic tournament selection
 PGA_SELECT_SUS             Stochastic universal selection
