@@ -72,12 +72,16 @@ static constdef_t constdef [] =
     { {"PGA_CROSSOVER_ONEPT",       PGA_CROSSOVER_ONEPT       }
     , {"PGA_CROSSOVER_TWOPT",       PGA_CROSSOVER_TWOPT       }
     , {"PGA_CROSSOVER_UNIFORM",     PGA_CROSSOVER_UNIFORM     }
+    , {"PGA_DE_VARIANT_BEST",       PGA_DE_VARIANT_BEST       }
+    , {"PGA_DE_VARIANT_EITHER_OR",  PGA_DE_VARIANT_EITHER_OR  }
+    , {"PGA_DE_VARIANT_RAND",       PGA_DE_VARIANT_RAND       }
     , {"PGA_FITNESSMIN_CMAX",       PGA_FITNESSMIN_CMAX       }
     , {"PGA_FITNESSMIN_RECIPROCAL", PGA_FITNESSMIN_RECIPROCAL }
     , {"PGA_FITNESS_NORMAL",        PGA_FITNESS_NORMAL        }
     , {"PGA_FITNESS_RANKING",       PGA_FITNESS_RANKING       }
     , {"PGA_FITNESS_RAW",           PGA_FITNESS_RAW           }
     , {"PGA_MUTATION_CONSTANT",     PGA_MUTATION_CONSTANT     }
+    , {"PGA_MUTATION_DE",           PGA_MUTATION_DE           }
     , {"PGA_MUTATION_GAUSSIAN",     PGA_MUTATION_GAUSSIAN     }
     , {"PGA_MUTATION_PERMUTE",      PGA_MUTATION_PERMUTE      }
     , {"PGA_MUTATION_RANGE",        PGA_MUTATION_RANGE        }
@@ -588,6 +592,13 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     int randomize_select = -1;
     double truncation_proportion = 0.0;
     double mutation_value = 0.0;
+    int DE_variant = 0;
+    int DE_num_diffs = 0;
+    double DE_scale_factor = -1;
+    double DE_aux_factor = -1;
+    double DE_crossover_prob = -1;
+    double DE_jitter = -1;
+    double DE_probability_EO = -1;
     double mutation_prob = -1;
     double crossover_prob = -1;
     double uniform_crossover_prob = -1.0;
@@ -602,8 +613,10 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     PyObject *no_duplicates = NULL;
     PyObject *restart = NULL;
     PyObject *mutation_bounded = NULL;
+    PyObject *mutation_bounce_back = NULL;
     PyObject *mutation_and_crossover = NULL;
     PyObject *mutation_or_crossover = NULL;
+    PyObject *mutation_only = NULL;
     char *argv [] = {NULL, NULL};
     PGAContext *ctx;
     static char *kwlist[] =
@@ -632,10 +645,19 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         , "restart"
         , "restart_frequency"
         , "mutation_bounded"
+        , "mutation_bounce_back"
         , "mutation_type"
         , "mutation_value"
+        , "DE_variant"
+        , "DE_num_diffs"
+        , "DE_scale_factor"
+        , "DE_aux_factor"
+        , "DE_crossover_prob"
+        , "DE_jitter"
+        , "DE_probability_EO"
         , "mutation_and_crossover"
         , "mutation_or_crossover"
+        , "mutation_only"
         , "p_tournament_prob"
         , "fitness_type"
         , "max_fitness_rank"
@@ -652,7 +674,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     if  (!PyArg_ParseTupleAndKeywords
             ( args
             , kw
-            , "Oi|OiOOOiiiidOiiOOiiddiOiOidOOdiddiiiidi"
+            , "Oi|OiOOOiiiidOiiOOiiddiOiOOidiidddddOOOdiddiiiidi"
             , kwlist
             , &type
             , &length
@@ -679,10 +701,19 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             , &restart
             , &restart_frequency
             , &mutation_bounded
+            , &mutation_bounce_back
             , &mutation_type
             , &mutation_value
+            , &DE_variant
+            , &DE_num_diffs
+            , &DE_scale_factor
+            , &DE_aux_factor
+            , &DE_crossover_prob
+            , &DE_jitter
+            , &DE_probability_EO
             , &mutation_and_crossover
             , &mutation_or_crossover
+            , &mutation_only
             , &p_tournament_prob
             , &fitness_type
             , &max_fitness_rank
@@ -819,6 +850,48 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     }
     if (mutation_prob >= 0) {
         PGASetMutationProb (ctx, mutation_prob);
+    }
+    if (DE_num_diffs > 0) {
+        if (DE_num_diffs > 2) {
+            PyErr_SetString (PyExc_ValueError, "invalid DE_num_diffs");
+            return INIT_FAIL;
+        }
+        PGASetDENumDiffs (ctx, DE_num_diffs);
+    }
+    if (DE_scale_factor > 0) {
+        if (DE_scale_factor > 2) {
+            PyErr_SetString (PyExc_ValueError, "invalid DE_scale_factor");
+            return INIT_FAIL;
+        }
+        PGASetDEScaleFactor (ctx, DE_scale_factor);
+    }
+    if (DE_aux_factor > 0) {
+        if (DE_aux_factor > 2) {
+            PyErr_SetString (PyExc_ValueError, "invalid DE_aux_factor");
+            return INIT_FAIL;
+        }
+        PGASetDEAuxFactor (ctx, DE_aux_factor);
+    }
+    if (DE_crossover_prob > 0) {
+        if (DE_crossover_prob > 1) {
+            PyErr_SetString (PyExc_ValueError, "invalid DE_crossover_prob");
+            return INIT_FAIL;
+        }
+        PGASetDECrossoverProb (ctx, DE_crossover_prob);
+    }
+    if (DE_jitter > 0) {
+        if (DE_jitter > 1) {
+            PyErr_SetString (PyExc_ValueError, "invalid DE_jitter");
+            return INIT_FAIL;
+        }
+        PGASetDEJitter (ctx, DE_jitter);
+    }
+    if (DE_probability_EO > 0) {
+        if (DE_probability_EO > 1) {
+            PyErr_SetString (PyExc_ValueError, "invalid DE_probability_EO");
+            return INIT_FAIL;
+        }
+        PGASetDEProbabilityEO (ctx, DE_probability_EO);
     }
     if (no_duplicates && PyObject_IsTrue (no_duplicates)) {
         PGASetNoDuplicatesFlag (ctx, PGA_TRUE);
@@ -1083,11 +1156,17 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     if (mutation_bounded && PyObject_IsTrue (mutation_bounded)) {
         PGASetMutationBoundedFlag (ctx, PGA_TRUE);
     }
+    if (mutation_bounce_back && PyObject_IsTrue (mutation_bounce_back)) {
+        PGASetMutationBounceBackFlag (ctx, PGA_TRUE);
+    }
     if (mutation_and_crossover && PyObject_IsTrue (mutation_and_crossover)) {
         PGASetMutationAndCrossoverFlag (ctx, PGA_TRUE);
     }
     if (mutation_or_crossover && PyObject_IsTrue (mutation_or_crossover)) {
         PGASetMutationOrCrossoverFlag (ctx, PGA_TRUE);
+    }
+    if (mutation_only && PyObject_IsTrue (mutation_only)) {
+        PGASetMutationOnlyFlag (ctx, PGA_TRUE);
     }
     if (mutation_type) {
         int data_type = PGAGetDataType (ctx);
@@ -1102,6 +1181,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
            && mutation_type != PGA_MUTATION_GAUSSIAN
            && mutation_type != PGA_MUTATION_RANGE
            && mutation_type != PGA_MUTATION_UNIFORM
+           && mutation_type != PGA_MUTATION_DE
            )
         {
             PyErr_SetString
@@ -1125,6 +1205,19 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             PGASetMutationRealValue (ctx, mutation_value);
         } else {
             PGASetMutationIntegerValue (ctx, (int)mutation_value);
+        }
+    }
+    if (DE_variant) {
+        switch (DE_variant) {
+            case PGA_DE_VARIANT_RAND:
+            case PGA_DE_VARIANT_BEST:
+            case PGA_DE_VARIANT_EITHER_OR:
+                PGASetDEVariant (ctx, DE_variant);
+                break;
+            default:
+                PyErr_SetString (PyExc_ValueError, "invalid DE_variant");
+                return INIT_FAIL;
+                break;
         }
     }
     if (fitness_type) {
@@ -1946,11 +2039,6 @@ static PyMethodDef PGA_methods [] =
  * Getters (and optionally setters)
  **********************************/
 
-static PyObject *PGA_getzoppel (PyObject *self, void *closure)
-{
-    return Py_BuildValue ("d", 23.175);
-}
-
 #define XSTR(x) #x
 #define GETTER_FUNCTION(pganame, attrname, arg) \
     static PyObject *PGA_ ## attrname (PyObject *self, void *closure) \
@@ -1970,8 +2058,17 @@ GETTER_FUNCTION (PGAGetMaxFitnessRank,           max_fitness_rank,       d)
 GETTER_FUNCTION (PGAGetMaxGAIterValue,           max_GA_iter,            i)
 GETTER_FUNCTION (PGAGetMutationAndCrossoverFlag, mutation_and_crossover, i)
 GETTER_FUNCTION (PGAGetMutationOrCrossoverFlag,  mutation_or_crossover,  i)
+GETTER_FUNCTION (PGAGetMutationOnlyFlag,         mutation_only,          i)
 GETTER_FUNCTION (PGAGetMutationBoundedFlag,      mutation_bounded,       i)
+GETTER_FUNCTION (PGAGetMutationBounceBackFlag,   mutation_bounce_back,   i)
 GETTER_FUNCTION (PGAGetMutationProb,             mutation_prob,          d)
+GETTER_FUNCTION (PGAGetDEVariant,                DE_variant,             i)
+GETTER_FUNCTION (PGAGetDENumDiffs,               DE_num_diffs,           i)
+GETTER_FUNCTION (PGAGetDEScaleFactor,            DE_scale_factor,        d)
+GETTER_FUNCTION (PGAGetDEAuxFactor,              DE_aux_factor,          d)
+GETTER_FUNCTION (PGAGetDECrossoverProb,          DE_crossover_prob,      d)
+GETTER_FUNCTION (PGAGetDEJitter,                 DE_jitter,              d)
+GETTER_FUNCTION (PGAGetDEProbabilityEO,          DE_probability_EO,      d)
 GETTER_FUNCTION (PGAGetNumReplaceValue,          num_replace,            i)
 GETTER_FUNCTION (PGAGetPopSize,                  pop_size,               i)
 GETTER_FUNCTION (PGAGetPrintFrequencyValue,      print_frequency,        i)
@@ -1987,6 +2084,7 @@ GETTER_FUNCTION (PGAGetTournamentWithReplacement,tournament_with_replacement,i)
 GETTER_FUNCTION (PGAGetTruncationProportion,     truncation_proportion,  d)
 GETTER_FUNCTION (PGAGetUniformCrossoverProb,     uniform_crossover_prob, d)
 
+/* This is a special getter because it doesn't have a single data type */
 static PyObject *PGA_mutation_value (PyObject *self, void *closure)
 {
     PGAContext *ctx;
@@ -2007,17 +2105,25 @@ static PyObject *PGA_mutation_value (PyObject *self, void *closure)
 
 static PyGetSetDef PGA_getset [] =
 /*  name      .get                  .set   .doc .closure */
-{ { "zoppel", PGA_getzoppel }
-, GETTER_ENTRY (crossover_prob)
+{ GETTER_ENTRY (crossover_prob)
 , GETTER_ENTRY (fitness_cmax)
 , GETTER_ENTRY (GA_iter)
 , GETTER_ENTRY (max_fitness_rank)
 , GETTER_ENTRY (max_GA_iter)
 , GETTER_ENTRY (mutation_and_crossover)
 , GETTER_ENTRY (mutation_or_crossover)
+, GETTER_ENTRY (mutation_only)
 , GETTER_ENTRY (mutation_bounded)
+, GETTER_ENTRY (mutation_bounce_back)
 , GETTER_ENTRY (mutation_prob)
 , GETTER_ENTRY (mutation_value)
+, GETTER_ENTRY (DE_variant)
+, GETTER_ENTRY (DE_num_diffs)
+, GETTER_ENTRY (DE_scale_factor)
+, GETTER_ENTRY (DE_aux_factor)
+, GETTER_ENTRY (DE_crossover_prob)
+, GETTER_ENTRY (DE_jitter)
+, GETTER_ENTRY (DE_probability_EO)
 , GETTER_ENTRY (num_replace)
 , GETTER_ENTRY (pop_size)
 , GETTER_ENTRY (print_frequency)

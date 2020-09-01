@@ -63,7 +63,7 @@ DEB_BASE = '/usr/include/pgapack-serial' # Default on Debian since lenny
 module_from_source = Extension \
     ( 'pga'
     , sources       = ['pgamodule.c']
-    , define_macros = [('WL', '32')]
+    , define_macros = []
     , include_dirs  = ['.', path.join (BASE, 'include'), DEB_BASE]
     , libraries     = [':libpgaO.a'] # you might need to adapt name of pga lib
     , library_dirs  = [path.join (BASE, 'lib/linux')]
@@ -74,7 +74,7 @@ module_from_source = Extension \
 module_from_install = Extension \
     ( 'pga'
     , sources       = ['pgamodule.c']
-    , define_macros = [('WL', '32')]
+    , define_macros = []
     , include_dirs  = ['.', '/usr/include/pgapack-serial']
     , libraries     = ['pgapack-serial']
     )
