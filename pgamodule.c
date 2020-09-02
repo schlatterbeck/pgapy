@@ -72,6 +72,8 @@ static constdef_t constdef [] =
     { {"PGA_CROSSOVER_ONEPT",       PGA_CROSSOVER_ONEPT       }
     , {"PGA_CROSSOVER_TWOPT",       PGA_CROSSOVER_TWOPT       }
     , {"PGA_CROSSOVER_UNIFORM",     PGA_CROSSOVER_UNIFORM     }
+    , {"PGA_DE_CROSSOVER_BIN",      PGA_DE_CROSSOVER_BIN      }
+    , {"PGA_DE_CROSSOVER_EXP",      PGA_DE_CROSSOVER_EXP      }
     , {"PGA_DE_VARIANT_BEST",       PGA_DE_VARIANT_BEST       }
     , {"PGA_DE_VARIANT_EITHER_OR",  PGA_DE_VARIANT_EITHER_OR  }
     , {"PGA_DE_VARIANT_RAND",       PGA_DE_VARIANT_RAND       }
@@ -381,13 +383,13 @@ errout:
     return retval;
 }
 
-static void pre_eval (PGAContext *ctx)
+static void pre_eval (PGAContext *ctx, int pop)
 {
     PyObject *self = NULL, *r = NULL;
     ERR_CHECK_X (!error_occurred);
     self = get_self (ctx);
     ERR_CHECK_X (self);
-    r = PyObject_CallMethod (self, "pre_eval", "");
+    r = PyObject_CallMethod (self, "pre_eval", "i", pop);
     ERR_CHECK_X (r);
 errout:
     Py_CLEAR (r);
@@ -594,6 +596,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     double mutation_value = 0.0;
     int DE_variant = 0;
     int DE_num_diffs = 0;
+    int DE_crossover_type = 0;
     double DE_scale_factor = -1;
     double DE_aux_factor = -1;
     double DE_crossover_prob = -1;
@@ -650,6 +653,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         , "mutation_value"
         , "DE_variant"
         , "DE_num_diffs"
+        , "DE_crossover_type"
         , "DE_scale_factor"
         , "DE_aux_factor"
         , "DE_crossover_prob"
@@ -674,7 +678,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     if  (!PyArg_ParseTupleAndKeywords
             ( args
             , kw
-            , "Oi|OiOOOiiiidOiiOOiiddiOiOOidiidddddOOOdiddiiiidi"
+            , "Oi|OiOOOiiiidOiiOOiiddiOiOOidiiidddddOOOdiddiiiidi"
             , kwlist
             , &type
             , &length
@@ -706,6 +710,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             , &mutation_value
             , &DE_variant
             , &DE_num_diffs
+            , &DE_crossover_type
             , &DE_scale_factor
             , &DE_aux_factor
             , &DE_crossover_prob
@@ -857,6 +862,16 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             return INIT_FAIL;
         }
         PGASetDENumDiffs (ctx, DE_num_diffs);
+    }
+    if (DE_crossover_type > 0) {
+        if (  DE_crossover_type != PGA_DE_CROSSOVER_BIN
+           && DE_crossover_type != PGA_DE_CROSSOVER_EXP
+           )
+        {
+            PyErr_SetString (PyExc_ValueError, "invalid DE crossover_type");
+            return INIT_FAIL;
+        }
+        PGASetDECrossoverType (ctx, DE_crossover_type);
     }
     if (DE_scale_factor > 0) {
         if (DE_scale_factor > 2) {

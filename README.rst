@@ -298,7 +298,7 @@ Method              Call Signature                 Return Value Up-Call
 ``gene_difference`` *p1, pop1, p2, pop2*           float        no
 ``initstring``      *p, pop*                       None         no
 ``mutation``        *p, pop, propability*          #mutations   no
-``pre_eval``                                       None         no
+``pre_eval``        *pop*                          None         no
 ``print_string``    *file, p, pop*                 None         yes
 =================== ============================== ============ =======
 
