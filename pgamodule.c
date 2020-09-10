@@ -601,7 +601,9 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     double DE_aux_factor = -1;
     double DE_crossover_prob = -1;
     double DE_jitter = -1;
+    double DE_dither = -1;
     double DE_probability_EO = -1;
+    PyObject *DE_dither_per_individual = NULL;
     double mutation_prob = -1;
     double crossover_prob = -1;
     double uniform_crossover_prob = -1.0;
@@ -640,6 +642,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         , "pop_replace_type"
         , "print_options"
         , "no_duplicates"
+        , "DE_dither_per_individual"
         , "crossover_type"
         , "select_type"
         , "crossover_prob"
@@ -658,6 +661,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         , "DE_aux_factor"
         , "DE_crossover_prob"
         , "DE_jitter"
+        , "DE_dither"
         , "DE_probability_EO"
         , "mutation_and_crossover"
         , "mutation_or_crossover"
@@ -678,7 +682,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     if  (!PyArg_ParseTupleAndKeywords
             ( args
             , kw
-            , "Oi|OiOOOiiiidOiiOOiiddiOiOOidiiidddddOOOdiddiiiidi"
+            , "Oi|OiOOOiiiidOiiOOOiiddiOiOOidiiiddddddOOOdiddiiiidi"
             , kwlist
             , &type
             , &length
@@ -697,6 +701,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             , &pop_replace_type
             , &print_options
             , &no_duplicates
+            , &DE_dither_per_individual
             , &crossover_type
             , &select_type
             , &crossover_prob
@@ -715,6 +720,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             , &DE_aux_factor
             , &DE_crossover_prob
             , &DE_jitter
+            , &DE_dither
             , &DE_probability_EO
             , &mutation_and_crossover
             , &mutation_or_crossover
@@ -863,6 +869,12 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         }
         PGASetDENumDiffs (ctx, DE_num_diffs);
     }
+    if  (  DE_dither_per_individual
+        && PyObject_IsTrue (DE_dither_per_individual)
+        )
+    {
+        PGASetDEDitherPerIndividual (ctx, PGA_TRUE);
+    }
     if (DE_crossover_type > 0) {
         if (  DE_crossover_type != PGA_DE_CROSSOVER_BIN
            && DE_crossover_type != PGA_DE_CROSSOVER_EXP
@@ -900,6 +912,13 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             return INIT_FAIL;
         }
         PGASetDEJitter (ctx, DE_jitter);
+    }
+    if (DE_dither > 0) {
+        if (DE_dither > 1) {
+            PyErr_SetString (PyExc_ValueError, "invalid DE_dither");
+            return INIT_FAIL;
+        }
+        PGASetDEDither (ctx, DE_dither);
     }
     if (DE_probability_EO > 0) {
         if (DE_probability_EO > 1) {
@@ -2083,6 +2102,7 @@ GETTER_FUNCTION (PGAGetDEScaleFactor,            DE_scale_factor,        d)
 GETTER_FUNCTION (PGAGetDEAuxFactor,              DE_aux_factor,          d)
 GETTER_FUNCTION (PGAGetDECrossoverProb,          DE_crossover_prob,      d)
 GETTER_FUNCTION (PGAGetDEJitter,                 DE_jitter,              d)
+GETTER_FUNCTION (PGAGetDEDither,                 DE_dither,              d)
 GETTER_FUNCTION (PGAGetDEProbabilityEO,          DE_probability_EO,      d)
 GETTER_FUNCTION (PGAGetNumReplaceValue,          num_replace,            i)
 GETTER_FUNCTION (PGAGetPopSize,                  pop_size,               i)
@@ -2138,6 +2158,7 @@ static PyGetSetDef PGA_getset [] =
 , GETTER_ENTRY (DE_aux_factor)
 , GETTER_ENTRY (DE_crossover_prob)
 , GETTER_ENTRY (DE_jitter)
+, GETTER_ENTRY (DE_dither)
 , GETTER_ENTRY (DE_probability_EO)
 , GETTER_ENTRY (num_replace)
 , GETTER_ENTRY (pop_size)
