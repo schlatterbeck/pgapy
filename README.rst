@@ -5,6 +5,9 @@ PGAPy: Python Wrapper for PGAPack Parallel Genetic Algorithm Library
 
 :Author: Ralf Schlatterbeck <rsc@runtux.com>
 
+News: This version wraps the Differential Evolution method (that's quite
+an old method but is newly implemented in pgapack).
+
 PGAPy is a wrapper for PGAPack, the parallel genetic algorithm library
 (see `PGAPack Readme`_), a powerfull genetic algorithm library by
 D. Levine, Mathematics and Computer Science Division Argonne National
@@ -394,6 +397,11 @@ or directly install via pypi.
 
 Changes
 -------
+
+Version 0.7: Major changes in wrapping
+
+- Now Differential Evolution is implemented, see the minfloat example
+  and the user guide of pgapack.
 
 Version 0.6: Major changes in wrapping
 
