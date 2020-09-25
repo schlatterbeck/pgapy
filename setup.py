@@ -90,7 +90,10 @@ setup \
     , long_description = ''.join (description)
     , ext_modules      = [module1]
     , data_files       = [ ( 'share/pgapy/examples'
-                           , ['examples/xor.py', 'examples/magic_square.py']
+                           , [ 'examples/xor.py'
+                             , 'examples/magic_square.py'
+                             , 'examples/minfloat.py'
+                             ]
                            )
                          , ( 'share/pgapy'
                            , ['pgapack/docs/user_guide.pdf']
