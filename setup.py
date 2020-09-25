@@ -49,7 +49,7 @@ pgapack_sources.extend (fn for fn in glob ('pgapack/source/*.c') if fn != stub)
 module_from_pgapack_submodule = Extension \
     ( 'pga'
     , sources = ['pgamodule.c'] + pgapack_sources + [stub]
-    , extra_compile_args = ['-fPIC']
+    , extra_compile_args = ['-fPIC', '-O3']
     , define_macros = [('FAKE_MPI', '1')]
     , include_dirs  = ['.', 'pgapack/fakempi', 'pgapack/include']
     , depends       = ['pgapack/include/pgapack.h', 'pgapack/fakempi/mpi.h']

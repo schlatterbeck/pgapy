@@ -398,6 +398,10 @@ or directly install via pypi.
 Changes
 -------
 
+Version 0.8: Bugfix in real mutation
+
+- Fix a core-dump in the latest pgapack
+
 Version 0.7: Major changes in wrapping
 
 - Now Differential Evolution is implemented, see the minfloat example
