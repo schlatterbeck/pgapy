@@ -622,7 +622,8 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     PyObject *mutation_and_crossover = NULL;
     PyObject *mutation_or_crossover = NULL;
     PyObject *mutation_only = NULL;
-    char *argv [] = {NULL, NULL};
+    PyObject *argv = NULL;
+    char **c_argv = NULL;
     PGAContext *ctx;
     static char *kwlist[] =
         { "type"
@@ -676,13 +677,14 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         , "tournament_with_replacement"
         , "truncation_proportion"
         , "randomize_select"
+        , "argv"
         , NULL
         };
 
     if  (!PyArg_ParseTupleAndKeywords
             ( args
             , kw
-            , "Oi|OiOOOiiiidOiiOOOiiddiOiOOidiiiddddddOOOdiddiiiidi"
+            , "Oi|OiOOOiiiidOiiOOOiiddiOiOOidiiiddddddOOOdiddiiiidiO"
             , kwlist
             , &type
             , &length
@@ -735,6 +737,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             , &tournament_with_replacement
             , &truncation_proportion
             , &randomize_select
+            , &argv
             )
         )
     {
@@ -780,19 +783,50 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         return INIT_FAIL;
     }
 
-    /*
-     * Get class name (FIXME -- needed if debug options should be
-     * supported)
-     */
-    argv [0] = "huhu";
+    /* If user didn't specify argv we get sys.argv */
+    if (!argv) {
+        PyObject *sys = PyImport_ImportModule ("sys");
+        if (!sys) {
+            return INIT_FAIL;
+        }
+        argv = PyObject_GetAttrString (sys, "argv");
+        Py_DECREF (sys);
+        if (!argv) {
+            return INIT_FAIL;
+        }
+    }
+    {
+        int i;
+        argc = PySequence_Length (argv);
+        c_argv = malloc ((argc + 1) * sizeof (char *));
+        c_argv [argc] = NULL;
+        for (i = 0; i < argc; i++) {
+            Py_ssize_t len = 0;
+            PyObject *b = NULL;
+            PyObject *s = PySequence_GetItem (argv, i);
+            if (!s) {
+                return INIT_FAIL;
+            }
+            b = PyUnicode_AsEncodedString (s, "utf-8", "strict");
+            Py_DECREF (s);
+            if (!b) {
+                return INIT_FAIL;
+            }
+            len = PyBytes_Size (b);
+            c_argv [i] = malloc (len + 1);
+            strcpy (c_argv [i], PyBytes_AsString (b));
+            Py_DECREF (b);
+        }
+    }
 
     ctx = PGACreate
         ( &argc
-        , argv
+        , c_argv
         , pga_type
         , length
         , max ? PGA_MAXIMIZE : PGA_MINIMIZE
         );
+    /* handle context pointer */
     PGA_ctx = Py_BuildValue ("l", (long) ctx);
     PyObject_SetItem        (contexts, PGA_ctx, self);
     if (PyObject_SetAttrString (self, "context", PGA_ctx) < 0) {
