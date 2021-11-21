@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (C) 2005-20 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2005-21 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # ****************************************************************************
@@ -28,7 +28,10 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ****************************************************************************
 
+import sys
 from distutils.core import setup, Extension
+if sys.version_info.major > 2 :
+    from subprocess     import run, PIPE
 try :
     from Version    import VERSION
 except :
@@ -78,6 +81,31 @@ module_from_install = Extension \
     , include_dirs  = ['.', '/usr/include/pgapack-serial']
     , libraries     = ['pgapack-serial']
     )
+
+# Parallel version. You need to specify PGA_PARALLEL_VARIANT in the
+# environment, the default is 'mpich'.
+# Note: Parallel version only supported for python3
+if sys.version_info.major > 2 :
+    parallel_variant = environ.get ('PGA_PARALLEL_VARIANT', 'mpich')
+    result = run (['dpkg-architecture', '-qDEB_BUILD_GNU_TYPE'], stdout = PIPE)
+    arch_dir = result.stdout.decode ('utf-8').rstrip ()
+    arch_dir = path.join ('/usr/include', arch_dir)
+    include_by_variant = dict \
+        ( mpich   = path.join (arch_dir, 'mpich')
+        , lam     = '/usr/include/lam'
+        , openmpi = path.join (arch_dir, 'openmpi')
+        )
+    module_from_parallel_install = Extension \
+        ( 'pga'
+        , sources       = ['pgamodule.c']
+        , define_macros = []
+        , include_dirs  = \
+            [ '.'
+            , '/usr/include/pgapack-' + parallel_variant
+            , include_by_variant [parallel_variant]
+            ]
+        , libraries     = ['pgapack-' + parallel_variant]
+        )
 
 module1 = environ.get ('PGA_MODULE', 'module_from_pgapack_submodule')
 module1 = locals ()[module1]
