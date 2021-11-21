@@ -21,9 +21,14 @@ over the years. It supports parallel execution via the message
 passing interface MPI_ in addition to a normal "serial" version. That's
 why I wanted to use it in Python, too.
 
+To get started you need the PGAPack library, although
+it now comes bundled with PGApy, to install a *parallel* version you
+currently need a pre-installed PGApack compiled for the MPI library of
+choice. See `Installation`_ section for details.
+
 There currently is not much documentation for PGAPy.
 You really, absolutely need to read the documentation that comes
-with PGAPack |--| and of course you need the PGAPack library.
+with PGAPack.
 The PGAPack user guide is now shipped together with PGAPy. It is
 installed together with some examples in share/pgapy, wherever the
 Python installer decides to place this in the final installation
@@ -36,7 +41,8 @@ started a `PGAPack fork on github`_ where I've ported the library to the
 latest version of the MPI_ standard and have fixed some minor
 inconsistencies in the documentation. I've also implemented some new
 features (notably enhancements in selection schemes and a new replacement
-strategy called *restricted tournament replacement*)
+strategy called *restricted tournament replacement* and, more recently,
+the differential evolution strategy.)
 
 I have tested pgapy on Linux only and I'll currently not provide Windows
 versions.  You also can find my `PGAPack fork on github`_ this
@@ -50,6 +56,8 @@ of the Debian maintainer of the package, Dirk Eddelbuettel.
 .. _PGAPack:          http://ftp.mcs.anl.gov/pub/pgapack/
 .. _`PGAPack fork on github`: https://github.com/schlatterbeck/pgapack
 .. _MPI: http://mpi-forum.org/
+.. _`my pgapack debian package builder`:
+    https://github.com/schlatterbeck/debian-pgapack
 
 To get you started, I've included some very simple examples in
 ``examples``, e.g., ``one-max.py`` implements the "Maxbit" example
@@ -395,8 +403,60 @@ or checkout from Github_
 
 or directly install via pypi.
 
+Installation
+------------
+
+PGApy, as the name suggests, supports parallelizing the evaluation
+function of the genetic algorithm. This uses the Message Passing
+Interface (MPI_) standard.
+
+To install a *serial* version (without parallel programming using MPI_)
+you can simply install from pypi using ``pip``. Alternatively when you
+have unpacked or checked out from sources you can install with::
+
+ python3 setup.py install --prefix=/usr/local
+
+If you want a parallel version using an MPI_ (Message-Passing Interface)
+library you will have to install a parallel version of PGApack first.
+The easiest way to do this is to use `my pgapack debian package builder`_
+from github. Clone this repository, check out the branch ``debian/sid``,
+install the build dependencies, they're listed in the file
+``debian/control`` and build the debian packages using::
+
+  dpkg-buildpackage -rfakeroot
+
+This builds pgapack debian packages for *all* supported MPI libraries in
+debian, currently these are ``mpich``, ``openmpi``, and ``lam``. In addition
+to the MPI libraries a serial version of the pgapack library is also
+built. Proceed by installing the package pgapack and the MPI backend
+library of choice. If you don't have a preference for an MPI library,
+``libpgapack-openmpi`` is the package that uses the Debians default
+preferences of an MPI library.
+
+Once a parallel version of PGApack is installed, you can install PGApy
+as follows: You set environment variables for the ``PGA_PARALLEL_VARIANT``
+(one of ``mpich``, ``openmpi``, or ``lam``) and set the ``PGA_MODULE`` to
+``module_from_parallel_install``. Finally you envoke the setup, e.g.::
+
+ export PGA_PARALLEL_VARIANT=openmpi
+ export PGA_MODULE=module_from_parallel_install
+ python3 setup.py install --prefix=/usr/local
+
+If your MPI library is installed in a different place you should study
+the *Extension* configurations in ``setup.py`` to come up with an
+Extension definition that fits your installation. If your installation
+is interesting to more people, feel free to submit a patch that adds
+your Extension-configuration to the standard ``setup.py``.
+
 Changes
 -------
+
+Version 0.9: Allow installation of parallel version
+
+- Pass argv (or sys.argv) to PGACreate
+- Add a stanza to setup.py to allow a parallel installation with a given
+  pgapack variant compiled for an MPI library. This currently needs a
+  pre-installed pgapack debian package.
 
 Version 0.8: Bugfix in real mutation
 
