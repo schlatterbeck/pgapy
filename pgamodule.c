@@ -2252,7 +2252,7 @@ static void PGA_dealloc (PyObject *self)
     PGAContext *ctx;
 
     ctx = get_context (self);
-    #if 1
+    #if 0
     fprintf (stderr, "After ctx in PGA_dealloc: %p\n", ctx);
     fflush  (stderr);
     #endif
