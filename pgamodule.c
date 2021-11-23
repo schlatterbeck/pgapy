@@ -441,6 +441,9 @@ static void print_gene (PGAContext *ctx, FILE *fp, int p, int pop)
     }
     r    = PyObject_CallMethod (self, "print_string", "Oii", file, p, pop);
     ERR_CHECK_X (r);
+    /* Flush file */
+    r    = PyObject_CallMethod (file, "flush", "");
+    ERR_CHECK_X (r);
 errout:
     Py_CLEAR (file);
     Py_CLEAR (r);
