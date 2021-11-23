@@ -441,6 +441,7 @@ static void print_gene (PGAContext *ctx, FILE *fp, int p, int pop)
     }
     r    = PyObject_CallMethod (self, "print_string", "Oii", file, p, pop);
     ERR_CHECK_X (r);
+    Py_CLEAR (r);
     /* Flush file */
     r    = PyObject_CallMethod (file, "flush", "");
     ERR_CHECK_X (r);
@@ -1805,6 +1806,25 @@ static PyObject *PGA_print_string (PyObject *self, PyObject *args)
     return Py_None;
 }
 
+/*
+ * Python context print function -- used for debugging purposes
+ * Currently we always print to stderr
+ */
+static PyObject *PGA_print_context (PyObject *self, PyObject *args)
+{
+    PGAContext   *ctx = NULL;
+
+    if (!PyArg_ParseTuple(args, "")) {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    PGAPrintContextVariable (ctx, stderr);
+    Py_INCREF (Py_None);
+    return Py_None;
+}
+
 static PyObject *PGA_random_01 (PyObject *self, PyObject *args)
 {
     PGAContext *ctx = NULL;
@@ -2067,6 +2087,9 @@ static PyMethodDef PGA_methods [] =
 , { "get_real_from_gray_code",   PGA_get_real_from_gray_code,   METH_VARARGS
   , "Get real value from binary string encoded in gray code"
   }
+, { "print_context",             PGA_print_context,             METH_VARARGS
+  , "Python context print, debug info about PGApack context"
+  }
 , { "print_string",              PGA_print_string,              METH_VARARGS
   , "Python gene print function -- can be overridden in descendent class."
   }
@@ -2294,7 +2317,21 @@ PyMODINIT_FUNC initpga (void)
     constdef_t  *cd;
     PyObject *module_Dict;
     PyObject *version = PyString_FromString (VERSION);
-    contexts          = Py_BuildValue       ("{}");
+    PyObject *weakref = PyImport_ImportModule ("weakref");
+
+    if (!version || !weakref) {
+        return FAIL;
+    }
+    /* We do not want to keep a reference to all PGA objects
+     * But we still need to look them up via the context pointer.
+     * So use a WeakValueDictionary to store them, this doesn't prevent
+     * the destructor from being called.
+     */
+    contexts = PyObject_CallMethod (weakref, "WeakValueDictionary", "");
+    if (!contexts) {
+        return FAIL;
+    }
+    Py_DECREF (weakref);
 
     if (PyType_Ready (&PGA_Type) < 0) {
         return FAIL;
