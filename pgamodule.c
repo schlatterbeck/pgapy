@@ -219,21 +219,64 @@ errout:
  * Need a hash table of mapping ctx to PGA objects. Look up the
  * appropriate object and call its PGA_evaluate
  */
-static double evaluate (PGAContext *ctx, int p, int pop)
+static double evaluate (PGAContext *ctx, int p, int pop, double *aux)
 {
     double retval = 0.0;
-    PyObject *self = NULL, *res1 = NULL, *res2 = NULL;
+    PyObject *self = NULL, *res1 = NULL, *res2 = NULL, *res3 = NULL;
     int r;
+    Py_ssize_t length, i;
 
     ERR_CHECK_X (!error_occurred);
     self    = get_self (ctx);
     ERR_CHECK_X (self);
     res1    = PyObject_CallMethod (self, "evaluate", "ii", p, pop);
     ERR_CHECK_X (res1);
-    res2    = PyNumber_Float      (res1);
-    ERR_CHECK_X (res2);
-    r = PyArg_Parse (res2, "d", &retval);
-    ERR_CHECK_X (r);
+    if (PySequence_Check (res1)) {
+        length = PySequence_Length (res1);
+        if (length != ctx->ga.NumAuxEval + 1) {
+            char x [60];
+            if (length < 0) {
+                sprintf
+                    ( x, "Expected sequence of length %d"
+                    , ctx->ga.NumAuxEval + 1
+                    );
+            } else {
+                sprintf
+                    ( x, "Invalid length %zu of evaluations, expect %d"
+                    , length, ctx->ga.NumAuxEval + 1
+                    );
+            }
+            PyErr_SetString (PyExc_ValueError, x);
+            error_occurred = 1;
+            goto errout;
+        }
+        res2 = PySequence_GetItem(res1, 0);
+        ERR_CHECK_X (res2);
+        res3 = PyNumber_Float (res2);
+        ERR_CHECK_X (res3);
+        r = PyArg_Parse (res3, "d", &retval);
+        ERR_CHECK_X (r);
+        for (i=1; i<length; i++) {
+            res2 = PySequence_GetItem (res1, i);
+            ERR_CHECK_X (res2);
+            res3 = PyNumber_Float (res2);
+            ERR_CHECK_X (res3);
+            r = PyArg_Parse (res3, "d", aux + (i - 1));
+            ERR_CHECK_X (r);
+        }
+    } else {
+        if (ctx->ga.NumAuxEval) {
+            char x [50];
+            sprintf (x, "Expected %d evaluations", ctx->ga.NumAuxEval + 1);
+            PyErr_SetString (PyExc_ValueError, x);
+            error_occurred = 1;
+            goto errout;
+        }
+        res2 = PyNumber_Float (res1);
+        ERR_CHECK_X (res2);
+        r = PyArg_Parse (res2, "d", &retval);
+        ERR_CHECK_X (r);
+    }
 errout:
     Py_CLEAR (self);
     Py_CLEAR (res1);
@@ -584,6 +627,7 @@ static int check_hamming (PGAContext *ctx, int val, char *name)
 static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
 {
     int argc = 0, max = 0, length = 0, pop_size = 0, pga_type = 0;
+    int num_eval = 1;
     int random_seed = 0, max_GA_iter = 0, max_no_change = 0;
     int num_replace = -1, pop_replace_type = -1;
     int max_similarity = 0, crossover_type = -1, select_type = -1;
@@ -634,6 +678,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         , "length"
         , "maximize"
         , "pop_size"
+        , "num_eval"
         , "init"
         , "init_percent"
         , "integer_init_permute"
@@ -688,12 +733,13 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     if  (!PyArg_ParseTupleAndKeywords
             ( args
             , kw
-            , "Oi|OiOOOiiiidOiiOOOiiddiOiOOidiiiddddddOOOdiddiiiidiO"
+            , "Oi|OiiOOOiiiidOiiOOOiiddiOiOOidiiiddddddOOOdiddiiiidiO"
             , kwlist
             , &type
             , &length
             , &maximize
             , &pop_size
+            , &num_eval
             , &init
             , &init_percent
             , &integer_init_permute
@@ -1000,6 +1046,16 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             return INIT_FAIL;
         }
         PGASetPopSize (ctx, pop_size);
+    }
+    if (num_eval != 1) {
+        if (num_eval < 1) {
+            PyErr_SetString \
+                ( PyExc_ValueError
+                , "Number of evaluations must be at least 1"
+                );
+            return INIT_FAIL;
+        }
+        PGASetNumAuxEval (ctx, num_eval - 1);
     }
     if (print_frequency) {
         PGASetPrintFrequencyValue (ctx, print_frequency);
@@ -2195,6 +2251,16 @@ static PyObject *PGA_mutation_value (PyObject *self, void *closure)
     return Py_None;
 }
 
+/* Another special getter because we need to increment NumAuxEval */
+static PyObject *PGA_num_eval (PyObject *self, void *closure)
+{
+    PGAContext *ctx;
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    return Py_BuildValue ("d", PGAGetNumAuxEval (ctx));
+}
+
 #define GETTER_ENTRY(name) \
     { XSTR(name), PGA_ ## name }
 
@@ -2220,6 +2286,7 @@ static PyGetSetDef PGA_getset [] =
 , GETTER_ENTRY (DE_jitter)
 , GETTER_ENTRY (DE_dither)
 , GETTER_ENTRY (DE_probability_EO)
+, GETTER_ENTRY (num_eval)
 , GETTER_ENTRY (num_replace)
 , GETTER_ENTRY (pop_size)
 , GETTER_ENTRY (print_frequency)

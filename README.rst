@@ -69,10 +69,15 @@ several points:
 - Your class implementing the genetic algorithm needs to inherit from
   pga.PGA (pga is the PGAPy wrapper module).
 - You need to define an evaluation function called ``evaluate`` that
-  returns a number indicating the fitness of the gene given with the
-  parameters ``p`` and ``pop`` that can be used to fetch allele values from
-  the gene using the ``get_allele`` method, for more details refer to the
-  PGAPack documentation.
+  returns a sequence of numbers indicating the fitness of the gene given.
+  It gets the parameters ``p`` and ``pop`` that can be used to fetch allele
+  values from the gene using the ``get_allele`` method, for more details
+  refer to the PGAPack documentation. The number of evaluations returned
+  by your function is defined with the constructor parameter
+  ``num_eval``, the default for this parameter is 1. If your evaluation
+  function does not return multiple evaluations (with the default
+  setting of ``num_eval``) you can either return a one-element sequence
+  or a single return value.
 - You *can* define additional functions overriding built-in functions
   of the PGAPack library, illustrated by the example of
   ``print_string``.  Note that we could call the original print_string
@@ -162,6 +167,15 @@ allele* of the gene. In python this is a sequence of 2-tuples.
 Note that this means that you can have different ranges of allowed values
 for each allele.
 
+The ``num_eval`` property is special: Due to limitations of the C
+programming language, for multiple evaluations in C the first evaluation
+is returned as the function return-value of the ``evaluate`` function
+and all other parameters are returned in an auxiliary array. PGApack
+specifies the number of auxiliary evaluations to be returned. In Python
+the evaluation function can always return a sequence of evaluation
+values and the ``num_eval`` is one more than ``PGAGetNumAuxEval`` would
+return. The default for ``num_eval`` is 1.
+
 The first two (mandatory) constructor parameters are the type of the gene
 (this takes a Python type, e.g., ``bool`` for a binary genome or ``int``
 for an integer genome) and the length. Note that the ``string_length`` is
@@ -191,6 +205,7 @@ PGApack name                         Constructor parameter           Type   Prop
 ``PGASetMutationRealValue``          ``mutation_value``              float  yes
 ``PGASetMutationType``               ``mutation_type``               sym    no
 ``PGASetNoDuplicatesFlag``           ``no_duplicates``               int    no
+``PGASetNumAuxEval``                 ``num_eval``                    int    yes
 ``PGASetNumReplaceValue``            ``num_replace``                 int    yes
 ``PGASetPopSize``                    ``pop_size``                    int    yes
 ``PGASetPopReplaceType``             ``pop_replace_type``            sym    no
@@ -278,11 +293,13 @@ different areas of a genetic algorihm. In Python they are implemented as
 methods that can be changed in a derived class. One of the methods that
 *must* be implemented in a derived class is the ``evaluate`` function
 (although technically it is not a user function in PGApack). It
-interprets the gene and returns an evaluation value. PGApack computes a
-fitness from the raw evaluation value. For some methods an up-call into
-the PGA class is possible, for some methods this is not possible (and in
-most cases not reasonable). Note that for the ``stop_cond`` method, the
-standard check for stopping conditions can be called with::
+interprets the gene and returns an evaluation value or a sequence of
+evaluation values if you set the ``num_eval`` constructor parameter.
+PGApack computes a fitness from the raw evaluation value. For some
+methods an up-call into the PGA class is possible, for some methods this
+is not possible (and in most cases not reasonable). Note that for the
+``stop_cond`` method, the standard check for stopping conditions can be
+called with::
 
   self.check_stopping_conditions()
 
@@ -298,20 +315,20 @@ the mutation method is a floating-point value between 0 and 1. Remember
 to count the number of mutations that happen, and return that value for
 the mutation method!
 
-=================== ============================== ============ =======
-Method              Call Signature                 Return Value Up-Call
-=================== ============================== ============ =======
-``check_duplicate`` *p1, pop1, p2, pop2*           True if dupe no
-``stop_cond``                                      True to stop no
-``crossover``       *p1, p2, p_pop, c1, c2, c_pop* None         no
-``endofgen``                                       None         no
-``evaluate``        *p, pop*                       float        no
-``gene_difference`` *p1, pop1, p2, pop2*           float        no
-``initstring``      *p, pop*                       None         no
-``mutation``        *p, pop, propability*          #mutations   no
-``pre_eval``        *pop*                          None         no
-``print_string``    *file, p, pop*                 None         yes
-=================== ============================== ============ =======
+=================== ============================== ================= =======
+Method              Call Signature                 Return Value      Up-Call
+=================== ============================== ================= =======
+``check_duplicate`` *p1, pop1, p2, pop2*           True if dupe      no
+``stop_cond``                                      True to stop      no
+``crossover``       *p1, p2, p_pop, c1, c2, c_pop* None              no
+``endofgen``                                       None              no
+``evaluate``        *p, pop*                       sequence of float no
+``gene_difference`` *p1, pop1, p2, pop2*           float             no
+``initstring``      *p, pop*                       None              no
+``mutation``        *p, pop, propability*          #mutations        no
+``pre_eval``        *pop*                          None              no
+``print_string``    *file, p, pop*                 None              yes
+=================== ============================== ================= =======
 
 Constants
 ---------
@@ -450,6 +467,25 @@ your Extension-configuration to the standard ``setup.py``.
 
 Changes
 -------
+
+Version 1.0: Add constraint handling
+
+- Wrap latest pgapack version 1.3
+- This adds auxiliary evaluations. Now your evaluation function can
+  return *multiple* floating-point values as a sequence if you set the
+  num_eval paramter >1 in the constructor. Currently additional
+  evaluation values are used for constraint handling. Constraint values
+  are minimized.  Once they reach zero or a negative value they no
+  longer count: The sum of all positive constraints is the overall
+  constraint violation.  For details see paper by Deb, 2000, see user
+  guide for citation. If you're not using constraints, nothing in your
+  code needs changes.
+- This release may change the path an optimization takes. So for the
+  same seed of the random number generator you will get a different
+  result, at least if during the search there are individuals with the
+  same evaluation (and different genetic material). This is due to a
+  change of the sort function in pgapack (it switched to a stable sort
+  from the C standard library).
 
 Version 0.9: Allow installation of parallel version
 
