@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 from __future__ import print_function
 from rsclib.autosuper import autosuper
@@ -18,23 +18,29 @@ def g2 (x1, x2) :
 # end def g2
 
 class Constrained (pga.PGA, autosuper) :
+    """ First example from Deb 2000, two constraints, single objective
+        function.
+    """
 
     def __init__ (self) :
+        minmax = ((-5, 5), (-5, 5))
         self.__super.__init__ \
             ( float, 2
             , maximize          = False
-            , num_eval          = 3
-            , pop_size          = 20
-            , num_replace       = 20
-            , mutation_only     = True
-            , max_GA_iter       = 200
+            , random_seed       = 1
+            , pop_size          = 60
+            , num_replace       = 60
+            , select_type       = pga.PGA_SELECT_LINEAR
             , pop_replace_type  = pga.PGA_POPREPL_PAIRWISE_BEST
+            , mutation_only     = True
             , mutation_type     = pga.PGA_MUTATION_DE
             , DE_crossover_prob = 0.8
             , DE_crossover_type = pga.PGA_DE_CROSSOVER_BIN
             , DE_variant        = pga.PGA_DE_VARIANT_RAND
             , DE_scale_factor   = 0.85
-            , random_seed       = 1
+            , init              = minmax
+            , max_GA_iter       = 100
+            , num_eval          = 3
             , print_options     = [pga.PGA_REPORT_STRING]
             )
     # end def __init__

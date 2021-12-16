@@ -91,6 +91,7 @@ static constdef_t constdef [] =
     , {"PGA_NEWPOP",                PGA_NEWPOP                }
     , {"PGA_OLDPOP",                PGA_OLDPOP                }
     , {"PGA_POPREPL_BEST",          PGA_POPREPL_BEST          }
+    , {"PGA_POPREPL_NSGA_II",       PGA_POPREPL_NSGA_II       }
     , {"PGA_POPREPL_PAIRWISE_BEST", PGA_POPREPL_PAIRWISE_BEST }
     , {"PGA_POPREPL_RANDOM_NOREP",  PGA_POPREPL_RANDOM_NOREP  }
     , {"PGA_POPREPL_RANDOM_REP",    PGA_POPREPL_RANDOM_REP    }
@@ -640,6 +641,8 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     int rtr_window_size = 0;
     int tournament_with_replacement = -1;
     int randomize_select = -1;
+    int num_constraint = -1;
+    int sum_constraints = -1;
     double truncation_proportion = 0.0;
     double mutation_value = 0.0;
     int DE_variant = 0;
@@ -726,6 +729,8 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         , "tournament_with_replacement"
         , "truncation_proportion"
         , "randomize_select"
+        , "num_constraint"
+        , "sum_constraints"
         , "argv"
         , NULL
         };
@@ -733,7 +738,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     if  (!PyArg_ParseTupleAndKeywords
             ( args
             , kw
-            , "Oi|OiiOOOiiiidOiiOOOiiddiOiOOidiiiddddddOOOdiddiiiidiO"
+            , "Oi|OiiOOOiiiidOiiOOOiiddiOiOOidiiiddddddOOOdiddiiiidiiiO"
             , kwlist
             , &type
             , &length
@@ -787,6 +792,8 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             , &tournament_with_replacement
             , &truncation_proportion
             , &randomize_select
+            , &num_constraint
+            , &sum_constraints
             , &argv
             )
         )
@@ -1023,6 +1030,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
            && pop_replace_type != PGA_POPREPL_RANDOM_REP
            && pop_replace_type != PGA_POPREPL_RTR
            && pop_replace_type != PGA_POPREPL_PAIRWISE_BEST
+           && pop_replace_type != PGA_POPREPL_NSGA_II
            )
         {
             PyErr_SetString (PyExc_ValueError, "invalid pop_replace_type");
@@ -1385,6 +1393,12 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     if (randomize_select >= 0) {
         int v = randomize_select ? PGA_TRUE : PGA_FALSE;
         PGASetRandomizeSelect (ctx, v);
+    }
+    if (num_constraint >= 0) {
+        PGASetNumConstraint (ctx, num_constraint);
+    }
+    if (sum_constraints >= 0) {
+        PGASetSumConstraintsFlag (ctx, sum_constraints);
     }
     PGASetUp (ctx);
 
@@ -2202,6 +2216,14 @@ static PyMethodDef PGA_methods [] =
 
 /* These do *NOT* end in semicolon */
 GETTER_FUNCTION (PGAGetCrossoverProb,            crossover_prob,         d)
+GETTER_FUNCTION (PGAGetDEVariant,                DE_variant,             i)
+GETTER_FUNCTION (PGAGetDENumDiffs,               DE_num_diffs,           i)
+GETTER_FUNCTION (PGAGetDEScaleFactor,            DE_scale_factor,        d)
+GETTER_FUNCTION (PGAGetDEAuxFactor,              DE_aux_factor,          d)
+GETTER_FUNCTION (PGAGetDECrossoverProb,          DE_crossover_prob,      d)
+GETTER_FUNCTION (PGAGetDEJitter,                 DE_jitter,              d)
+GETTER_FUNCTION (PGAGetDEDither,                 DE_dither,              d)
+GETTER_FUNCTION (PGAGetDEProbabilityEO,          DE_probability_EO,      d)
 GETTER_FUNCTION (PGAGetFitnessCmaxValue,         fitness_cmax,           d)
 GETTER_FUNCTION (PGAGetGAIterValue,              GA_iter,                i)
 GETTER_FUNCTION (PGAGetMaxFitnessRank,           max_fitness_rank,       d)
@@ -2212,14 +2234,7 @@ GETTER_FUNCTION (PGAGetMutationOnlyFlag,         mutation_only,          i)
 GETTER_FUNCTION (PGAGetMutationBoundedFlag,      mutation_bounded,       i)
 GETTER_FUNCTION (PGAGetMutationBounceBackFlag,   mutation_bounce_back,   i)
 GETTER_FUNCTION (PGAGetMutationProb,             mutation_prob,          d)
-GETTER_FUNCTION (PGAGetDEVariant,                DE_variant,             i)
-GETTER_FUNCTION (PGAGetDENumDiffs,               DE_num_diffs,           i)
-GETTER_FUNCTION (PGAGetDEScaleFactor,            DE_scale_factor,        d)
-GETTER_FUNCTION (PGAGetDEAuxFactor,              DE_aux_factor,          d)
-GETTER_FUNCTION (PGAGetDECrossoverProb,          DE_crossover_prob,      d)
-GETTER_FUNCTION (PGAGetDEJitter,                 DE_jitter,              d)
-GETTER_FUNCTION (PGAGetDEDither,                 DE_dither,              d)
-GETTER_FUNCTION (PGAGetDEProbabilityEO,          DE_probability_EO,      d)
+GETTER_FUNCTION (PGAGetNumConstraint,            num_constraint,         i)
 GETTER_FUNCTION (PGAGetNumReplaceValue,          num_replace,            i)
 GETTER_FUNCTION (PGAGetPopSize,                  pop_size,               i)
 GETTER_FUNCTION (PGAGetPrintFrequencyValue,      print_frequency,        i)
@@ -2230,6 +2245,7 @@ GETTER_FUNCTION (PGAGetRestartFlag,              restart,                i)
 GETTER_FUNCTION (PGAGetRestartFrequencyValue,    restart_frequency,      i)
 GETTER_FUNCTION (PGAGetRTRWindowSize,            rtr_window_size,        i)
 GETTER_FUNCTION (PGAGetStringLength,             string_length,          i)
+GETTER_FUNCTION (PGAGetSumConstraintsFlag,       sum_constraints,        i)
 GETTER_FUNCTION (PGAGetTournamentSize,           tournament_size,        i)
 GETTER_FUNCTION (PGAGetTournamentWithReplacement,tournament_with_replacement,i)
 GETTER_FUNCTION (PGAGetTruncationProportion,     truncation_proportion,  d)
@@ -2286,6 +2302,7 @@ static PyGetSetDef PGA_getset [] =
 , GETTER_ENTRY (DE_jitter)
 , GETTER_ENTRY (DE_dither)
 , GETTER_ENTRY (DE_probability_EO)
+, GETTER_ENTRY (num_constraint)
 , GETTER_ENTRY (num_eval)
 , GETTER_ENTRY (num_replace)
 , GETTER_ENTRY (pop_size)
@@ -2297,6 +2314,7 @@ static PyGetSetDef PGA_getset [] =
 , GETTER_ENTRY (restart_frequency)
 , GETTER_ENTRY (rtr_window_size)
 , GETTER_ENTRY (string_length)
+, GETTER_ENTRY (sum_constraints)
 , GETTER_ENTRY (tournament_size)
 , GETTER_ENTRY (tournament_with_replacement)
 , GETTER_ENTRY (truncation_proportion)

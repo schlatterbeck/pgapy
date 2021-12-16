@@ -5,6 +5,13 @@ PGAPy: Python Wrapper for PGAPack Parallel Genetic Algorithm Library
 
 :Author: Ralf Schlatterbeck <rsc@runtux.com>
 
+News 12-2021: This version wraps multiple evaluation values from your
+objective function: Now you can return more than one value to either use
+it for constraints (that must be fulfilled before the objective is
+optimized) or for multi-objective optimization with the Nondominated
+Sorting Genetic Algorithm V.2 (NSGA-II). You can combine both,
+multi-objective optimization and constraints.
+
 News: This version wraps the Differential Evolution method (that's quite
 an old method but is newly implemented in pgapack).
 
@@ -78,6 +85,13 @@ several points:
   function does not return multiple evaluations (with the default
   setting of ``num_eval``) you can either return a one-element sequence
   or a single return value.
+- When using multiple evaluations, these can either be used for
+  constraints (the default) or for multi-objective optimization. In the
+  latter case, the number of constraints (which by default is one less
+  than the number of evaluations set with the parameter ``num_eval``)
+  must be set to a number that leaves at least two evaluations for
+  objectives. The number of constraints can be set with the parameter
+  ``num_constraint``.
 - You *can* define additional functions overriding built-in functions
   of the PGAPack library, illustrated by the example of
   ``print_string``.  Note that we could call the original print_string
@@ -206,6 +220,7 @@ PGApack name                         Constructor parameter           Type   Prop
 ``PGASetMutationType``               ``mutation_type``               sym    no
 ``PGASetNoDuplicatesFlag``           ``no_duplicates``               int    no
 ``PGASetNumAuxEval``                 ``num_eval``                    int    yes
+``PGASetNumConstraint``              ``num_constraint``              int    yes
 ``PGASetNumReplaceValue``            ``num_replace``                 int    yes
 ``PGASetPopSize``                    ``pop_size``                    int    yes
 ``PGASetPopReplaceType``             ``pop_replace_type``            sym    no
@@ -222,6 +237,7 @@ PGApack name                         Constructor parameter           Type   Prop
 ``PGASetSelectType``                 ``select_type``                 sym    no
 ``PGASetStoppingRuleType``           ``stopping_rule_types``         msym   no
 ``PGASetStringLength``               ``string_length``               int    yes
+``PGASetSumConstraintsFlag``         ``sum_constraints``             int    yes
 ``PGASetTournamentSize``             ``tournament_size``             int    yes
 ``PGASetTournamentWithReplacement``  ``tournament_with_replacement`` int    yes
 ``PGASetTruncationProportion``       ``truncation_proportion``       float  yes
@@ -354,6 +370,7 @@ PGA_MUTATION_UNIFORM       Mutation uniform from interval
 PGA_NEWPOP                 Symbolic constant for new population
 PGA_OLDPOP                 Symbolic constant for old population
 PGA_POPREPL_BEST           Population replacement best strings
+PGA_POPREPL_NSGA_II        Use NSGA-II replacement for multi-objective opt.
 PGA_POPREPL_PAIRWISE_BEST  Compare same index in old and new population
 PGA_POPREPL_RANDOM_NOREP   Population replacement random no replacement
 PGA_POPREPL_RANDOM_REP     Population replacement random with replacement
@@ -467,6 +484,17 @@ your Extension-configuration to the standard ``setup.py``.
 
 Changes
 -------
+
+Version 1.1: Add multi-objective optimization with NSGA-II
+
+- Wrap latest pgapack version 1.4
+- This add multi-objective optimization using the Nondominated Sorting
+  Genetic Algorithm version 2 (NSGA-II) by Deb et. al. This makes use of
+  the previously-introduced option to return more than one value in the
+  objective function. To use the feature you need to set the
+  num_constraint parameter to a value that leave some of the function
+  values returned by your evaluation function as objective function
+  values (and not as constraints). See example in examples/multi.py.
 
 Version 1.0: Add constraint handling
 
