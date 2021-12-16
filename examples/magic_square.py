@@ -197,8 +197,6 @@ class Magic_Square (pga.PGA) :
         # longer happen. 
         if not self.get_evaluation_up_to_date (p, pop) :
             print ("OOOPS: Not up-to-date")
-        if self.evaluate (p, pop) != fitness :
-            print ("OOOPS")
     # end def print_string
 
     def stop_cond (self) :
