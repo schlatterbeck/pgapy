@@ -118,9 +118,20 @@ setup \
     , long_description = ''.join (description)
     , ext_modules      = [module1]
     , data_files       = [ ( 'share/pgapy/examples'
-                           , [ 'examples/xor.py'
+                           , [ 'examples/cards.py'
+                             , 'examples/cards-mutate.py'
+                             , 'examples/constraint.py'
+                             , 'examples/fourbar.py'
+                             , 'examples/gears.py'
                              , 'examples/magic_square.py'
+                             , 'examples/magic_square_prio.py'
                              , 'examples/minfloat.py'
+                             , 'examples/multi.py'
+                             , 'examples/one-max.py'
+                             , 'examples/sort-numbers.py'
+                             , 'examples/twobar.py'
+                             , 'examples/vibr.py'
+                             , 'examples/xor.py'
                              ]
                            )
                          , ( 'share/pgapy'
