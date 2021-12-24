@@ -278,6 +278,8 @@ Method                        Parameters         Return
 ``fitness``                   *pop*              None
 ``get_allele``                *p, pop, index*    allele value
 ``get_best_index``            *pop*              index of best string
+``get_best_report_index``     *pop, idx*         index of best eval with idx
+``get_eval_count``                               overall eval count
 ``get_evaluation``            *p, pop*           evaluation of *p* (float)
 ``get_evaluation_up_to_date`` *p, pop*           True if up-to-date
 ``get_fitness``               *p, pop*           fitness of *p* (float)

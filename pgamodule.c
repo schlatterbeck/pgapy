@@ -1672,6 +1672,34 @@ static PyObject *PGA_get_best_index (PyObject *self, PyObject *args)
     return Py_BuildValue ("i", PGAGetBestIndex (ctx, pop));
 }
 
+static PyObject *PGA_get_best_report (PyObject *self, PyObject *args)
+{
+    PGAContext *ctx = NULL;
+    int pop, idx;
+
+    if (!PyArg_ParseTuple(args, "ii", &pop, &idx)) {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    return Py_BuildValue ("d", PGAGetBestReport (ctx, pop, idx));
+}
+
+static PyObject *PGA_get_best_report_index (PyObject *self, PyObject *args)
+{
+    PGAContext *ctx = NULL;
+    int pop, idx;
+
+    if (!PyArg_ParseTuple(args, "ii", &pop, &idx)) {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    return Py_BuildValue ("i", PGAGetBestReportIndex (ctx, pop, idx));
+}
+
 static PyObject *PGA_get_evaluation (PyObject *self, PyObject *args)
 {
     PGAContext *ctx = NULL;
@@ -2133,6 +2161,12 @@ static PyMethodDef PGA_methods [] =
 , { "get_best_index",            PGA_get_best_index,            METH_VARARGS
   , "Get best index in population pop"
   }
+, { "get_best_report",           PGA_get_best_report,           METH_VARARGS
+  , "Get best evaluation for function with given index"
+  }
+, { "get_best_report_index",     PGA_get_best_report_index,     METH_VARARGS
+  , "Get best index for evaluation function with given index"
+  }
 , { "get_evaluation",            PGA_get_evaluation,            METH_VARARGS
   , "Get evaluation"
   }
@@ -2224,6 +2258,7 @@ GETTER_FUNCTION (PGAGetDECrossoverProb,          DE_crossover_prob,      d)
 GETTER_FUNCTION (PGAGetDEJitter,                 DE_jitter,              d)
 GETTER_FUNCTION (PGAGetDEDither,                 DE_dither,              d)
 GETTER_FUNCTION (PGAGetDEProbabilityEO,          DE_probability_EO,      d)
+GETTER_FUNCTION (PGAGetEvalCount,                eval_count,             i)
 GETTER_FUNCTION (PGAGetFitnessCmaxValue,         fitness_cmax,           d)
 GETTER_FUNCTION (PGAGetGAIterValue,              GA_iter,                i)
 GETTER_FUNCTION (PGAGetMaxFitnessRank,           max_fitness_rank,       d)
@@ -2274,7 +2309,7 @@ static PyObject *PGA_num_eval (PyObject *self, void *closure)
     if (!(ctx = get_context (self))) {
         return NULL;
     }
-    return Py_BuildValue ("d", PGAGetNumAuxEval (ctx));
+    return Py_BuildValue ("i", PGAGetNumAuxEval (ctx) + 1);
 }
 
 #define GETTER_ENTRY(name) \
@@ -2283,6 +2318,7 @@ static PyObject *PGA_num_eval (PyObject *self, void *closure)
 static PyGetSetDef PGA_getset [] =
 /*  name      .get                  .set   .doc .closure */
 { GETTER_ENTRY (crossover_prob)
+, GETTER_ENTRY (eval_count)
 , GETTER_ENTRY (fitness_cmax)
 , GETTER_ENTRY (GA_iter)
 , GETTER_ENTRY (max_fitness_rank)
