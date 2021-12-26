@@ -487,6 +487,11 @@ your Extension-configuration to the standard ``setup.py``.
 Changes
 -------
 
+Version 1.1.1-1.1.3: Small PGAPack updates, fixes for non-debian
+
+- Fix setup.py for non-debian systems
+- Update to latest PGAPack with small changes
+
 Version 1.1: Add multi-objective optimization with NSGA-II
 
 - Wrap latest pgapack version 1.4
