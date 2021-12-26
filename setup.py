@@ -49,6 +49,12 @@ pgapack_sources = []
 stub = 'pgapack/source/mpi_stub.c'
 pgapack_sources.extend (fn for fn in glob ('pgapack/source/*.c') if fn != stub)
 
+# This is used to override the module to install from the module
+# definitions below.
+modulename = environ.get ('PGA_MODULE', 'module_from_pgapack_submodule')
+
+# The default pgapack module: Use the version from the submodule pgapack
+# that comes with pgapy.
 module_from_pgapack_submodule = Extension \
     ( 'pga'
     , sources = ['pgamodule.c'] + pgapack_sources + [stub]
@@ -59,8 +65,8 @@ module_from_pgapack_submodule = Extension \
     )
 
 # example config for default pga home when installing pga from source
-# contributed by Márk Váradi. You need to comment the module1 below if
-# you want to use this setting.
+# contributed by Márk Váradi. You need to set the environment-variable
+# 'PGA_MODULE' to 'module_from_source' if you want to use this setting.
 BASE     = '/usr/local/pga/'	# default pga home in Linux machines
 DEB_BASE = '/usr/include/pgapack-serial' # Default on Debian since lenny
 module_from_source = Extension \
@@ -73,7 +79,8 @@ module_from_source = Extension \
     )
 
 # default config since debian lenny, serial version (installation in /usr):
-# (comment following lines if you want to use a config above)
+# Set environment variable PGA_MODULE to 'module_from_install' if you
+# want to use that version.
 module_from_install = Extension \
     ( 'pga'
     , sources       = ['pgamodule.c']
@@ -84,8 +91,10 @@ module_from_install = Extension \
 
 # Parallel version. You need to specify PGA_PARALLEL_VARIANT in the
 # environment, the default is 'mpich'.
-# Note: Parallel version only supported for python3
-if sys.version_info.major > 2 :
+# Note: The parallel version below is specific to python3 on debian-like
+# distributions. Let me know if you want to build a parallel version on
+# other architectures and we can figure out how to.
+if modulename == 'module_from_parallel_install' and sys.version_info.major > 2 :
     parallel_variant = environ.get ('PGA_PARALLEL_VARIANT', 'mpich')
     result = run (['dpkg-architecture', '-qDEB_BUILD_GNU_TYPE'], stdout = PIPE)
     arch_dir = result.stdout.decode ('utf-8').rstrip ()
@@ -107,8 +116,7 @@ if sys.version_info.major > 2 :
         , libraries     = ['pgapack-' + parallel_variant]
         )
 
-module1 = environ.get ('PGA_MODULE', 'module_from_pgapack_submodule')
-module1 = locals ()[module1]
+module1 = locals ()[modulename]
 
 setup \
     ( name             = 'PGAPy'

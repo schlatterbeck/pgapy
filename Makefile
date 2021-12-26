@@ -28,10 +28,6 @@ all: $(VERSION) $(USERGUIDE)
 
 $(VERSION): $(SRC)
 
-dist: all
-	python setup.py sdist --formats=gztar,zip
-	python setup.py bdist
-
 clean:
 	rm -f MANIFEST Version.h Version.py Version.pyc default.css README.html
 	rm -rf ${CLEAN}
@@ -40,4 +36,4 @@ clean:
 $(USERGUIDE):
 	make -C $(PGAPACK_DOC)
 
-include $(RELEASETOOLS)/Makefile-sf
+include $(RELEASETOOLS)/Makefile-pyrelease
