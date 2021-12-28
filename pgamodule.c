@@ -1703,7 +1703,10 @@ static PyObject *PGA_get_best_report_index (PyObject *self, PyObject *args)
 static PyObject *PGA_get_evaluation (PyObject *self, PyObject *args)
 {
     PGAContext *ctx = NULL;
-    int p, pop;
+    PyObject *tuple = NULL;
+    PyObject *ele = NULL;
+    int p, pop, i;
+    const double *aux;
 
     if (!PyArg_ParseTuple(args, "ii", &p, &pop))
     {
@@ -1712,7 +1715,32 @@ static PyObject *PGA_get_evaluation (PyObject *self, PyObject *args)
     if (!(ctx = get_context (self))) {
         return NULL;
     }
-    return Py_BuildValue ("d", PGAGetEvaluation (ctx, p, pop));
+    if (!PGAGetEvaluationUpToDateFlag (ctx, p, pop)) {
+        PyErr_SetString (PyExc_ValueError, "Evaluation not up to date");
+        return NULL;
+    }
+    if (ctx->ga.NumAuxEval == 0) {
+        return Py_BuildValue ("d", PGAGetEvaluation (ctx, p, pop));
+    }
+    tuple = PyTuple_New (ctx->ga.NumAuxEval + 1);
+    if (tuple == NULL) {
+        return NULL;
+    }
+    ele = Py_BuildValue ("d", PGAGetEvaluation (ctx, p, pop, &aux));
+    if (ele == NULL) {
+        Py_DECREF (tuple);
+        return NULL;
+    }
+    PyTuple_SetItem (tuple, 0, ele);
+    for (i=0; i<ctx->ga.NumAuxEval; i++) {
+        ele = Py_BuildValue ("d", aux [i]);
+        if (ele == NULL) {
+            Py_DECREF (tuple);
+            return NULL;
+        }
+        PyTuple_SetItem (tuple, i + 1, ele);
+    }
+    return tuple;
 }
 
 static PyObject *PGA_get_evaluation_up_to_date (PyObject *self, PyObject *args)

@@ -260,6 +260,9 @@ gene type. With the ``set_random_seed`` method, the random number
 generator can be re-seeded. It is usually best to seed the generator
 once at (before) the beginning by specifying ``random_seed`` in the
 constructor. For further details consult the user guide.
+The method ``get_evaluation`` will return a double for a single
+evaluation and a tuple of double for multiple evaluations (when num_eval
+is >1)
 
 ============================= ================== ===========================
 Method                        Parameters         Return
@@ -280,7 +283,7 @@ Method                        Parameters         Return
 ``get_best_index``            *pop*              index of best string
 ``get_best_report_index``     *pop, idx*         index of best eval with idx
 ``get_eval_count``                               overall eval count
-``get_evaluation``            *p, pop*           evaluation of *p* (float)
+``get_evaluation``            *p, pop*           evaluation of *p*
 ``get_evaluation_up_to_date`` *p, pop*           True if up-to-date
 ``get_fitness``               *p, pop*           fitness of *p* (float)
 ``get_int_from_binary``       *p, pop, frm, to*  int
