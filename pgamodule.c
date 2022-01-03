@@ -637,7 +637,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     int mutation_type = 0;
     int fitness_type = 0;
     int fitness_min_type = 0;
-    int tournament_size = 0;
+    double tournament_size = 0;
     int rtr_window_size = 0;
     int tournament_with_replacement = -1;
     int randomize_select = -1;
@@ -2309,7 +2309,7 @@ GETTER_FUNCTION (PGAGetRestartFrequencyValue,    restart_frequency,      i)
 GETTER_FUNCTION (PGAGetRTRWindowSize,            rtr_window_size,        i)
 GETTER_FUNCTION (PGAGetStringLength,             string_length,          i)
 GETTER_FUNCTION (PGAGetSumConstraintsFlag,       sum_constraints,        i)
-GETTER_FUNCTION (PGAGetTournamentSize,           tournament_size,        i)
+GETTER_FUNCTION (PGAGetTournamentSize,           tournament_size,        d)
 GETTER_FUNCTION (PGAGetTournamentWithReplacement,tournament_with_replacement,i)
 GETTER_FUNCTION (PGAGetTruncationProportion,     truncation_proportion,  d)
 GETTER_FUNCTION (PGAGetUniformCrossoverProb,     uniform_crossover_prob, d)
