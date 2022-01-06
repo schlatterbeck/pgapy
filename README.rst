@@ -197,52 +197,58 @@ implicitly set with the ``length`` parameter. The ``string_length`` is
 also available as the length of the ``PGA`` object using the Python
 built-in ``len`` function.
 
-==================================== =============================== ====== ====
-PGApack name                         Constructor parameter           Type   Prop
-==================================== =============================== ====== ====
-``PGASetCrossoverProb``              ``crossover_prob``              float  yes
-``PGASetCrossoverType``              ``crossover_type``              sym    no
-``PGASetFitnessCmaxValue``           ``fitness_cmax``                float  yes
-``PGASetFitnessType``                ``fitness_type``                sym    no
-``PGAGetGAIterValue``                ``GA_iter``                     int    yes
-``PGASetIntegerInitPermute``         ``integer_init_permute``        int2   no
-``PGASetIntegerInitRange``           ``init``                               no
-``PGASetMaxFitnessRank``             ``max_fitness_rank``            float  yes
-``PGASetMaxGAIterValue``             ``max_GA_iter``                 int    yes
-``PGASetMaxNoChangeValue``           ``max_no_change``               int    no
-``PGASetMaxSimilarityValue``         ``max_similarity``              int    no
-``PGASetMutationAndCrossoverFlag``   ``mutation_and_crossover``      int    yes
-``PGASetMutationBoundedFlag``        ``mutation_bounded``            int    yes
-``PGASetMutationIntegerValue``       ``mutation_value``              int    yes
-``PGASetMutationOrCrossoverFlag``    ``mutation_or_crossover``       int    yes
-``PGASetMutationProb``               ``mutation_prob``               float  yes
-``PGASetMutationRealValue``          ``mutation_value``              float  yes
-``PGASetMutationType``               ``mutation_type``               sym    no
-``PGASetNoDuplicatesFlag``           ``no_duplicates``               int    no
-``PGASetNumAuxEval``                 ``num_eval``                    int    yes
-``PGASetNumConstraint``              ``num_constraint``              int    yes
-``PGASetNumReplaceValue``            ``num_replace``                 int    yes
-``PGASetPopSize``                    ``pop_size``                    int    yes
-``PGASetPopReplaceType``             ``pop_replace_type``            sym    no
-``PGASetPrintFrequencyValue``        ``print_frequency``             int    yes
-``PGASetPrintOptions``               ``print_options``               msym   no
-``PGASetPTournamentProb``            ``p_tournament_prob``           float  yes
-``PGASetRandomizeSelect``            ``randomize_select``            int    yes
-``PGASetRandomSeed``                 ``random_seed``                 int    yes
-``PGASetRealInitRange``              ``init``                               no
-``PGASetRealInitPercent``            ``init_percent``                       no
-``PGASetRestartFlag``                ``restart``                     int    yes
-``PGASetRestartFrequencyValue``      ``restart_frequency``           int    yes
-``PGASetRTRWindowSize``              ``rtr_window_size``             int    yes
-``PGASetSelectType``                 ``select_type``                 sym    no
-``PGASetStoppingRuleType``           ``stopping_rule_types``         msym   no
-``PGASetStringLength``               ``string_length``               int    yes
-``PGASetSumConstraintsFlag``         ``sum_constraints``             int    yes
-``PGASetTournamentSize``             ``tournament_size``             int    yes
-``PGASetTournamentWithReplacement``  ``tournament_with_replacement`` int    yes
-``PGASetTruncationProportion``       ``truncation_proportion``       float  yes
-``PGASetUniformCrossoverProb``       ``uniform_crossover_prob``      float  yes
-==================================== =============================== ====== ====
+==================================== ================================= ====== ====
+PGApack name                         Constructor parameter             Type   Prop
+==================================== ================================= ====== ====
+``PGASetCrossoverBoundedFlag``       ``crossover_bounded``             int    yes
+``PGASetCrossoverBounceBackFlag``    ``crossover_bounce_back``         int    yes
+``PGASetCrossoverSBXEta``            ``crossover_SBX_eta``             float  yes
+``PGASetCrossoverSBXOncePerString``  ``crossover_SBX_once_per_string`` int    yes
+``PGASetCrossoverProb``              ``crossover_prob``                float  yes
+``PGASetCrossoverType``              ``crossover_type``                sym    no
+``PGASetFitnessCmaxValue``           ``fitness_cmax``                  float  yes
+``PGASetFitnessType``                ``fitness_type``                  sym    no
+``PGAGetGAIterValue``                ``GA_iter``                       int    yes
+``PGASetIntegerInitPermute``         ``integer_init_permute``          int2   no
+``PGASetIntegerInitRange``           ``init``                                 no
+``PGASetMaxFitnessRank``             ``max_fitness_rank``              float  yes
+``PGASetMaxGAIterValue``             ``max_GA_iter``                   int    yes
+``PGASetMaxNoChangeValue``           ``max_no_change``                 int    no
+``PGASetMaxSimilarityValue``         ``max_similarity``                int    no
+``PGASetMutationAndCrossoverFlag``   ``mutation_and_crossover``        int    yes
+``PGASetMutationBoundedFlag``        ``mutation_bounded``              int    yes
+``PGASetMutationIntegerValue``       ``mutation_value``                int    yes
+``PGASetMutationOrCrossoverFlag``    ``mutation_or_crossover``         int    yes
+``PGASetMutationPolyEta``            ``mutation_poly_eta``             float  yes
+``PGASetMutationPolyValue``          ``mutation_poly_value``           float  yes
+``PGASetMutationProb``               ``mutation_prob``                 float  yes
+``PGASetMutationRealValue``          ``mutation_value``                float  yes
+``PGASetMutationType``               ``mutation_type``                 sym    no
+``PGASetNoDuplicatesFlag``           ``no_duplicates``                 int    no
+``PGASetNumAuxEval``                 ``num_eval``                      int    yes
+``PGASetNumConstraint``              ``num_constraint``                int    yes
+``PGASetNumReplaceValue``            ``num_replace``                   int    yes
+``PGASetPopSize``                    ``pop_size``                      int    yes
+``PGASetPopReplaceType``             ``pop_replace_type``              sym    no
+``PGASetPrintFrequencyValue``        ``print_frequency``               int    yes
+``PGASetPrintOptions``               ``print_options``                 msym   no
+``PGASetPTournamentProb``            ``p_tournament_prob``             float  yes
+``PGASetRandomizeSelect``            ``randomize_select``              int    yes
+``PGASetRandomSeed``                 ``random_seed``                   int    yes
+``PGASetRealInitRange``              ``init``                                 no
+``PGASetRealInitPercent``            ``init_percent``                         no
+``PGASetRestartFlag``                ``restart``                       int    yes
+``PGASetRestartFrequencyValue``      ``restart_frequency``             int    yes
+``PGASetRTRWindowSize``              ``rtr_window_size``               int    yes
+``PGASetSelectType``                 ``select_type``                   sym    no
+``PGASetStoppingRuleType``           ``stopping_rule_types``           msym   no
+``PGASetStringLength``               ``string_length``                 int    yes
+``PGASetSumConstraintsFlag``         ``sum_constraints``               int    yes
+``PGASetTournamentSize``             ``tournament_size``               int    yes
+``PGASetTournamentWithReplacement``  ``tournament_with_replacement``   int    yes
+``PGASetTruncationProportion``       ``truncation_proportion``         float  yes
+``PGASetUniformCrossoverProb``       ``uniform_crossover_prob``        float  yes
+==================================== ================================= ====== ====
 
 PGA Object Methods
 ------------------
@@ -360,6 +366,7 @@ The following PGApack constants are available:
 Constant                   Description
 ========================== ===========================================
 PGA_CROSSOVER_ONEPT        One-point Crossover
+PGA_CROSSOVER_SBX          Simulated Binary Crossover
 PGA_CROSSOVER_TWOPT        Two-point Crossover
 PGA_CROSSOVER_UNIFORM      Uniform Crossover
 PGA_FITNESSMIN_CMAX        Map fitness by subtracting worst
@@ -370,6 +377,7 @@ PGA_FITNESS_RAW            Identity fitness function
 PGA_MUTATION_CONSTANT      Mutation by adding/subtracting constant
 PGA_MUTATION_GAUSSIAN      Mutation by selecting from Gaussian distribution
 PGA_MUTATION_PERMUTE       Mutation swaps two random genes
+PGA_MUTATION_POLY          Polynomial Mutation
 PGA_MUTATION_RANGE         Replace gene with uniform selection from init range
 PGA_MUTATION_UNIFORM       Mutation uniform from interval
 PGA_NEWPOP                 Symbolic constant for new population
@@ -490,7 +498,12 @@ your Extension-configuration to the standard ``setup.py``.
 Changes
 -------
 
-Version 1.1.1-1.1.3: Small PGAPack updates, fixes for non-debian
+Version 1.1.6: Polynomial mutation and simulated binary crossover (SBX)
+
+- Simulated binary crossover (SBX)
+- Polynomial mutation
+
+Version 1.1.1-1.1.5: Small PGAPack updates, fixes for non-debian
 
 - Fix setup.py for non-debian systems
 - Update to latest PGAPack with small changes

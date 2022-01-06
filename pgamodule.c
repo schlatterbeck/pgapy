@@ -70,6 +70,7 @@ typedef struct
 /* These need to be kept sorted */
 static constdef_t constdef [] =
     { {"PGA_CROSSOVER_ONEPT",       PGA_CROSSOVER_ONEPT       }
+    , {"PGA_CROSSOVER_SBX",         PGA_CROSSOVER_SBX         }
     , {"PGA_CROSSOVER_TWOPT",       PGA_CROSSOVER_TWOPT       }
     , {"PGA_CROSSOVER_UNIFORM",     PGA_CROSSOVER_UNIFORM     }
     , {"PGA_DE_CROSSOVER_BIN",      PGA_DE_CROSSOVER_BIN      }
@@ -86,6 +87,7 @@ static constdef_t constdef [] =
     , {"PGA_MUTATION_DE",           PGA_MUTATION_DE           }
     , {"PGA_MUTATION_GAUSSIAN",     PGA_MUTATION_GAUSSIAN     }
     , {"PGA_MUTATION_PERMUTE",      PGA_MUTATION_PERMUTE      }
+    , {"PGA_MUTATION_POLY",         PGA_MUTATION_POLY         }
     , {"PGA_MUTATION_RANGE",        PGA_MUTATION_RANGE        }
     , {"PGA_MUTATION_UNIFORM",      PGA_MUTATION_UNIFORM      }
     , {"PGA_NEWPOP",                PGA_NEWPOP                }
@@ -645,6 +647,8 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     int sum_constraints = -1;
     double truncation_proportion = 0.0;
     double mutation_value = 0.0;
+    double mutation_poly_eta = -1;
+    double mutation_poly_value = -1;
     int DE_variant = 0;
     int DE_num_diffs = 0;
     int DE_crossover_type = 0;
@@ -657,7 +661,11 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     PyObject *DE_dither_per_individual = NULL;
     double mutation_prob = -1;
     double crossover_prob = -1;
+    PyObject *crossover_bounded = NULL;
+    PyObject *crossover_bounce_back = NULL;
+    PyObject *crossover_SBX_once_per_string = NULL;
     double uniform_crossover_prob = -1.0;
+    double crossover_SBX_eta = -1.0;
     double p_tournament_prob = -1.0;
     double max_fitness_rank = -1.0;
     double fitness_cmax = -1.0;
@@ -699,6 +707,10 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         , "crossover_type"
         , "select_type"
         , "crossover_prob"
+        , "crossover_bounded"
+        , "crossover_bounce_back"
+        , "crossover_SBX_once_per_string"
+        , "crossover_SBX_eta"
         , "uniform_crossover_prob"
         , "print_frequency"
         , "restart"
@@ -707,6 +719,8 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         , "mutation_bounce_back"
         , "mutation_type"
         , "mutation_value"
+        , "mutation_poly_eta"
+        , "mutation_poly_value"
         , "DE_variant"
         , "DE_num_diffs"
         , "DE_crossover_type"
@@ -738,7 +752,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     if  (!PyArg_ParseTupleAndKeywords
             ( args
             , kw
-            , "Oi|OiiOOOiiiidOiiOOOiiddiOiOOidiiiddddddOOOdiddiiiidiiiO"
+            , "Oi|OiiOOOiiiidOiiOOOiidOOOddiOiOOidddiiiddddddOOOdiddiiiidiiiO"
             , kwlist
             , &type
             , &length
@@ -762,6 +776,10 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             , &crossover_type
             , &select_type
             , &crossover_prob
+            , &crossover_bounded
+            , &crossover_bounce_back
+            , &crossover_SBX_once_per_string
+            , &crossover_SBX_eta
             , &uniform_crossover_prob
             , &print_frequency
             , &restart
@@ -770,6 +788,8 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             , &mutation_bounce_back
             , &mutation_type
             , &mutation_value
+            , &mutation_poly_eta
+            , &mutation_poly_value
             , &DE_variant
             , &DE_num_diffs
             , &DE_crossover_type
@@ -922,6 +942,21 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
 
     if (crossover_prob >= 0) {
         PGASetCrossoverProb (ctx, crossover_prob);
+    }
+    if (crossover_bounded && PyObject_IsTrue (crossover_bounded)) {
+        PGASetCrossoverBoundedFlag (ctx, PGA_TRUE);
+    }
+    if (crossover_bounce_back && PyObject_IsTrue (crossover_bounce_back)) {
+        PGASetCrossoverBounceBackFlag (ctx, PGA_TRUE);
+    }
+    if (  crossover_SBX_once_per_string
+       && PyObject_IsTrue (crossover_SBX_once_per_string)
+       )
+    {
+        PGASetCrossoverSBXOncePerString (ctx, PGA_TRUE);
+    }
+    if (crossover_SBX_eta >= 0) {
+        PGASetCrossoverSBXEta (ctx, crossover_SBX_eta);
     }
     if (crossover_type >= 0) {
         if (  crossover_type != PGA_CROSSOVER_ONEPT
@@ -1342,6 +1377,12 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         } else {
             PGASetMutationIntegerValue (ctx, (int)mutation_value);
         }
+    }
+    if (mutation_poly_eta >= 0) {
+        PGASetMutationPolyEta (ctx, mutation_poly_eta);
+    }
+    if (mutation_poly_value >= 0) {
+        PGASetMutationPolyValue (ctx, mutation_poly_value);
     }
     if (DE_variant) {
         switch (DE_variant) {
@@ -2278,6 +2319,11 @@ static PyMethodDef PGA_methods [] =
 
 /* These do *NOT* end in semicolon */
 GETTER_FUNCTION (PGAGetCrossoverProb,            crossover_prob,         d)
+GETTER_FUNCTION (PGAGetCrossoverBounceBackFlag,  crossover_bounce_back,  i)
+GETTER_FUNCTION (PGAGetCrossoverBoundedFlag,     crossover_bounded,      i)
+GETTER_FUNCTION (PGAGetCrossoverSBXEta,          crossover_SBX_eta,      d)
+GETTER_FUNCTION (PGAGetCrossoverSBXOncePerString,
+                 crossover_SBX_once_per_string,                          i)
 GETTER_FUNCTION (PGAGetDEVariant,                DE_variant,             i)
 GETTER_FUNCTION (PGAGetDENumDiffs,               DE_num_diffs,           i)
 GETTER_FUNCTION (PGAGetDEScaleFactor,            DE_scale_factor,        d)
@@ -2292,10 +2338,12 @@ GETTER_FUNCTION (PGAGetGAIterValue,              GA_iter,                i)
 GETTER_FUNCTION (PGAGetMaxFitnessRank,           max_fitness_rank,       d)
 GETTER_FUNCTION (PGAGetMaxGAIterValue,           max_GA_iter,            i)
 GETTER_FUNCTION (PGAGetMutationAndCrossoverFlag, mutation_and_crossover, i)
+GETTER_FUNCTION (PGAGetMutationBounceBackFlag,   mutation_bounce_back,   i)
+GETTER_FUNCTION (PGAGetMutationBoundedFlag,      mutation_bounded,       i)
+GETTER_FUNCTION (PGAGetMutationPolyEta,          mutation_poly_eta,      d)
 GETTER_FUNCTION (PGAGetMutationOrCrossoverFlag,  mutation_or_crossover,  i)
 GETTER_FUNCTION (PGAGetMutationOnlyFlag,         mutation_only,          i)
-GETTER_FUNCTION (PGAGetMutationBoundedFlag,      mutation_bounded,       i)
-GETTER_FUNCTION (PGAGetMutationBounceBackFlag,   mutation_bounce_back,   i)
+GETTER_FUNCTION (PGAGetMutationPolyValue,        mutation_poly_value,    d)
 GETTER_FUNCTION (PGAGetMutationProb,             mutation_prob,          d)
 GETTER_FUNCTION (PGAGetNumConstraint,            num_constraint,         i)
 GETTER_FUNCTION (PGAGetNumReplaceValue,          num_replace,            i)
@@ -2346,6 +2394,10 @@ static PyObject *PGA_num_eval (PyObject *self, void *closure)
 static PyGetSetDef PGA_getset [] =
 /*  name      .get                  .set   .doc .closure */
 { GETTER_ENTRY (crossover_prob)
+, GETTER_ENTRY (crossover_bounce_back)
+, GETTER_ENTRY (crossover_bounded)
+, GETTER_ENTRY (crossover_SBX_eta)
+, GETTER_ENTRY (crossover_SBX_once_per_string)
 , GETTER_ENTRY (eval_count)
 , GETTER_ENTRY (fitness_cmax)
 , GETTER_ENTRY (GA_iter)
@@ -2354,6 +2406,8 @@ static PyGetSetDef PGA_getset [] =
 , GETTER_ENTRY (mutation_and_crossover)
 , GETTER_ENTRY (mutation_or_crossover)
 , GETTER_ENTRY (mutation_only)
+, GETTER_ENTRY (mutation_poly_eta)
+, GETTER_ENTRY (mutation_poly_value)
 , GETTER_ENTRY (mutation_bounded)
 , GETTER_ENTRY (mutation_bounce_back)
 , GETTER_ENTRY (mutation_prob)
