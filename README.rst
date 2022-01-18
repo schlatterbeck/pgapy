@@ -168,7 +168,9 @@ cases properties are missing because no corresponding ``PGAGet`` function
 is implemented in PGApack, in other cases returning a numeric value that
 has a symbolic constant in PGApy doesn't make much sense.
 The properties have the same name as the constructor parameter.
-There is one Property that is no constructor parameter, namely the
+There are Properties that don't have a corresponding constructor
+parameter, namely the ``eval_count`` property (returning the count of
+function evaluations) and the
 ``GA_iter`` property that returns the current GA generation. In the type
 column I'm listing the Python type. If the type is followed by a number,
 more than one item of that type is specified (a sequence in Python). Some
@@ -206,6 +208,7 @@ PGApack name                         Constructor parameter             Type   Pr
 ``PGASetCrossoverSBXOncePerString``  ``crossover_SBX_once_per_string`` int    yes
 ``PGASetCrossoverProb``              ``crossover_prob``                float  yes
 ``PGASetCrossoverType``              ``crossover_type``                sym    no
+``PGAGetEvalCount``                  ``eval_count``                    int    yes
 ``PGASetFitnessCmaxValue``           ``fitness_cmax``                  float  yes
 ``PGASetFitnessType``                ``fitness_type``                  sym    no
 ``PGAGetGAIterValue``                ``GA_iter``                       int    yes
@@ -216,6 +219,7 @@ PGApack name                         Constructor parameter             Type   Pr
 ``PGASetMaxNoChangeValue``           ``max_no_change``                 int    no
 ``PGASetMaxSimilarityValue``         ``max_similarity``                int    no
 ``PGASetMutationAndCrossoverFlag``   ``mutation_and_crossover``        int    yes
+``PGASetMutationBounceBackFlag``     ``mutation_bounce_back``          int    yes
 ``PGASetMutationBoundedFlag``        ``mutation_bounded``              int    yes
 ``PGASetMutationIntegerValue``       ``mutation_value``                int    yes
 ``PGASetMutationOrCrossoverFlag``    ``mutation_or_crossover``         int    yes
@@ -288,7 +292,6 @@ Method                        Parameters         Return
 ``get_allele``                *p, pop, index*    allele value
 ``get_best_index``            *pop*              index of best string
 ``get_best_report_index``     *pop, idx*         index of best eval with idx
-``get_eval_count``                               overall eval count
 ``get_evaluation``            *p, pop*           evaluation of *p*
 ``get_evaluation_up_to_date`` *p, pop*           True if up-to-date
 ``get_fitness``               *p, pop*           fitness of *p* (float)
