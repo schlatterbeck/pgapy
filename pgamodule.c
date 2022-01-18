@@ -57,6 +57,121 @@ static PyObject *contexts       = NULL;
 /* This is used for terminating the search and raising an error outside */
 static int       error_occurred = 0;
 
+/*********************************
+ * Convenience functions in module
+ *********************************/
+
+static PyObject *das_dennis (PyObject *self, PyObject *args, PyObject *kw)
+{
+    int i, j;
+    int dim, npart;
+    double scale = 1;
+    double *dir = NULL;
+    PyObject *direction = NULL;
+    PyObject *tuple = NULL;
+    PyObject *inner_tuple = NULL;
+    PyObject *ele = NULL;
+    void *result = NULL;
+    PyObject *res = NULL, *res2 = NULL;
+    int npoints;
+    static char *kwlist [] =
+        { "dimension"
+        , "npartitions"
+        , "scale"
+        , "direction"
+        , NULL
+        };
+    if (!PyArg_ParseTupleAndKeywords
+        (args, kw, "ii|dO", kwlist, &dim, &npart, &scale, &direction)
+       )
+    {
+        return NULL;
+    }
+    if (dim <= 1) {
+        PyErr_SetString (PyExc_ValueError, "Dimension must be >= 1");
+        return NULL;
+    }
+    if (npart <= 1) {
+        PyErr_SetString (PyExc_ValueError, "npartitions must be >= 1");
+        return NULL;
+    }
+    if (direction != NULL) {
+        Py_ssize_t length;
+        if (!PySequence_Check (direction)) {
+            PyErr_SetString
+                (PyExc_ValueError, "Expected sequence for direction parameter");
+            return NULL;
+        }
+        length = PySequence_Length (direction);
+        if (length != dim) {
+            PyErr_SetString
+                ( PyExc_ValueError
+                , "Direction must be sequence with length=dimension"
+                );
+            return NULL;
+        }
+        if ((dir = malloc (sizeof (double) * dim)) == NULL) {
+            return PyErr_NoMemory ();
+        }
+        for (i=0; i<length; i++) {
+            res = PySequence_GetItem (direction, i);
+            if (res == NULL) {
+                return NULL;
+            }
+            res2 = PyNumber_Float (res);
+            if (res2 == NULL) {
+                goto errout;
+            }
+            Py_CLEAR (res);
+            dir [i] = PyFloat_AsDouble (res2);
+            if (PyErr_Occurred ()) {
+                goto errout;
+            }
+            Py_CLEAR (res2);
+        }
+    }
+    npoints = LIN_binom (dim + npart - 1, npart);
+    LIN_dasdennis (dim, npart, &result, 0, scale, dir);
+    tuple = PyTuple_New (npoints);
+    if (tuple == NULL) {
+        goto errout;
+    }
+    PyTuple_SetItem (tuple, 0, ele);
+    for (i=0; i<npoints; i++) {
+        int r;
+        double (*points)[3] = (double (*)[3]) result;
+        inner_tuple = PyTuple_New (dim);
+        if (inner_tuple == NULL) {
+            goto errout;
+        }
+        r = PyTuple_SetItem (tuple, i, inner_tuple);
+        assert (r == 0);
+        for (j=0; j<dim; j++) {
+            ele = Py_BuildValue ("d", points [i][j]);
+            if (ele == NULL) {
+                goto errout;
+            }
+            r = PyTuple_SetItem (inner_tuple, j, ele);
+            assert (r == 0);
+        }
+    }
+    free (result);
+    return tuple;
+errout:
+    free (dir);
+    Py_CLEAR (tuple);
+    Py_CLEAR (res);
+    Py_CLEAR (res2);
+    return NULL;
+}
+
+static PyMethodDef Module_Methods [] =
+{ { "das_dennis", (PyCFunction)das_dennis, METH_VARARGS | METH_KEYWORDS
+  , "Return Das/Dennis points"
+  }
+, {} /* EMPTY VALUE AS END-MARKER */
+};
+
 /***********************
  * Constants (in Module)
  ***********************/
@@ -94,6 +209,7 @@ static constdef_t constdef [] =
     , {"PGA_OLDPOP",                PGA_OLDPOP                }
     , {"PGA_POPREPL_BEST",          PGA_POPREPL_BEST          }
     , {"PGA_POPREPL_NSGA_II",       PGA_POPREPL_NSGA_II       }
+    , {"PGA_POPREPL_NSGA_III",      PGA_POPREPL_NSGA_III      }
     , {"PGA_POPREPL_PAIRWISE_BEST", PGA_POPREPL_PAIRWISE_BEST }
     , {"PGA_POPREPL_RANDOM_NOREP",  PGA_POPREPL_RANDOM_NOREP  }
     , {"PGA_POPREPL_RANDOM_REP",    PGA_POPREPL_RANDOM_REP    }
@@ -256,16 +372,20 @@ static double evaluate (PGAContext *ctx, int p, int pop, double *aux)
         res2 = PySequence_GetItem(res1, 0);
         ERR_CHECK_X (res2);
         res3 = PyNumber_Float (res2);
+        Py_CLEAR (res2);
         ERR_CHECK_X (res3);
         r = PyArg_Parse (res3, "d", &retval);
         ERR_CHECK_X (r);
+        Py_CLEAR (res3);
         for (i=1; i<length; i++) {
             res2 = PySequence_GetItem (res1, i);
             ERR_CHECK_X (res2);
             res3 = PyNumber_Float (res2);
+            Py_CLEAR (res2);
             ERR_CHECK_X (res3);
             r = PyArg_Parse (res3, "d", aux + (i - 1));
             ERR_CHECK_X (r);
+            Py_CLEAR (res3);
         }
     } else {
         if (ctx->ga.NumAuxEval) {
@@ -284,6 +404,7 @@ errout:
     Py_CLEAR (self);
     Py_CLEAR (res1);
     Py_CLEAR (res2);
+    Py_CLEAR (res3);
     return retval;
 }
 
@@ -621,6 +742,68 @@ static int check_hamming (PGAContext *ctx, int val, char *name)
     return 1;
 }
 
+Py_ssize_t parse_points (int dim, PyObject *points, void **result)
+{
+    int i, j;
+    Py_ssize_t length;
+    PyObject *point = NULL;
+    PyObject *res = NULL, *res2 = NULL;
+    void *refpoints = NULL;
+
+    if (!PySequence_Check (points)) {
+        PyErr_SetString
+            (PyExc_ValueError, "Expected sequence for points parameter");
+        return 0;
+    }
+    length = PySequence_Length (points);
+    if (length < 1) {
+        PyErr_SetString (PyExc_ValueError, "Must at least specify one point");
+        return 0;
+    }
+    refpoints = malloc (sizeof (double) * length * dim);
+    if (refpoints == NULL) {
+        PyErr_NoMemory ();
+        goto errout;
+    }
+    for (i=0; i<length; i++) {
+        int l;
+        double (*rp)[dim] = (double (*)[3]) refpoints;
+
+        point = PySequence_GetItem (points, i);
+        ERR_CHECK_X (point);
+        l = PySequence_Length (point);
+        if (l != dim) {
+            char x [100];
+            sprintf (x, "Points must have dimension %d", dim);
+            PyErr_SetString (PyExc_ValueError, x);
+            goto errout;
+        }
+        for (j=0; j<dim; j++) {
+            res = PySequence_GetItem (point, j);
+            ERR_CHECK_X (res);
+            res2 = PyNumber_Float (res);
+            ERR_CHECK_X (res2);
+            Py_CLEAR (res);
+            rp [i][j] = PyFloat_AsDouble (res2);
+            if (PyErr_Occurred ()) {
+                goto errout;
+            }
+            Py_CLEAR (res2);
+        }
+        Py_CLEAR (point);
+    }
+    *result = refpoints;
+    return length;
+errout:
+    Py_CLEAR (point);
+    Py_CLEAR (res);
+    Py_CLEAR (res2);
+    if (refpoints != NULL) {
+        free (refpoints);
+    }
+    return 0;
+}
+
 /*************
  * Constructor
  *************/
@@ -681,6 +864,10 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     PyObject *mutation_and_crossover = NULL;
     PyObject *mutation_or_crossover = NULL;
     PyObject *mutation_only = NULL;
+    PyObject *refpoints = NULL;
+    PyObject *refdirs = NULL;
+    int refdir_partitions = 0;
+    double refdir_scale = 0.05;
     PyObject *argv = NULL;
     char **c_argv = NULL;
     PGAContext *ctx;
@@ -745,6 +932,10 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         , "randomize_select"
         , "num_constraint"
         , "sum_constraints"
+        , "reference_points"
+        , "reference_directions"
+        , "refdir_partitions"
+        , "refdir_scale"
         , "argv"
         , NULL
         };
@@ -752,7 +943,8 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     if  (!PyArg_ParseTupleAndKeywords
             ( args
             , kw
-            , "Oi|OiiOOOiiiidOiiOOOiidOOOddiOiOOidddiiiddddddOOOdiddiiiidiiiO"
+            , "Oi|OiiOOOiiiidOiiOOOiidOOOddiOiOOiddd"
+              "iiiddddddOOOdiddiiiidiiiOOidO"
             , kwlist
             , &type
             , &length
@@ -814,6 +1006,10 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             , &randomize_select
             , &num_constraint
             , &sum_constraints
+            , &refpoints
+            , &refdirs
+            , &refdir_partitions
+            , &refdir_scale
             , &argv
             )
         )
@@ -1066,6 +1262,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
            && pop_replace_type != PGA_POPREPL_RTR
            && pop_replace_type != PGA_POPREPL_PAIRWISE_BEST
            && pop_replace_type != PGA_POPREPL_NSGA_II
+           && pop_replace_type != PGA_POPREPL_NSGA_III
            )
         {
             PyErr_SetString (PyExc_ValueError, "invalid pop_replace_type");
@@ -1440,6 +1637,33 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     }
     if (sum_constraints >= 0) {
         PGASetSumConstraintsFlag (ctx, sum_constraints);
+    }
+    if (refpoints != NULL) {
+        Py_ssize_t npoints = 0;
+        void *ref = NULL;
+        npoints = parse_points (num_eval - num_constraint, refpoints, &ref);
+        if (npoints == 0) {
+            return INIT_FAIL;
+        }
+        PGASetReferencePoints (ctx, npoints, ref);
+    }
+    if (refdirs != NULL) {
+        Py_ssize_t ndirs = 0;
+        void *ref = NULL;
+        if (refdir_scale <= 0 || refdir_scale > 1) {
+            PyErr_SetString (PyExc_ValueError, "Need 0 < refdir_scale <= 1");
+            return INIT_FAIL;
+        }
+        if (refdir_partitions <= 0) {
+            PyErr_SetString (PyExc_ValueError, "Need refdir_partitions > 0");
+            return INIT_FAIL;
+        }
+        ndirs = parse_points (num_eval - num_constraint, refdirs, &ref);
+        if (ndirs == 0) {
+            return INIT_FAIL;
+        }
+        PGASetReferenceDirections
+            (ctx, ndirs, ref, refdir_partitions, refdir_scale);
     }
     PGASetUp (ctx);
 
@@ -2498,9 +2722,6 @@ static PyTypeObject PGA_Type = {
 /*****************
  * Module creation
  *****************/
-
-/* Empty module methods */
-static PyMethodDef Module_Methods[] = { {NULL, NULL, 0, NULL} };
 
 #if IS_PY3
 static struct PyModuleDef module_definition =

@@ -5,6 +5,9 @@ PGAPy: Python Wrapper for PGAPack Parallel Genetic Algorithm Library
 
 :Author: Ralf Schlatterbeck <rsc@runtux.com>
 
+News 01-2022: This version wraps multiple evaluation with NSGA-III (note
+the additional 'I').
+
 News 12-2021: This version wraps multiple evaluation values from your
 objective function: Now you can return more than one value to either use
 it for constraints (that must be fulfilled before the objective is
@@ -51,6 +54,28 @@ features (notably enhancements in selection schemes and a new replacement
 strategy called *restricted tournament replacement* and, more recently,
 the differential evolution strategy.)
 
+Note: When using NSGA_III replacement for multi (or many-) objective
+optimization you need to either
+
+- set reference points on the hyperplane intersecting all axes at
+  offset 1. These reference points can be obtained with the convenience
+  function ``pga.das_dennis``, it creates a regular set of reference points
+  using an algorithm originally publised by I. Das and J. E. Dennis.
+  These points are then passed as the paramter ``reference_points`` to
+  the ``PGA`` constructor.
+
+  See ``examples/dtlz2.py`` for a usage example and the user guide for
+  the bibliographic reference. The function gets the dimensionality of
+  the objective space (``num_eval`` minus ``num_constraint``) and the
+  number of partition to use.
+- Or set reference directions (in the objective space) with the
+  ``reference_directions`` parameter, number of partitions for these
+  directions with the ``refdir_partitions`` parameter (see
+  ``das_dennis`` above, this uses Das/Dennis points internally), and a
+  scale factor with the parameter ``refdir_scale``.
+
+You can set both, these parameters are not mutually exclusive.
+
 I have tested pgapy on Linux only and I'll currently not provide Windows
 versions.  You also can find my `PGAPack fork on github`_ this
 repository has the three upstream releases as versions in git and
@@ -91,7 +116,9 @@ several points:
   than the number of evaluations set with the parameter ``num_eval``)
   must be set to a number that leaves at least two evaluations for
   objectives. The number of constraints can be set with the parameter
-  ``num_constraint``.
+  ``num_constraint``. When using multi-objective optimization, you need
+  one of the two replacement-types ``PGA_POPREPL_NSGA_II`` or
+  ``PGA_POPREPL_NSGA_III``, set this with the ``pop_replace_type`` parameter.
 - You *can* define additional functions overriding built-in functions
   of the PGAPack library, illustrated by the example of
   ``print_string``.  Note that we could call the original print_string
@@ -387,6 +414,7 @@ PGA_NEWPOP                 Symbolic constant for new population
 PGA_OLDPOP                 Symbolic constant for old population
 PGA_POPREPL_BEST           Population replacement best strings
 PGA_POPREPL_NSGA_II        Use NSGA-II replacement for multi-objective opt.
+PGA_POPREPL_NSGA_III       Use NSGA-III replacement for multi-objective opt.
 PGA_POPREPL_PAIRWISE_BEST  Compare same index in old and new population
 PGA_POPREPL_RANDOM_NOREP   Population replacement random no replacement
 PGA_POPREPL_RANDOM_REP     Population replacement random with replacement
@@ -500,6 +528,10 @@ your Extension-configuration to the standard ``setup.py``.
 
 Changes
 -------
+
+Version 1.2: Many-objective optimization with NSGA-III
+
+- Implement NSGA-III
 
 Version 1.1.6: Polynomial mutation and simulated binary crossover (SBX)
 
