@@ -192,7 +192,8 @@ typedef struct
 
 /* These need to be kept sorted */
 static constdef_t constdef [] =
-    { {"PGA_CROSSOVER_ONEPT",       PGA_CROSSOVER_ONEPT       }
+    { {"PGA_CROSSOVER_EDGE",        PGA_CROSSOVER_EDGE        }
+    , {"PGA_CROSSOVER_ONEPT",       PGA_CROSSOVER_ONEPT       }
     , {"PGA_CROSSOVER_SBX",         PGA_CROSSOVER_SBX         }
     , {"PGA_CROSSOVER_TWOPT",       PGA_CROSSOVER_TWOPT       }
     , {"PGA_CROSSOVER_UNIFORM",     PGA_CROSSOVER_UNIFORM     }
@@ -206,6 +207,10 @@ static constdef_t constdef [] =
     , {"PGA_FITNESS_NORMAL",        PGA_FITNESS_NORMAL        }
     , {"PGA_FITNESS_RANKING",       PGA_FITNESS_RANKING       }
     , {"PGA_FITNESS_RAW",           PGA_FITNESS_RAW           }
+    , {"PGA_MIX_MUTATE_AND_CROSS",  PGA_MIX_MUTATE_AND_CROSS  }
+    , {"PGA_MIX_MUTATE_ONLY",       PGA_MIX_MUTATE_ONLY       }
+    , {"PGA_MIX_MUTATE_OR_CROSS",   PGA_MIX_MUTATE_OR_CROSS   }
+    , {"PGA_MIX_TRADITIONAL",       PGA_MIX_TRADITIONAL       }
     , {"PGA_MUTATION_CONSTANT",     PGA_MUTATION_CONSTANT     }
     , {"PGA_MUTATION_DE",           PGA_MUTATION_DE           }
     , {"PGA_MUTATION_GAUSSIAN",     PGA_MUTATION_GAUSSIAN     }
@@ -887,6 +892,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     PyObject *mutation_and_crossover = NULL;
     PyObject *mutation_or_crossover = NULL;
     PyObject *mutation_only = NULL;
+    int mixing_type = 0;
     PyObject *refpoints = NULL;
     PyObject *refdirs = NULL;
     int refdir_partitions = 0;
@@ -943,6 +949,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         , "mutation_and_crossover"
         , "mutation_or_crossover"
         , "mutation_only"
+        , "mixing_type"
         , "p_tournament_prob"
         , "fitness_type"
         , "max_fitness_rank"
@@ -967,7 +974,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             ( args
             , kw
             , "Oi|OiiOOOiiiidOiiOOOiidOOOddiOiOOiddd"
-              "iiiddddddOOOdiddiiiidiiiOOidO"
+              "iiiddddddOOOididdidiidiiiOOidO"
             , kwlist
             , &type
             , &length
@@ -1017,6 +1024,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             , &mutation_and_crossover
             , &mutation_or_crossover
             , &mutation_only
+            , &mixing_type
             , &p_tournament_prob
             , &fitness_type
             , &max_fitness_rank
@@ -1184,6 +1192,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         if (  crossover_type != PGA_CROSSOVER_ONEPT
            && crossover_type != PGA_CROSSOVER_TWOPT
            && crossover_type != PGA_CROSSOVER_UNIFORM
+           && crossover_type != PGA_CROSSOVER_EDGE
            )
         {
             PyErr_SetString (PyExc_ValueError, "invalid crossover_type");
@@ -1562,6 +1571,19 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     }
     if (mutation_only && PyObject_IsTrue (mutation_only)) {
         PGASetMutationOnlyFlag (ctx, PGA_TRUE);
+    }
+    if (mixing_type != 0) {
+        if (  mixing_type != PGA_MIX_TRADITIONAL
+           && mixing_type != PGA_MIX_MUTATE_OR_CROSS
+           && mixing_type != PGA_MIX_MUTATE_AND_CROSS
+           && mixing_type != PGA_MIX_MUTATE_ONLY
+           )
+        {
+            PyErr_SetString
+                (PyExc_ValueError, "invalid mixing_type");
+            return INIT_FAIL;
+        }
+        PGASetMixingType (ctx, mixing_type);
     }
     if (mutation_type) {
         int data_type = PGAGetDataType (ctx);
