@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import pga
+import numpy as np
 import matplotlib.pyplot as plt
 from argparse import ArgumentParser
 from tsplib95 import load as tspload
@@ -44,27 +45,25 @@ class TSP (pga.PGA) :
         , 'dantzig42.tsp' : 699
         }
 
-    def __init__ (self, tsp, args) :
-        self.tsp        = tsp
+    def __init__ (self, args) :
+        self.args = args
+        self.tsp  = tspload (args.tsplibfile)
         self.tsp_offset = 0
         try :
             self.tsp.get_weight (0, 0)
         except (IndexError, KeyError) :
             self.tsp_offset = 1
-        self.args   = args
         self.minval = self.minvals.get (self.args.tsplibfile, None)
-        popsize = 50
-        super (self.__class__, self).__init__ \
-            ( int, tsp.dimension
-            , random_seed      = args.random_seed
+        d = dict \
+            ( random_seed      = args.random_seed
             , maximize         = False
             , max_GA_iter      = self.args.max_iter
-            , pop_size         = popsize
-            , num_replace      = round (popsize / 10)
-            #, num_replace      = round (popsize / 20)
-            #, num_replace      = round (popsize / 5)
-            #, num_replace      = round (popsize * 2 / 3)
-            #, num_replace      = popsize
+            , pop_size         = args.popsize
+            , num_replace      = round (args.popsize / 10)
+            #, num_replace      = round (args.popsize / 20)
+            #, num_replace      = round (args.popsize / 5)
+            #, num_replace      = round (args.popsize * 2 / 3)
+            #, num_replace      = args.popsize
             #, select_type      = pga.PGA_SELECT_LINEAR
             , select_type      = pga.PGA_SELECT_TOURNAMENT
             #, tournament_size  = 1.7
@@ -81,11 +80,22 @@ class TSP (pga.PGA) :
             , print_options    = [pga.PGA_REPORT_STRING]
             #, tournament_with_replacement = False
             )
+        if self.tsp.fixed_edges :
+            self.fixed_edges = np.array (self.tsp.fixed_edges) - 1
+            d.update (fixed_edges = self.fixed_edges)
+            f = set ()
+            for t in self.fixed_edges :
+                f.add (tuple (t))
+                f.add (tuple (reversed (t)))
+            self.fixed_edges = f
+        super (self.__class__, self).__init__ (int, self.tsp.dimension, **d)
         self.random  = PGA_Random (self)
         self.shuffle = None
     # end def __init__
 
     def edge_weight (self, i, j) :
+        if (i>318 or j>318) :
+            import pdb; pdb.set_trace ()
         return self.tsp.get_weight (j + self.tsp_offset, i + self.tsp_offset)
     # end def edge_weight
 
@@ -236,7 +246,7 @@ class TSP (pga.PGA) :
         return False
     # end def or_op
 
-    def next_shuffle_index (self, i, n = 0) :
+    def next_shuffle_index (self, a, i, n = 0) :
         if not self.shuffle :
             self.shuffle = list (range (len (self)))
             self.random.shuffle (self.shuffle)
@@ -248,6 +258,9 @@ class TSP (pga.PGA) :
                  and 0 <= self.shuffle [self.sidx] <= (i + n) % l
                  )
               or self.shuffle [self.sidx] == (i - 1) % l
+              or ( a [self.shuffle [self.sidx]]
+                 , a [(self.shuffle [self.sidx] + 1) % l]
+                 ) in self.fixed_edges
               ) :
             self.sidx += 1
             if self.sidx >= len (self) :
@@ -268,19 +281,36 @@ class TSP (pga.PGA) :
         pop = pga.PGA_NEWPOP
         for p in range (self.pop_size) :
             assert self.get_evaluation_up_to_date (p, pop)
+            a = [self.get_allele (p, pop, i) for i in range (l)]
             self.random.shuffle (v_idx1)
             for idx in v_idx1 :
                 orop = self.random_flip (0.2)
                 if orop :
-                    inv  = self.random_flip (0.5)
+                    if (a [idx], a [(idx - 1) % l]) in self.fixed_edges :
+                        continue
                     n    = self.random_interval (1, 4)
-                    idx2 = self.next_shuffle_index (idx, n)
+                    if (a [(idx+n-1)%l], a [(idx+n)%l]) in self.fixed_edges :
+                        continue
+                    inv  = self.random_flip (0.5)
+                    idx2 = self.next_shuffle_index (a, idx, n)
                     if self.or_op (p, pop, idx, idx2, n, inv) :
                         break
                 else :
-                    idx2 = self.next_shuffle_index (idx)
+                    if (a [idx], a [(idx + 1) % l]) in self.fixed_edges :
+                        continue
+                    idx2 = self.next_shuffle_index (a, idx)
                     if self.two_op (p, pop, idx, idx2) :
                         break
+            b = [self.get_allele (p, pop, i) for i in range (l)]
+            for i in range (l) :
+                j = (i + 1) % l
+                if (b [i], b [j]) in self.fixed_edges :
+                    break
+            else :
+                print (a)
+                print ('')
+                print (b)
+                import pdb; pdb.set_trace ()
     # end def endofgen
 
     def gene_difference (self, p1, pop1, p2, pop2) :
@@ -327,19 +357,24 @@ if __name__ == '__main__' :
         , default = 1000
         )
     cmd.add_argument \
+        ( '-p', '--popsize'
+        , help    = 'Population size, default=%(default)s'
+        , type    = int
+        , default = 50
+        )
+    cmd.add_argument \
         ( '-R', '--random-seed'
         , help    = 'Random seed to for initializing random number generator'
         , type    = int
         , default = 42
         )
     cmd.add_argument \
-        ( '-p', '--plot'
+        ( '--plot'
         , help    = 'Plot result'
         , action  = 'store_true'
         )
     args    = cmd.parse_args ()
-    problem = tspload (args.tsplibfile)
-    tsp     = TSP (problem, args)
+    tsp     = TSP (args)
     tsp.run ()
     if args.plot :
         tsp.plot ()

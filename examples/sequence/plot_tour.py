@@ -4,12 +4,16 @@ import matplotlib.pyplot as plt
 import sys
 import os
 from tsplib95 import load as tspload
+from argparse import ArgumentParser
 
 class TSP :
-    def __init__ (self, filename) :
-        self.tsp  = tspload (filename)
-        bn, ext   = os.path.splitext (filename)
-        self.tour = tspload (bn + '.tour')
+    def __init__ (self, args) :
+        self.args = args
+        self.tsp  = tspload (args.tsplibfile)
+        if args.tourfile is None :
+            bn, ext = os.path.splitext (args.tsplibfile)
+            args.tourfile = bn + '.tour'
+        self.tour = tspload (args.tourfile)
         self.off = 0
         try :
             e = self.tsp.get_weight (0, 0)
@@ -17,7 +21,7 @@ class TSP :
             self.off = 1
     # end def __init__
 
-    def plot (self, seq, seqoff = 1, close = 1) :
+    def plot (self, seq, seqoff = 1) :
         X = []
         Y = []
         for i in range (len (seq)) :
@@ -26,10 +30,12 @@ class TSP :
             #print (node)
             X.append (node [1])
             Y.append (node [0])
-        if close :
+        if self.args.close :
             X.append (X [0])
             Y.append (Y [0])
         plt.plot (X, Y, 'bo-')
+        slen = self.seqlen (seq, seqoff = seqoff)
+        plt.title ("%s (%s)" % (self.tsp.name, slen))
         plt.show ()
     # end def plot
 
@@ -44,11 +50,27 @@ class TSP :
 
     def plotall (self) :
         for t in self.tour.tours :
-            print (self.seqlen (t))
+            #print (self.seqlen (t))
             self.plot (t)
     # end def plotall
 # end class TSP
 
 if __name__ == '__main__' :
-    tsp = TSP (sys.argv [1])
+    cmd = ArgumentParser ()
+    cmd.add_argument \
+        ( 'tsplibfile'
+        , help = 'TSP-Lib compatible file to read as problem'
+        )
+    cmd.add_argument \
+        ( '-t', '--tourfile'
+        , help = 'TSP-Lib compatible file to read as problem'
+        )
+    cmd.add_argument \
+        ( '-c', '--close'
+        , help = 'Plot closing edge'
+        , action = 'store_true'
+        )
+    args    = cmd.parse_args ()
+    tsp     = TSP (args)
     tsp.plotall ()
+

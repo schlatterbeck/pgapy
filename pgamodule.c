@@ -900,6 +900,8 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     PyObject *argv = NULL;
     char **c_argv = NULL;
     PGAContext *ctx;
+    PyObject *fixed_edges;
+    int fixed_edges_symmetric = PGA_TRUE;
     static char *kwlist[] =
         { "type"
         , "length"
@@ -967,6 +969,8 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         , "refdir_partitions"
         , "refdir_scale"
         , "argv"
+        , "fixed_edges"
+        , "fixed_edges_symmetric"
         , NULL
         };
 
@@ -974,7 +978,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             ( args
             , kw
             , "Oi|OiiOOOiiiidOiiOOOiidOOOddiOiOOiddd"
-              "iiiddddddOOOididdidiidiiiOOidO"
+              "iiiddddddOOOididdidiidiiiOOidOOi"
             , kwlist
             , &type
             , &length
@@ -1042,6 +1046,8 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             , &refdir_partitions
             , &refdir_scale
             , &argv
+            , &fixed_edges
+            , &fixed_edges_symmetric
             )
         )
     {
@@ -1086,7 +1092,6 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             );
         return INIT_FAIL;
     }
-
     /* If user didn't specify argv we get sys.argv */
     if (!argv) {
         PyObject *sys = PyImport_ImportModule ("sys");
@@ -1714,6 +1719,45 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         PGASetReferenceDirections
             (ctx, ndirs, ref, refdir_partitions, refdir_scale);
     }
+    if (fixed_edges) {
+        Py_ssize_t i, j, len = PySequence_Length (fixed_edges);
+        PGAInteger (*fix)[2];
+        if (len < 0) {
+            PyErr_SetString \
+                ( PyExc_ValueError
+                , "Fixed edges must be a sequence of sequences of length 2"
+                );
+        }
+        fix = malloc (len * 2 * sizeof (PGAInteger));
+        if (fix == NULL) {
+            PyErr_NoMemory ();
+            return INIT_FAIL;
+        }
+        for (i=0; i<len; i++) {
+            PyObject *s = PySequence_GetItem (fixed_edges, i);
+            if (PySequence_Length (s) != 2) {
+                free (fix);
+                PyErr_SetString \
+                    ( PyExc_ValueError
+                    , "Fixed edges must be a sequence of sequences of length 2"
+                    );
+                return INIT_FAIL;
+            }
+            for (j=0; j<2; j++) {
+                PyObject *v = PySequence_GetItem (s, j);
+                if (!PyArg_Parse (v, "l", fix [i] + j)) {
+                    PyErr_SetString \
+                        (PyExc_ValueError , "Failed to parse fixed edge value");
+                    return INIT_FAIL;
+                }
+                Py_DECREF (v);
+            }
+            Py_DECREF (s);
+        }
+        PGAIntegerSetFixedEdges (ctx, len, fix, fixed_edges_symmetric);
+        free (fix);
+    }
+
     PGASetUp (ctx);
 
     return 0;
