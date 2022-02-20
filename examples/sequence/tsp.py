@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from argparse import ArgumentParser
 from tsplib95 import load as tspload
 from random   import Random
+from copy     import copy
 
 class PGA_Random (Random) :
 
@@ -91,6 +92,7 @@ class TSP (pga.PGA) :
         super (self.__class__, self).__init__ (int, self.tsp.dimension, **d)
         self.random  = PGA_Random (self)
         self.shuffle = None
+        self.v_idx1  = list (range (len (self)))
     # end def __init__
 
     def edge_weight (self, i, j) :
@@ -146,41 +148,37 @@ class TSP (pga.PGA) :
         return super (self.__class__, self).print_string (file, p, pop)
     # end def print_string
 
-    def two_op (self, p, pop, idx1, idx2) :
+    def two_op (self, a, idx1, idx2) :
         """ Exchange two edges if result is better
             This operation was first conceived by Croes 1958 who calls
             it an "inversion" operation.
-            Input are the two nodes which start the edge (in the
-            direction set by the gene)
+            Input is the allele a and the two nodes which start the edge
+            (in the direction set by the gene)
         """
         assert idx1 != idx2
         l  = len (self)
-        i1 = self.get_allele (p, pop, idx1)
-        j1 = self.get_allele (p, pop, (idx1 + 1) % l)
-        i2 = self.get_allele (p, pop, idx2)
-        j2 = self.get_allele (p, pop, (idx2 + 1) % l)
+        i1 = a [idx1]
+        j1 = a [(idx1 + 1) % l]
+        i2 = a [idx2]
+        j2 = a [(idx2 + 1) % l]
         eo = self.edge_weight (i1, j1) + self.edge_weight (i2, j2)
         en = self.edge_weight (i1, i2) + self.edge_weight (j1, j2)
         if en < eo :
             # Invert half of the cycle
             for i in range (l) :
-                ap1  = self.get_allele (p, pop, (idx1 + i + 1) % l)
-                ap2  = self.get_allele (p, pop, (idx2 - i) % l)
+                ap1  = a [(idx1 + i + 1) % l]
+                ap2  = a [(idx2 - i) % l]
                 if ap1 == ap2 :
                     break
-                self.set_allele (p, pop, (idx1 + i + 1) % l, ap2)
-                self.set_allele (p, pop, (idx2 - i) % l, ap1)
+                a [(idx1 + i + 1) % l] = ap2
+                a [(idx2 - i) % l]     = ap1
                 if (idx1 + i + 2) % l == (idx2 - i) % l :
                     break
-            ev = self.get_evaluation (p, pop)
-            self.set_evaluation (p, pop, ev - eo + en)
-            if self.evaluate (p, pop) != ev - eo + en :
-                import pdb; pdb.set_trace ()
-            return True
-        return False
+            return eo - en
+        return 0
     # end def two_op
 
-    def or_op (self, p, pop, idx1, idx2, n, inv) :
+    def or_op (self, a, idx1, idx2, n, inv) :
         """ Operation by Ilhan Or, 1976
             Move n consecutive nodes to another place, optionally
             inverting the sequence on re-insertion
@@ -189,23 +187,23 @@ class TSP (pga.PGA) :
         assert (idx1 - 1) % l != idx2
         eo  = 0
         seq = []
-        la  = None
+        lv  = None
         for i in range (n) :
             ix  = (idx1 + i) % l
             assert (ix != idx2)
-            a = self.get_allele (p, pop, ix)
-            if la is not None :
-                eo += self.edge_weight (la, a)
-            la = a
-            seq.append (a)
+            v = a [ix]
+            if lv is not None :
+                eo += self.edge_weight (lv, v)
+            lv = v
+            seq.append (v)
         eb  = eo
-        bef = self.get_allele (p, pop, (idx1 - 1) % l)
-        aft = self.get_allele (p, pop, (idx1 + n) % l)
+        bef = a [(idx1 - 1) % l]
+        aft = a [(idx1 + n) % l]
         eo += self.edge_weight (bef, seq [0])
         eo += self.edge_weight (seq [-1], aft)
         en  = self.edge_weight (bef, aft)
-        y1  = self.get_allele (p, pop, idx2)
-        y2  = self.get_allele (p, pop, (idx2 + 1) % l)
+        y1  = a [idx2]
+        y2  = a [(idx2 + 1) % l]
         eo += self.edge_weight (y1, y2)
         if inv :
             en += self.edge_weight (y1, seq [-1])
@@ -218,32 +216,27 @@ class TSP (pga.PGA) :
             en += self.edge_weight (seq [-1], y2)
         if (en < eo) :
             #for i in range (l) :
-            #    print (self.get_allele (p, pop, i), end = ' ')
+            #    print (a [i], end = ' ')
             #print ('')
             #import pdb; pdb.set_trace ()
             for i in range (l) :
                 ix1 = (idx1 + i) % l
                 ix2 = (idx1 + i + n) % l
-                a = self.get_allele (p, pop, ix2)
-                self.set_allele (p, pop, ix1, a)
+                a [ix1] = a [ix2]
                 if ix2 == idx2 :
                     break
             iter = seq
             if inv :
                 iter = reversed (seq)
-            for i, a in enumerate (iter) :
+            for i, v in enumerate (iter) :
                 ix = (ix1 + i + 1) % l
-                self.set_allele (p, pop, ix, a)
+                a [ix] = v
             #for i in range (l) :
-            #    print (self.get_allele (p, pop, i), end = ' ')
+            #    print (a [i], end = ' ')
             #print ('')
             #import pdb; pdb.set_trace ()
-            ev = self.get_evaluation (p, pop)
-            self.set_evaluation (p, pop, ev - eo + en)
-            if self.evaluate (p, pop) != self.get_evaluation (p, pop) :
-                import pdb; pdb.set_trace ()
-            return True
-        return False
+            return eo - en
+        return 0
     # end def or_op
 
     def next_shuffle_index (self, a, i, n = 0) :
@@ -274,34 +267,58 @@ class TSP (pga.PGA) :
         return r
     # end def next_shuffle_index
 
+    def update_eval (self, p, pop, v) :
+        ev = self.get_evaluation (p, pop)
+        self.set_evaluation (p, pop, ev - v)
+        if self.evaluate (p, pop) != self.get_evaluation (p, pop) :
+            import pdb; pdb.set_trace ()
+    # end def update_eval
+
+    def try_or_op_two_op (self, allele) :
+        l = len (self)
+        self.random.shuffle (self.v_idx1)
+        for idx in self.v_idx1 :
+            orop = self.random_flip (0.2)
+            if orop :
+                if (allele [idx], allele [(idx - 1) % l]) in self.fixed_edges :
+                    continue
+                n    = self.random_interval (1, self.args.or_op_max)
+                if  ( (allele [(idx + n - 1) % l], allele [(idx + n) % l])
+                      in self.fixed_edges
+                    ) :
+                    continue
+                inv  = self.random_flip (0.5)
+                idx2 = self.next_shuffle_index (allele, idx, n)
+                eval = self.or_op (allele, idx, idx2, n, inv)
+                if eval :
+                    break
+            else :
+                if (allele [idx], allele [(idx + 1) % l]) in self.fixed_edges :
+                    continue
+                idx2 = self.next_shuffle_index (allele, idx)
+                eval = self.two_op (allele, idx, idx2)
+                if eval :
+                    break
+        return eval
+    # end def try_or_op_two_op
+
     def endofgen (self) :
         # Generate permutation
         l = len (self)
-        v_idx1 = list (range (l))
-        pop = pga.PGA_NEWPOP
+        pop    = pga.PGA_NEWPOP
+        worst  = self.get_worst_index (pop)
         for p in range (self.pop_size) :
             assert self.get_evaluation_up_to_date (p, pop)
             a = [self.get_allele (p, pop, i) for i in range (l)]
-            self.random.shuffle (v_idx1)
-            for idx in v_idx1 :
-                orop = self.random_flip (0.2)
-                if orop :
-                    if (a [idx], a [(idx - 1) % l]) in self.fixed_edges :
-                        continue
-                    n    = self.random_interval (1, 4)
-                    if (a [(idx+n-1)%l], a [(idx+n)%l]) in self.fixed_edges :
-                        continue
-                    inv  = self.random_flip (0.5)
-                    idx2 = self.next_shuffle_index (a, idx, n)
-                    if self.or_op (p, pop, idx, idx2, n, inv) :
-                        break
-                else :
-                    if (a [idx], a [(idx + 1) % l]) in self.fixed_edges :
-                        continue
-                    idx2 = self.next_shuffle_index (a, idx)
-                    if self.two_op (p, pop, idx, idx2) :
-                        break
-            b = [self.get_allele (p, pop, i) for i in range (l)]
+            # b is later updated in-place
+            b = copy (a)
+            if pop == worst :
+                eval = self.try_or_op_two_op (b)
+            else :
+                eval = self.try_or_op_two_op (b)
+            for i, v in enumerate (b) :
+                self.set_allele (p, pop, i, v)
+            self.update_eval (p, pop, eval)
             for i in range (l) :
                 j = (i + 1) % l
                 if (b [i], b [j]) in self.fixed_edges :
@@ -355,6 +372,12 @@ if __name__ == '__main__' :
         , help    = 'Maximum generations, default=%(default)s'
         , type    = int
         , default = 1000
+        )
+    cmd.add_argument \
+        ( '-o', '--or-op-max'
+        , help    = 'Maximum length or Or-Op, default=%(default)s'
+        , type    = int
+        , default = 4
         )
     cmd.add_argument \
         ( '-p', '--popsize'
