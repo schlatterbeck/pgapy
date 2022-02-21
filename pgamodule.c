@@ -2250,6 +2250,20 @@ static PyObject *PGA_get_real_from_gray_code (PyObject *self, PyObject *args)
         ("d", PGAGetRealFromGrayCode (ctx, p, pop, frm, to, l, u));
 }
 
+static PyObject *PGA_get_worst_index (PyObject *self, PyObject *args)
+{
+    PGAContext *ctx = NULL;
+    int pop;
+
+    if (!PyArg_ParseTuple(args, "i", &pop)) {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    return Py_BuildValue ("i", PGAGetWorstIndex (ctx, pop));
+}
+
 /*
  * Python gene print function -- can be overridden in descendent class
  */
@@ -2620,6 +2634,9 @@ static PyMethodDef PGA_methods [] =
   }
 , { "get_real_from_gray_code",   PGA_get_real_from_gray_code,   METH_VARARGS
   , "Get real value from binary string encoded in gray code"
+  }
+, { "get_worst_index",           PGA_get_worst_index,           METH_VARARGS
+  , "Get worst index in population pop"
   }
 , { "print_context",             PGA_print_context,             METH_VARARGS
   , "Python context print, debug info about PGApack context"

@@ -91,13 +91,31 @@ class TSP (pga.PGA) :
             self.fixed_edges = f
         super (self.__class__, self).__init__ (int, self.tsp.dimension, **d)
         self.random  = PGA_Random (self)
-        self.shuffle = None
+        self.shuffle = list (range (len (self)))
+        self.random.shuffle (self.shuffle)
+        self.sidx    = 0
         self.v_idx1  = list (range (len (self)))
+        # Statistics
+        self.tries           = 0
+        self.or_op_tries     = 0
+        self.two_op_tries    = 0
+        self.or_op_success   = 0
+        self.two_op_success  = 0
+        self.try_harder_fail = 0
+        self.hard_tries      = 0
+        self.hard_success    = 0
+        self.normal_fail     = 0
+        # For brute-force search note edges that failed completely
+        self.good_edges      = {}
+        self.prune_edges     = {}
+        self.good_edge_hits  = 0
+        # Parameters of brute-force search
+        self.prune_value  = 10
+        self.n_generation = 300
+        self.n_remove     = 0
     # end def __init__
 
     def edge_weight (self, i, j) :
-        if (i>318 or j>318) :
-            import pdb; pdb.set_trace ()
         return self.tsp.get_weight (j + self.tsp_offset, i + self.tsp_offset)
     # end def edge_weight
 
@@ -144,41 +162,61 @@ class TSP (pga.PGA) :
     def print_string (self, file, p, pop) :
         print ("evals: %s" % self.eval_count, file = file)
         print ("best index: %d" % self.get_best_index (pop), file = file);
+        print ( "Tries: %d 2op: %d/%d Or-op: %d/%d Fail: %d"
+              % ( self.tries
+                , self.two_op_success, self.two_op_tries
+                , self.or_op_success, self.or_op_tries
+                , self.normal_fail
+                )
+              )
+        if self.args.optimize_harder :
+            print ( "Hard-tries: %d/%d hardfail: %d"
+                  % (self.hard_success, self.hard_tries, self.try_harder_fail)
+                  )
+            print ( "Good edges: %d prune: %d hits: %d"
+                  % ( len (self.good_edges)
+                    , len (self.prune_edges)
+                    , self.good_edge_hits
+                    )
+                  )
+        print ("")
+        print (" ".join
+            (str (self.get_allele (p, pop, i)) for i in range (len (self))))
         file.flush ()
-        return super (self.__class__, self).print_string (file, p, pop)
+        #return super (self.__class__, self).print_string (file, p, pop)
     # end def print_string
 
-    def two_op (self, a, idx1, idx2) :
+    def two_op (self, allele, idx1, idx2) :
         """ Exchange two edges if result is better
             This operation was first conceived by Croes 1958 who calls
             it an "inversion" operation.
-            Input is the allele a and the two nodes which start the edge
+            Input is the allele and the two nodes which start the edge
             (in the direction set by the gene)
         """
         assert idx1 != idx2
         l  = len (self)
-        i1 = a [idx1]
-        j1 = a [(idx1 + 1) % l]
-        i2 = a [idx2]
-        j2 = a [(idx2 + 1) % l]
+        i1 = allele [idx1]
+        j1 = allele [(idx1 + 1) % l]
+        i2 = allele [idx2]
+        j2 = allele [(idx2 + 1) % l]
         eo = self.edge_weight (i1, j1) + self.edge_weight (i2, j2)
         en = self.edge_weight (i1, i2) + self.edge_weight (j1, j2)
         if en < eo :
             # Invert half of the cycle
             for i in range (l) :
-                ap1  = a [(idx1 + i + 1) % l]
-                ap2  = a [(idx2 - i) % l]
+                ap1  = allele [(idx1 + i + 1) % l]
+                ap2  = allele [(idx2 - i) % l]
                 if ap1 == ap2 :
                     break
-                a [(idx1 + i + 1) % l] = ap2
-                a [(idx2 - i) % l]     = ap1
+                allele [(idx1 + i + 1) % l] = ap2
+                allele [(idx2 - i) % l]     = ap1
                 if (idx1 + i + 2) % l == (idx2 - i) % l :
                     break
             return eo - en
         return 0
     # end def two_op
 
-    def or_op (self, a, idx1, idx2, n, inv) :
+    def or_op (self, allele, idx1, idx2, n, inv) :
         """ Operation by Ilhan Or, 1976
             Move n consecutive nodes to another place, optionally
             inverting the sequence on re-insertion
@@ -191,19 +229,19 @@ class TSP (pga.PGA) :
         for i in range (n) :
             ix  = (idx1 + i) % l
             assert (ix != idx2)
-            v = a [ix]
+            v = allele [ix]
             if lv is not None :
                 eo += self.edge_weight (lv, v)
             lv = v
             seq.append (v)
         eb  = eo
-        bef = a [(idx1 - 1) % l]
-        aft = a [(idx1 + n) % l]
+        bef = allele [(idx1 - 1) % l]
+        aft = allele [(idx1 + n) % l]
         eo += self.edge_weight (bef, seq [0])
         eo += self.edge_weight (seq [-1], aft)
         en  = self.edge_weight (bef, aft)
-        y1  = a [idx2]
-        y2  = a [(idx2 + 1) % l]
+        y1  = allele [idx2]
+        y2  = allele [(idx2 + 1) % l]
         eo += self.edge_weight (y1, y2)
         if inv :
             en += self.edge_weight (y1, seq [-1])
@@ -216,13 +254,13 @@ class TSP (pga.PGA) :
             en += self.edge_weight (seq [-1], y2)
         if (en < eo) :
             #for i in range (l) :
-            #    print (a [i], end = ' ')
+            #    print (allele [i], end = ' ')
             #print ('')
             #import pdb; pdb.set_trace ()
             for i in range (l) :
                 ix1 = (idx1 + i) % l
                 ix2 = (idx1 + i + n) % l
-                a [ix1] = a [ix2]
+                allele [ix1] = allele [ix2]
                 if ix2 == idx2 :
                     break
             iter = seq
@@ -230,31 +268,34 @@ class TSP (pga.PGA) :
                 iter = reversed (seq)
             for i, v in enumerate (iter) :
                 ix = (ix1 + i + 1) % l
-                a [ix] = v
+                allele [ix] = v
             #for i in range (l) :
-            #    print (a [i], end = ' ')
+            #    print (allele [i], end = ' ')
             #print ('')
             #import pdb; pdb.set_trace ()
             return eo - en
         return 0
     # end def or_op
 
-    def next_shuffle_index (self, a, i, n = 0) :
-        if not self.shuffle :
-            self.shuffle = list (range (len (self)))
-            self.random.shuffle (self.shuffle)
-            self.sidx    = 0
+    def valid_index (self, new_index, allele, idx, n) :
         # Yech modulo in window that may overlap
         l = len (self)
-        while (  i <= self.shuffle [self.sidx] <= i + n
-              or (   (i + n) % l < i
-                 and 0 <= self.shuffle [self.sidx] <= (i + n) % l
-                 )
-              or self.shuffle [self.sidx] == (i - 1) % l
-              or ( a [self.shuffle [self.sidx]]
-                 , a [(self.shuffle [self.sidx] + 1) % l]
-                 ) in self.fixed_edges
-              ) :
+        if idx <= new_index <= idx + n :
+            return False
+        if (idx + n) % l < idx and 0 <= new_index <= (idx + n) % l :
+            return False
+        if new_index == (idx - 1) % l :
+            return False
+        if  ( (allele [new_index], allele [(new_index + 1) % l])
+              in self.fixed_edges
+            ) :
+            return False
+        return True
+    # end def valid_index
+
+    def next_shuffle_index (self, allele, idx, n = 0) :
+        l = len (self)
+        while not self.valid_index (self.shuffle [self.sidx], allele, idx, n) :
             self.sidx += 1
             if self.sidx >= len (self) :
                 self.random.shuffle (self.shuffle)
@@ -278,8 +319,10 @@ class TSP (pga.PGA) :
         l = len (self)
         self.random.shuffle (self.v_idx1)
         for idx in self.v_idx1 :
+            self.tries += 1
             orop = self.random_flip (0.2)
             if orop :
+                self.or_op_tries += 1
                 if (allele [idx], allele [(idx - 1) % l]) in self.fixed_edges :
                     continue
                 n    = self.random_interval (1, self.args.or_op_max)
@@ -291,50 +334,139 @@ class TSP (pga.PGA) :
                 idx2 = self.next_shuffle_index (allele, idx, n)
                 eval = self.or_op (allele, idx, idx2, n, inv)
                 if eval :
+                    self.or_op_success += 1
                     break
             else :
+                self.two_op_tries += 1
                 if (allele [idx], allele [(idx + 1) % l]) in self.fixed_edges :
                     continue
                 idx2 = self.next_shuffle_index (allele, idx)
                 eval = self.two_op (allele, idx, idx2)
                 if eval :
+                    self.two_op_success += 1
                     break
         return eval
     # end def try_or_op_two_op
+
+    def dont_use_edge (self, edge) :
+        if edge in self.fixed_edges :
+            return True
+        ge = self.good_edges.get (edge)
+        if ge :
+            # Too long ago ?
+            if self.GA_iter - ge < self.n_generation :
+                self.good_edge_hits += 1
+                return True
+            del self.good_edges [edge]
+        pe = self.prune_edges.get (edge)
+        if pe and pe > self.prune_value :
+            del self.prune_edges [edge]
+            self.good_edges [edge] = self.GA_iter
+            self.good_edges [tuple (reversed (edge))] = self.GA_iter
+            return True
+        return False
+    # end def dont_use_edge
+
+    def try_or_op_harder (self, allele) :
+        """ Try to apply or_op with minimum length and successive
+            reduction of length.
+        """
+        self.random.shuffle (self.shuffle)
+        l = len (self)
+        for idx in self.v_idx1 :
+            idxedge = (allele [idx], allele [(idx - 1) % l])
+            if self.dont_use_edge (idxedge) :
+                continue
+            for idx2 in self.shuffle :
+                idx2edge = (idx2, (idx2 + 1) % l)
+                if self.dont_use_edge (idxedge) :
+                    continue
+                dif = (idx - idx2) % l
+                if dif < 2 :
+                    continue
+                for inv in False, True :
+                    for n in range (dif, 0, -1) :
+                        if  ( ( allele [(idx + n - 1) % l]
+                              , allele [(idx + n) % l]
+                              ) in self.fixed_edges
+                            ) :
+                            continue
+                        if not self.valid_index (idx2, allele, idx, n) :
+                            continue
+                        self.tries       += 1
+                        self.or_op_tries += 1
+                        self.hard_tries  += 1
+                        eval = self.or_op (allele, idx, idx2, n, inv)
+                        if eval :
+                            self.or_op_success += 1
+                            self.hard_success  += 1
+                            return eval
+                if idxedge not in self.prune_edges :
+                    self.prune_edges [idxedge] = 0
+                    self.prune_edges [tuple (reversed (idxedge))] = 0
+                self.prune_edges [idxedge] += 1
+                self.prune_edges [tuple (reversed (idxedge))] += 1
+            # breaking this edge did not yield improvement so it must be good
+            self.good_edges [idxedge] = self.GA_iter
+            self.good_edges [tuple (reversed (idxedge))] = self.GA_iter
+        self.try_harder_fail += 1
+        # Remove n_remove oldest edges from good edges
+        # If n_remove is 0, remove *all* and double the prune_value
+        if not self.n_remove :
+            self.good_edges  = {}
+            self.prune_edges = {}
+            self.prune_value *= 2
+        else :
+            for n, ge in enumerate (sorted
+                ( list (self.good_edges)
+                , key = lambda e : -self.good_edges [e]
+                )) :
+                del self.good_edges [ge]
+                if n >= (self.n_remove - 1) :
+                    break
+        return 0
+    # end def try_or_op_harder
 
     def endofgen (self) :
         # Generate permutation
         l = len (self)
         pop    = pga.PGA_NEWPOP
-        worst  = self.get_worst_index (pop)
+        lopt   = dict \
+            ( worst = self.get_worst_index (pop)
+            , best  = self.get_best_index  (pop)
+            , rand  = self.random_interval (0, self.pop_size - 1)
+            )
+        local_opt = lopt.get (self.args.optimize_harder, -1)
         for p in range (self.pop_size) :
             assert self.get_evaluation_up_to_date (p, pop)
-            a = [self.get_allele (p, pop, i) for i in range (l)]
-            # b is later updated in-place
-            b = copy (a)
-            if pop == worst :
-                eval = self.try_or_op_two_op (b)
+            allele_a = [self.get_allele (p, pop, i) for i in range (l)]
+            # allele_b is later updated in-place
+            allele_b = copy (allele_a)
+            if p == local_opt :
+                eval = self.try_or_op_harder (allele_b)
             else :
-                eval = self.try_or_op_two_op (b)
-            for i, v in enumerate (b) :
-                self.set_allele (p, pop, i, v)
-            self.update_eval (p, pop, eval)
-            for i in range (l) :
-                j = (i + 1) % l
-                if (b [i], b [j]) in self.fixed_edges :
-                    break
+                eval = self.try_or_op_two_op (allele_b)
+            if eval :
+                for i, v in enumerate (allele_b) :
+                    self.set_allele (p, pop, i, v)
+                self.update_eval (p, pop, eval)
+                for i in range (l) :
+                    j = (i + 1) % l
+                    if (allele_b [i], allele_b [j]) in self.fixed_edges :
+                        break
+                else :
+                    print (allele_a)
+                    print ('')
+                    print (allele_b)
+                    import pdb; pdb.set_trace ()
             else :
-                print (a)
-                print ('')
-                print (b)
-                import pdb; pdb.set_trace ()
+                self.normal_fail += 1
     # end def endofgen
 
     def gene_difference (self, p1, pop1, p2, pop2) :
         """ Used when RTR population replacement is used
             We count the number of common edges.
         """
-        import pdb; pdb.set_trace ()
         e1 = set ()
         e2 = set ()
         l  = len (self)
@@ -366,6 +498,11 @@ if __name__ == '__main__' :
     cmd.add_argument \
         ( 'tsplibfile'
         , help = 'TSP-Lib compatible file to read as problem'
+        )
+    cmd.add_argument \
+        ( '--optimize-harder'
+        , help    = 'Use local optimizer for single individuum, possible '
+                    'values: worst, best, rand'
         )
     cmd.add_argument \
         ( '-m', '--max-iter'
