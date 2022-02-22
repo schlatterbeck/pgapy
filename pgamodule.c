@@ -900,7 +900,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     PyObject *argv = NULL;
     char **c_argv = NULL;
     PGAContext *ctx;
-    PyObject *fixed_edges;
+    PyObject *fixed_edges = NULL;
     int fixed_edges_symmetric = PGA_TRUE;
     static char *kwlist[] =
         { "type"

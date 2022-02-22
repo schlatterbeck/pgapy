@@ -10,10 +10,14 @@ class TSP :
     def __init__ (self, args) :
         self.args = args
         self.tsp  = tspload (args.tsplibfile)
-        if args.tourfile is None :
-            bn, ext = os.path.splitext (args.tsplibfile)
-            args.tourfile = bn + '.tour'
-        self.tour = tspload (args.tourfile)
+        if self.tsp.tours :
+            self.tour = self.tsp
+        else :
+            if args.tourfile is None :
+                bn, ext = os.path.splitext (args.tsplibfile)
+                args.tourfile = bn + '.tour'
+        if args.tourfile :
+            self.tour = tspload (args.tourfile)
         self.off = 0
         try :
             e = self.tsp.get_weight (0, 0)
@@ -26,14 +30,18 @@ class TSP :
         Y = []
         for i in range (len (seq)) :
             a = seq [i]
-            node = self.tsp.node_coords [a - seqoff + 1]
-            #print (node)
-            X.append (node [1])
-            Y.append (node [0])
-        if self.args.close :
+            x, y = self.tsp.node_coords [a - seqoff + 1]
+            if self.args.exchange_x_y :
+                x, y = y, x
+            X.append (x)
+            Y.append (y)
+        if not self.args.open :
             X.append (X [0])
             Y.append (Y [0])
-        plt.plot (X, Y, 'bo-')
+        style = '-'
+        if self.args.dots :
+            style = 'o-'
+        plt.plot (X, Y, style)
         slen = self.seqlen (seq, seqoff = seqoff)
         plt.title ("%s (%s)" % (self.tsp.name, slen))
         plt.show ()
@@ -59,16 +67,26 @@ if __name__ == '__main__' :
     cmd = ArgumentParser ()
     cmd.add_argument \
         ( 'tsplibfile'
-        , help = 'TSP-Lib compatible file to read as problem'
+        , help    = 'TSP-Lib compatible file to read as problem'
+        )
+    cmd.add_argument \
+        ( '-d', '--dots'
+        , help    = 'Plot dots at nodes'
+        , action  = 'store_true'
+        )
+    cmd.add_argument \
+        ( '-x', '--exchange-x-y'
+        , help    = 'Exchange X and Y coordinates (e.g. lin318)'
+        , action  = 'store_true'
         )
     cmd.add_argument \
         ( '-t', '--tourfile'
-        , help = 'TSP-Lib compatible file to read as problem'
+        , help    = 'TSP-Lib compatible file to read as problem'
         )
     cmd.add_argument \
-        ( '-c', '--close'
-        , help = 'Plot closing edge'
-        , action = 'store_true'
+        ( '-o', '--open'
+        , help    = 'Do not plot last (closing) edge'
+        , action  = 'store_true'
         )
     args    = cmd.parse_args ()
     tsp     = TSP (args)

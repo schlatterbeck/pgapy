@@ -31,14 +31,13 @@ class PGA_Random (Random) :
 
 class TSP (pga.PGA) :
 
-    # eil75 with rand-seed 5 and two-op yields 543
-    # eil75 with rand-seed 42 and 0.8 or-op (max 4) yields 538
-    # eil50 with rand-seed 3 and 0.8 or-op (max 4) yields 426
+    # eil75 with rand-seed 2 and 0.8 or-op (max 4) yields 535
+    # eil50 with rand-seed 1 and 0.8 or-op (max 4) yields 426
     minvals = \
         { 'oliver30.tsp'  : 420 # 421 according to WSF89
-        , 'eil50.tsp'     : 426 # 428 according to WSF89
+        #, 'eil50.tsp'     : 426 # 428 according to WSF89
         , 'eil51.tsp'     : 426
-        , 'eil75.tsp'     : 538 # 545 according to WSF89
+        , 'eil75.tsp'     : 535 # 545 according to WSF89
         , 'eil76.tsp'     : 538
         , 'eil101.tsp'    : 629
         , 'grid.tsp'      :  72
@@ -81,14 +80,13 @@ class TSP (pga.PGA) :
             , print_options    = [pga.PGA_REPORT_STRING]
             #, tournament_with_replacement = False
             )
+        self.fixed_edges = set ()
         if self.tsp.fixed_edges :
-            self.fixed_edges = np.array (self.tsp.fixed_edges) - 1
-            d.update (fixed_edges = self.fixed_edges)
-            f = set ()
-            for t in self.fixed_edges :
-                f.add (tuple (t))
-                f.add (tuple (reversed (t)))
-            self.fixed_edges = f
+            fe = np.array (self.tsp.fixed_edges) - 1
+            d.update (fixed_edges = fe)
+            for t in fe :
+                self.fixed_edges.add (tuple (t))
+                self.fixed_edges.add (tuple (reversed (t)))
         super (self.__class__, self).__init__ (int, self.tsp.dimension, **d)
         self.random  = PGA_Random (self)
         self.shuffle = list (range (len (self)))
@@ -146,6 +144,7 @@ class TSP (pga.PGA) :
         X.append (X [0])
         Y.append (Y [0])
         plt.plot (X, Y)
+        plt.title ('%s: %s' % (self.tsp.name, self.get_best_report (pop, 0)))
         plt.show ()
     # end def plot
 
@@ -180,8 +179,17 @@ class TSP (pga.PGA) :
                     )
                   )
         print ("")
-        print (" ".join
-            (str (self.get_allele (p, pop, i)) for i in range (len (self))))
+        l      = len (self)
+        allele = [self.get_allele (p, pop, i) for i in range (l)]
+        fe = 0
+        # Find first fixed edge if any
+        if self.fixed_edges :
+            for i in range (l) :
+                j = (i + 1) % l
+                if (allele [i], allele [j]) in self.fixed_edges :
+                    fe = j
+                    break
+        print (" ".join (str (allele [(i + fe) % l] + 1) for i in range (l)))
         file.flush ()
         #return super (self.__class__, self).print_string (file, p, pop)
     # end def print_string
@@ -253,10 +261,6 @@ class TSP (pga.PGA) :
             en += self.edge_weight (y1, seq [0])
             en += self.edge_weight (seq [-1], y2)
         if (en < eo) :
-            #for i in range (l) :
-            #    print (allele [i], end = ' ')
-            #print ('')
-            #import pdb; pdb.set_trace ()
             for i in range (l) :
                 ix1 = (idx1 + i) % l
                 ix2 = (idx1 + i + n) % l
@@ -269,10 +273,6 @@ class TSP (pga.PGA) :
             for i, v in enumerate (iter) :
                 ix = (ix1 + i + 1) % l
                 allele [ix] = v
-            #for i in range (l) :
-            #    print (allele [i], end = ' ')
-            #print ('')
-            #import pdb; pdb.set_trace ()
             return eo - en
         return 0
     # end def or_op
@@ -318,9 +318,12 @@ class TSP (pga.PGA) :
     def try_or_op_two_op (self, allele) :
         l = len (self)
         self.random.shuffle (self.v_idx1)
+        if self.args.or_op_for_gene :
+            orop = self.random_flip (self.args.or_op_probability)
         for idx in self.v_idx1 :
             self.tries += 1
-            orop = self.random_flip (0.2)
+            if not self.args.or_op_for_gene :
+                orop = self.random_flip (self.args.or_op_probability)
             if orop :
                 self.or_op_tries += 1
                 if (allele [idx], allele [(idx - 1) % l]) in self.fixed_edges :
@@ -455,10 +458,11 @@ class TSP (pga.PGA) :
                     if (allele_b [i], allele_b [j]) in self.fixed_edges :
                         break
                 else :
-                    print (allele_a)
-                    print ('')
-                    print (allele_b)
-                    import pdb; pdb.set_trace ()
+                    if self.fixed_edges :
+                        print (allele_a)
+                        print ('')
+                        print (allele_b)
+                        import pdb; pdb.set_trace ()
             else :
                 self.normal_fail += 1
     # end def endofgen
@@ -505,6 +509,11 @@ if __name__ == '__main__' :
                     'values: worst, best, rand'
         )
     cmd.add_argument \
+        ( '-G', '--or-op-for-gene'
+        , help    = 'Decide Or-op vs. Two-op once per gene'
+        , action  = 'store_true'
+        )
+    cmd.add_argument \
         ( '-m', '--max-iter'
         , help    = 'Maximum generations, default=%(default)s'
         , type    = int
@@ -515,6 +524,12 @@ if __name__ == '__main__' :
         , help    = 'Maximum length or Or-Op, default=%(default)s'
         , type    = int
         , default = 4
+        )
+    cmd.add_argument \
+        ( '-O', '--or-op-probability'
+        , help    = 'Probability Or-op vs Two-op, default=%(default)s'
+        , type    = float
+        , default = 0.2
         )
     cmd.add_argument \
         ( '-p', '--popsize'
