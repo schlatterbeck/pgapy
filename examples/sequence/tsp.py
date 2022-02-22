@@ -29,6 +29,46 @@ class PGA_Random (Random) :
 
 # end class PGA_Random
 
+class Long_Edge_Iter :
+    def __init__ (self, parent, allele) :
+        self.parent   = parent
+        self.edges    = parent.long_edges (allele)
+        self.allele   = allele
+        self.edge_idx = list (range (len (self.edges)))
+        self.idx      = 0
+        self.parent.random.shuffle (self.edge_idx)
+    # end def __init__
+
+    @property
+    def n (self) :
+        return (self.e [1][0] - self.e [0][0]) % len (self.parent)
+    # end def n
+
+    def _next (self) :
+        if self.idx > len (self.edge_idx) - 3 :
+            self.parent.random.shuffle (self.edge_idx)
+            self.idx = 0
+        r = self.edge_idx [self.idx : self.idx + 3]
+        self.idx += 3
+        self.e = [self.edges [i] for i in r]
+        return self.e
+    # end def _next
+
+    def is_valid (self) :
+        return self.parent.valid_index \
+            (self.e [2][0], self.allele, self.e [0][1], self.n)
+    # end def is_valid
+
+    def next (self) :
+        l = len (self.parent)
+        self._next ()
+        while not self.is_valid () :
+            self._next ()
+        return self.e
+    # end def next
+
+# end class Long_Edge_Iter
+
 class TSP (pga.PGA) :
 
     # eil75 with rand-seed 2 and 0.8 or-op (max 4) yields 535
@@ -43,6 +83,9 @@ class TSP (pga.PGA) :
         , 'grid.tsp'      :  72
         , 'croes.tsp'     : 246
         , 'dantzig42.tsp' : 699
+        , 'gr24.tsp'      : 1272
+        , 'gr48.tsp'      : 5046
+        , 'gr120.tsp'     : 6942
         }
 
     def __init__ (self, args) :
@@ -93,24 +136,32 @@ class TSP (pga.PGA) :
         self.random.shuffle (self.shuffle)
         self.sidx    = 0
         self.v_idx1  = list (range (len (self)))
+        self.n_longest = round (len (self) * self.args.long_edge_ratio)
+        if self.n_longest < 4 :
+            self.n_longest = 4
+        self.long_edge_probability = self.args.long_edge_probability
+        if not self.long_edge_probability :
+            self.long_edge_probability = self.n_longest / len (self)
         # Statistics
-        self.tries           = 0
-        self.or_op_tries     = 0
-        self.two_op_tries    = 0
-        self.or_op_success   = 0
-        self.two_op_success  = 0
-        self.try_harder_fail = 0
-        self.hard_tries      = 0
-        self.hard_success    = 0
-        self.normal_fail     = 0
+        self.tries             = 0
+        self.or_op_tries       = 0
+        self.two_op_tries      = 0
+        self.or_op_success     = 0
+        self.two_op_success    = 0
+        self.try_harder_fail   = 0
+        self.hard_tries        = 0
+        self.hard_success      = 0
+        self.normal_fail       = 0
+        self.long_edge_tries   = 0
+        self.long_edge_success = 0
         # For brute-force search note edges that failed completely
-        self.good_edges      = {}
-        self.prune_edges     = {}
-        self.good_edge_hits  = 0
+        self.good_edges        = {}
+        self.prune_edges       = {}
+        self.good_edge_hits    = 0
         # Parameters of brute-force search
-        self.prune_value  = 10
-        self.n_generation = 300
-        self.n_remove     = 0
+        self.prune_value       = 10
+        self.n_generation      = 300
+        self.n_remove          = 0
     # end def __init__
 
     def edge_weight (self, i, j) :
@@ -168,6 +219,9 @@ class TSP (pga.PGA) :
                 , self.normal_fail
                 )
               )
+        print ( "Long edges: %d/%d"
+              % (self.long_edge_success, self.long_edge_tries)
+              )
         if self.args.optimize_harder :
             print ( "Hard-tries: %d/%d hardfail: %d"
                   % (self.hard_success, self.hard_tries, self.try_harder_fail)
@@ -224,13 +278,14 @@ class TSP (pga.PGA) :
         return 0
     # end def two_op
 
-    def or_op (self, allele, idx1, idx2, n, inv) :
+    def or_op (self, allele, idx1, idx2, n, inv, force = False) :
         """ Operation by Ilhan Or, 1976
             Move n consecutive nodes to another place, optionally
             inverting the sequence on re-insertion
         """
         l   = len (self)
         assert (idx1 - 1) % l != idx2
+        assert n > 0
         eo  = 0
         seq = []
         lv  = None
@@ -260,7 +315,7 @@ class TSP (pga.PGA) :
             en += eb
             en += self.edge_weight (y1, seq [0])
             en += self.edge_weight (seq [-1], y2)
-        if (en < eo) :
+        if (en < eo or force) :
             for i in range (l) :
                 ix1 = (idx1 + i) % l
                 ix2 = (idx1 + i + n) % l
@@ -276,6 +331,20 @@ class TSP (pga.PGA) :
             return eo - en
         return 0
     # end def or_op
+
+    def long_edges (self, allele) :
+        l = len (self)
+        edges = []
+        for i in range (l) :
+            j = (i + 1) % l
+            edge = (i, j)
+            if (allele [i], allele [j]) in self.fixed_edges :
+                continue
+            edges.append (edge)
+        edges.sort \
+            (key = lambda e: -self.edge_weight (allele [e [0]], allele [e [1]]))
+        return edges [:self.n_longest]
+    # end def long_edges
 
     def valid_index (self, new_index, allele, idx, n) :
         # Yech modulo in window that may overlap
@@ -316,11 +385,15 @@ class TSP (pga.PGA) :
     # end def update_eval
 
     def try_or_op_two_op (self, allele) :
+        long_edge_iter = Long_Edge_Iter (self, allele)
         l = len (self)
         self.random.shuffle (self.v_idx1)
         if self.args.or_op_for_gene :
             orop = self.random_flip (self.args.or_op_probability)
+        eval = 0
         for idx in self.v_idx1 :
+            if self.random_flip (1 - self.args.end_of_gene_probability) :
+                continue
             self.tries += 1
             if not self.args.or_op_for_gene :
                 orop = self.random_flip (self.args.or_op_probability)
@@ -348,6 +421,15 @@ class TSP (pga.PGA) :
                 if eval :
                     self.two_op_success += 1
                     break
+            if self.random_flip (self.long_edge_probability) :
+                e = long_edge_iter.next ()
+                n = long_edge_iter.n
+                for inv in False, True :
+                    self.long_edge_tries += 1
+                    eval = self.or_op (allele, e [0][1], e [2][0], n, inv)
+                    if eval :
+                        self.long_edge_success += 1
+                        return eval
         return eval
     # end def try_or_op_two_op
 
@@ -453,12 +535,12 @@ class TSP (pga.PGA) :
                 for i, v in enumerate (allele_b) :
                     self.set_allele (p, pop, i, v)
                 self.update_eval (p, pop, eval)
-                for i in range (l) :
-                    j = (i + 1) % l
-                    if (allele_b [i], allele_b [j]) in self.fixed_edges :
-                        break
-                else :
-                    if self.fixed_edges :
+                if self.fixed_edges :
+                    for i in range (l) :
+                        j = (i + 1) % l
+                        if (allele_b [i], allele_b [j]) in self.fixed_edges :
+                            break
+                    else :
                         print (allele_a)
                         print ('')
                         print (allele_b)
@@ -509,9 +591,27 @@ if __name__ == '__main__' :
                     'values: worst, best, rand'
         )
     cmd.add_argument \
+        ( '-e', '--end-of-gene-probability'
+        , help    = 'End-of-gene optimization probability, default=%(default)s'
+        , type    = float
+        , default = 0.2
+        )
+    cmd.add_argument \
         ( '-G', '--or-op-for-gene'
         , help    = 'Decide Or-op vs. Two-op once per gene'
         , action  = 'store_true'
+        )
+    cmd.add_argument \
+        ( '-l', '--long-edge-ratio'
+        , help    = 'Ratio of long edges to consider, default=%(default)s'
+        , type    = float
+        , default = 0.05
+        )
+    cmd.add_argument \
+        ( '-L', '--long-edge-probability'
+        , help    = 'Probability of long-edge heuristics, default is '
+                    'long_edges/popsize'
+        , type    = float
         )
     cmd.add_argument \
         ( '-m', '--max-iter'
@@ -532,6 +632,11 @@ if __name__ == '__main__' :
         , default = 0.2
         )
     cmd.add_argument \
+        ( '--plot'
+        , help    = 'Plot result'
+        , action  = 'store_true'
+        )
+    cmd.add_argument \
         ( '-p', '--popsize'
         , help    = 'Population size, default=%(default)s'
         , type    = int
@@ -544,13 +649,45 @@ if __name__ == '__main__' :
         , default = 42
         )
     cmd.add_argument \
-        ( '--plot'
-        , help    = 'Plot result'
+        ( '--test'
+        , help    = 'Perform some regression tests'
         , action  = 'store_true'
         )
     args    = cmd.parse_args ()
     tsp     = TSP (args)
-    tsp.run ()
+    if args.test :
+        allele = [
+            0, 213, 239, 221, 227, 217, 215, 109, 216, 211, 210, 108,
+            220, 230, 238, 224, 219, 107, 105, 116, 113, 112, 124, 120,
+            40, 122, 121, 111, 13, 126, 134, 132, 137, 135, 136, 125,
+            12, 119, 118, 117, 218, 214, 222, 235, 234, 225, 223, 226,
+            212, 233, 236, 237, 232, 249, 259, 256, 264, 268, 165, 288,
+            286, 276, 280, 292, 191, 295, 198, 300, 311, 204, 310, 302,
+            290, 284, 279, 272, 273, 285, 289, 283, 269, 270, 303, 296,
+            297, 309, 304, 274, 317, 275, 298, 299, 278, 308, 307, 301,
+            305, 306, 192, 185, 180, 177, 178, 173, 179, 174, 163, 168,
+            176, 183, 205, 206, 89, 69, 74, 73, 65, 64, 172, 175, 87,
+            86, 186, 60, 45, 129, 57, 55, 54, 44, 51, 42, 46, 103, 36,
+            152, 130, 140, 146, 164, 291, 169, 166, 167, 162, 158, 161,
+            148, 147, 145, 151, 156, 143, 287, 277, 281, 282, 293, 294,
+            202, 199, 197, 203, 200, 99, 196, 201, 93, 80, 195, 171,
+            184, 154, 149, 144, 159, 160, 209, 181, 188, 182, 187, 189,
+            190, 193, 194, 170, 314, 265, 263, 261, 255, 252, 267, 266,
+            271, 251, 250, 242, 228, 229, 138, 139, 258, 254, 257, 260,
+            262, 253, 246, 245, 244, 247, 243, 248, 313, 142, 241, 240,
+            312, 128, 131, 127, 123, 141, 231, 155, 157, 150, 208, 153,
+            33, 133, 207, 34, 38, 37, 59, 41, 62, 53, 58, 63, 61, 52,
+            50, 56, 104, 67, 78, 72, 68, 88, 90, 83, 79, 76, 81, 70, 85,
+            77, 82, 84, 94, 97, 98, 92, 100, 95, 96, 101, 91, 66, 71,
+            75, 48, 316, 315, 49, 43, 47, 39, 35, 24, 25, 23, 26, 15,
+            115, 114, 110, 106, 3, 4, 7, 2, 10, 9, 6, 5, 102, 11, 32,
+            31, 29, 30, 27, 19, 16, 17, 18, 21, 20, 28, 14, 22, 8, 1]
+        eval = tsp.or_op (allele, 1, 125, 19, 0, force = True)
+        print (eval)
+        print (allele)
+
+    else :
+        tsp.run ()
     if args.plot :
         tsp.plot ()
 

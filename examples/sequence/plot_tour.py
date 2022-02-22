@@ -25,22 +25,45 @@ class TSP :
             self.off = 1
     # end def __init__
 
+    def edge_weight (self, edge) :
+        return self.tsp.get_weight (edge [0] + self.off, edge [1] + self.off)
+    # end def edge_weight
+
     def plot (self, seq, seqoff = 1) :
+        l = len (seq)
+#        edges = set ()
+#        for i in range (l) :
+#            j = (i + 1) % l
+#            edges.add ((i, j))
+#        edges = list (sorted (edges, key = self.edge_weight))
+#        tenpc = l // 10
+#        edges = set ((seq [e [0]], seq [e [1]]) for e in edges [:tenpc])
+        style = '-'
+        if self.args.dots :
+            style = 'o-'
         X = []
         Y = []
-        for i in range (len (seq)) :
+#        fmt = []
+#        last_i = None
+        for i in range (l) :
+#            color = ''
+#            if (last_i, i) in edges :
+#                color = 'r'
             a = seq [i]
-            x, y = self.tsp.node_coords [a - seqoff + 1]
+            try :
+                x, y = self.tsp.node_coords [a - seqoff + 1]
+            except KeyError :
+                x, y = self.tsp.display_data [a - seqoff + 1]
             if self.args.exchange_x_y :
                 x, y = y, x
             X.append (x)
             Y.append (y)
+#            fmt.append (color + style)
+            last_i = i
         if not self.args.open :
             X.append (X [0])
             Y.append (Y [0])
-        style = '-'
-        if self.args.dots :
-            style = 'o-'
+#            fmt.append (fmt [0])
         plt.plot (X, Y, style)
         slen = self.seqlen (seq, seqoff = seqoff)
         plt.title ("%s (%s)" % (self.tsp.name, slen))
@@ -52,7 +75,7 @@ class TSP :
         for i in range (len (seq)) :
             i1 = seq [i] - seqoff
             i2 = seq [(i+1) % self.tsp.dimension] - seqoff
-            s += self.tsp.get_weight (i1 + self.off, i2 + self.off)
+            s += self.edge_weight ((i1, i2))
         return s
     # end def seqlen
 
