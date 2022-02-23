@@ -278,33 +278,38 @@ class TSP (pga.PGA) :
         return 0
     # end def two_op
 
-    def or_op (self, allele, idx1, idx2, n, inv, force = False) :
+    def or_op (self, allele, idx1, idx2, idx3, inv, force = False) :
         """ Operation by Ilhan Or, 1976
             Move n consecutive nodes to another place, optionally
-            inverting the sequence on re-insertion
+            inverting the sequence on re-insertion. We specify three
+            nodes after which the edge is split. We move n nodes *after*
+            idx1 to the point *after* idx3. The idx2 defines the length
+            of the sequence to move. So idx2 must be > idx1.
         """
         l   = len (self)
-        assert (idx1 - 1) % l != idx2
+        n   = (idx2 - idx1) % l
+        st  = (idx1 + 1) % l
+        assert idx1 != idx3
         assert n > 0
         eo  = 0
         seq = []
         lv  = None
         for i in range (n) :
-            ix  = (idx1 + i) % l
-            assert (ix != idx2)
+            ix  = (st + i) % l
+            assert (ix != idx3)
             v = allele [ix]
             if lv is not None :
                 eo += self.edge_weight (lv, v)
             lv = v
             seq.append (v)
         eb  = eo
-        bef = allele [(idx1 - 1) % l]
-        aft = allele [(idx1 + n) % l]
+        bef = allele [(st - 1) % l]
+        aft = allele [(st + n) % l]
         eo += self.edge_weight (bef, seq [0])
         eo += self.edge_weight (seq [-1], aft)
         en  = self.edge_weight (bef, aft)
-        y1  = allele [idx2]
-        y2  = allele [(idx2 + 1) % l]
+        y1  = allele [idx3]
+        y2  = allele [(idx3 + 1) % l]
         eo += self.edge_weight (y1, y2)
         if inv :
             en += self.edge_weight (y1, seq [-1])
@@ -317,10 +322,10 @@ class TSP (pga.PGA) :
             en += self.edge_weight (seq [-1], y2)
         if (en < eo or force) :
             for i in range (l) :
-                ix1 = (idx1 + i) % l
-                ix2 = (idx1 + i + n) % l
+                ix1 = (st + i) % l
+                ix2 = (st + i + n) % l
                 allele [ix1] = allele [ix2]
-                if ix2 == idx2 :
+                if ix2 == idx3 :
                     break
             iter = seq
             if inv :
@@ -399,7 +404,8 @@ class TSP (pga.PGA) :
                 orop = self.random_flip (self.args.or_op_probability)
             if orop :
                 self.or_op_tries += 1
-                if (allele [idx], allele [(idx - 1) % l]) in self.fixed_edges :
+                il = (idx - 1) % l
+                if (allele [idx], allele [il]) in self.fixed_edges :
                     continue
                 n    = self.random_interval (1, self.args.or_op_max)
                 if  ( (allele [(idx + n - 1) % l], allele [(idx + n) % l])
@@ -408,7 +414,7 @@ class TSP (pga.PGA) :
                     continue
                 inv  = self.random_flip (0.5)
                 idx2 = self.next_shuffle_index (allele, idx, n)
-                eval = self.or_op (allele, idx, idx2, n, inv)
+                eval = self.or_op (allele, il, (il + n) % l, idx2, inv)
                 if eval :
                     self.or_op_success += 1
                     break
@@ -423,10 +429,10 @@ class TSP (pga.PGA) :
                     break
             if self.random_flip (self.long_edge_probability) :
                 e = long_edge_iter.next ()
-                n = long_edge_iter.n
                 for inv in False, True :
                     self.long_edge_tries += 1
-                    eval = self.or_op (allele, e [0][1], e [2][0], n, inv)
+                    eval = self.or_op \
+                        (allele, e [0][0], e [1][0], e [2][0], inv)
                     if eval :
                         self.long_edge_success += 1
                         return eval
@@ -481,7 +487,8 @@ class TSP (pga.PGA) :
                         self.tries       += 1
                         self.or_op_tries += 1
                         self.hard_tries  += 1
-                        eval = self.or_op (allele, idx, idx2, n, inv)
+                        il = (idx - 1) % l
+                        eval = self.or_op (allele, il, (il + n) % l, idx2, inv)
                         if eval :
                             self.or_op_success += 1
                             self.hard_success  += 1
@@ -682,7 +689,7 @@ if __name__ == '__main__' :
             75, 48, 316, 315, 49, 43, 47, 39, 35, 24, 25, 23, 26, 15,
             115, 114, 110, 106, 3, 4, 7, 2, 10, 9, 6, 5, 102, 11, 32,
             31, 29, 30, 27, 19, 16, 17, 18, 21, 20, 28, 14, 22, 8, 1]
-        eval = tsp.or_op (allele, 1, 125, 19, 0, force = True)
+        eval = tsp.or_op (allele, 0, 20, 125, 0, force = True)
         print (eval)
         print (allele)
 
