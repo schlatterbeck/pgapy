@@ -31,24 +31,24 @@ class TSP :
 
     def plot (self, seq, seqoff = 1) :
         l = len (seq)
-#        edges = set ()
-#        for i in range (l) :
-#            j = (i + 1) % l
-#            edges.add ((i, j))
-#        edges = list (sorted (edges, key = self.edge_weight))
-#        tenpc = l // 10
-#        edges = set ((seq [e [0]], seq [e [1]]) for e in edges [:tenpc])
+        # k% Longest edges
+        edges = []
+        if self.args.percent_longest :
+            m = l
+            if self.args.open :
+                m = l - 1
+            for i in range (m) :
+                j = (i + 1) % l
+                edges.append ((seq [i] - seqoff, seq [j] - seqoff))
+            edges = list (sorted (edges, key = lambda e: -self.edge_weight (e)))
+            toppc = round (l * (self.args.percent_longest / 100))
+            edges = edges [:toppc]
         style = '-'
         if self.args.dots :
             style = 'o-'
         X = []
         Y = []
-#        fmt = []
-#        last_i = None
         for i in range (l) :
-#            color = ''
-#            if (last_i, i) in edges :
-#                color = 'r'
             a = seq [i]
             try :
                 x, y = self.tsp.node_coords [a - seqoff + 1]
@@ -58,13 +58,18 @@ class TSP :
                 x, y = y, x
             X.append (x)
             Y.append (y)
-#            fmt.append (color + style)
             last_i = i
         if not self.args.open :
             X.append (X [0])
             Y.append (Y [0])
-#            fmt.append (fmt [0])
         plt.plot (X, Y, style)
+        for e in edges :
+            x1, y1 = self.tsp.node_coords [e [0] + 1]
+            x2, y2 = self.tsp.node_coords [e [1] + 1]
+            if self.args.exchange_x_y :
+                x1, y1 = y1, x1
+                x2, y2 = y2, x2
+            plt.plot ([x1, x2], [y1, y2], 'r' + style)
         slen = self.seqlen (seq, seqoff = seqoff)
         plt.title ("%s (%s)" % (self.tsp.name, slen))
         plt.show ()
@@ -96,6 +101,12 @@ if __name__ == '__main__' :
         ( '-d', '--dots'
         , help    = 'Plot dots at nodes'
         , action  = 'store_true'
+        )
+    cmd.add_argument \
+        ( '-l', '--percent-longest'
+        , help    = 'Color percent longest edges, default=%(default)s'
+        , type    = float
+        , default = 0.0
         )
     cmd.add_argument \
         ( '-x', '--exchange-x-y'
