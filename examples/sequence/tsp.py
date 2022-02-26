@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import sys
 import pga
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,6 +8,8 @@ from argparse import ArgumentParser
 from tsplib95 import load as tspload
 from random   import Random
 from copy     import copy
+from bisect   import bisect_left, bisect_right
+from collections import OrderedDict
 
 class PGA_Random (Random) :
 
@@ -178,14 +181,18 @@ class TSP (pga.PGA) :
         return s
     # end def evaluate
 
-    def plot (self, pop = None) :
+    def plot (self, idx = None, pop = None) :
         if pop is None :
             pop = pga.PGA_OLDPOP
+        if idx is None :
+            idx = self.get_best_index (pop)
         X = []
         Y = []
-        idx = self.get_best_index (pop)
         for i in range (self.tsp.dimension) :
             a = self.get_allele (idx, pop, i)
+            if not self.tsp.node_coords and not self.tsp.display_data :
+                print ("No coordinates to plot", file = sys.stderr)
+                return
             try :
                 node = self.tsp.node_coords [a+1]
             except KeyError :
@@ -336,6 +343,157 @@ class TSP (pga.PGA) :
             return eo - en
         return 0
     # end def or_op
+
+    def lk_candidates (self, allele, t2, ewo, dir) :
+        l = len (self)
+        candidates = []
+        for idx in range (l) :
+            if idx == t2 or idx == self.t1 :
+                continue
+            idx2 = (idx + dir) % l
+            if idx2 == self.t1 :
+                continue
+            if (idx, idx2) in self.lk_joined :
+                continue
+            if (idx, idx2) in self.lk_broken :
+                continue
+            if (t2, idx) in self.lk_broken :
+                continue
+            if (allele [idx], allele [idx2]) in self.fixed_edges :
+                continue
+            ewn = self.edge_weight (allele [t2], allele [idx])
+            if ewn > ewo :
+                continue
+            candidates.append ((idx, ewo - ewn))
+        candidates.sort (key = lambda c: -c [1])
+        return candidates
+    # end def lk_candidates
+
+    def lk_next (self, allele, t1, t2, dir) :
+        self.lk_i += 1
+        l = len (self)
+        self.lk_broken [(t1, t2)] = 1
+        self.lk_broken [(t2, t1)] = 1
+        self.lk_dir [t1] = ( dir,  dir * (-dir))
+        self.lk_dir [t2] = (-dir, -dir * (-dir))
+        ewo = self.edge_weight (allele [t1], allele [t2])
+        candidates = self.lk_candidates (allele, t2, ewo, -dir)
+        for tk1, g in candidates :
+            tk2 = (tk1 - dir) % l
+            ewo = self.edge_weight (allele [tk1], allele [tk2])
+            ewn = self.edge_weight (allele [tk2], allele [self.t1])
+            gn  = g + (ewo - ewn)
+            if gn > self.lk_best_g :
+                self.lk_best_g = gn
+                self.lk_best_i = self.lk_i
+                self.lk_best_t = tk2
+            self.lk_joined [(t2, tk1)] = 1
+            self.lk_joined [(tk1, t2)] = 1
+            self.lk_edges.append ((t2, tk1))
+            self.lk_next (allele, tk1, tk2, -dir)
+            if self.lk_best_g :
+                return
+            del self.lk_joined [(t2, tk1)]
+            del self.lk_joined [(tk1, t2)]
+            self.lk_edges.pop ()
+        del self.lk_broken [(t1, t2)]
+        del self.lk_broken [(t2, t1)]
+        del self.lk_dir [t2]
+    # end def lk_next
+
+    def lk_take_tour (self, allele) :
+        l  = len (self)
+        an = []
+        joined = {}
+        dirs = []
+        for i in range (self.lk_best_i) :
+            edge = self.lk_edges [i]
+            dirs.append ((edge [0], self.lk_dir [edge [0]][1]))
+            dirs.append ((edge [1], self.lk_dir [edge [1]][1]))
+            if self.lk_dir [edge [0]][0] < 0 :
+                joined [edge [1]] = (edge [1], edge [0])
+            else :
+                joined [edge [0]] = edge
+        if self.lk_dir [self.lk_best_t][0] < 0 :
+            joined [self.t1] = (self.t1, self.lk_best_t)
+        else :
+            joined [self.lk_best_t] = (self.lk_best_t, self.t1)
+        dirs.append ((self.t1, self.lk_dir [self.t1][1]))
+        dirs.append ((self.lk_best_t, self.lk_dir [self.lk_best_t][1]))
+        dirs.sort (key = lambda x : x [0])
+        if dirs [0][0] == 0 :
+            dir = dirs [0][1]
+        else :
+            dir = dirs [-1][1]
+        i = 0
+        while len (an) != l :
+            j = (i + dir) % l
+            while (i, j) not in self.lk_broken and len (an) < l :
+                an.append (allele [i])
+                i += dir
+                j = (i + dir) % l
+            if len (an) == l :
+                break
+            an.append (allele [i])
+            assert joined [i][0] == i
+            #an.append (allele [joined [i][1]])
+            # This assertion should hold for now, will not when we
+            # implement the more complex cases that allow temporary
+            # split if the circle
+            assert self.lk_dir [joined [i][1]][1] == -dir
+            dir = self.lk_dir [joined [i][1]][1]
+            i = joined [i][1]
+        for i in range (l) :
+            allele [i] = an [i]
+    # end def lk_take_tour
+
+    def lk_op (self, allele, t1) :
+        """ Lin-Kernighan Heuristics (1973)
+            This starts with an edge from node t1 and tries to find
+            multiple additional edges to replace.
+        """
+        self.lk_broken = {}
+        self.lk_joined = {}
+        self.lk_edges  = []
+        self.t1        = t1
+        l = len (self)
+        self.lk_best_g = 0
+        self.lk_best_i = -1
+        self.lk_dir    = {}
+        # The very first iteration tries to break before and after t1
+        self.lk_i = 0
+        for dir in -1, 1 :
+            t2 = (t1 + dir) % l
+            self.lk_next (allele, t1, t2, dir)
+            if self.lk_best_g :
+                self.lk_take_tour (allele)
+                return self.lk_best_g
+    # end def lk_op
+
+    def lk_optimize (self, p = 0, pop = pga.PGA_OLDPOP) :
+        """ Optimize given individuum
+        """
+        l = len (self)
+        shuffle = [i for i in range (l)]
+        allele = [self.get_allele (p, pop, i) for i in range (l)]
+        print (allele)
+        print ("Eval: %s" % self.evaluate (p, pop))
+        while True :
+            self.random.shuffle (shuffle)
+            for idx in shuffle :
+                print ("Try: %s" % idx)
+                import pdb; pdb.set_trace ()
+                gain = self.lk_op (allele, idx)
+                if gain :
+                    print ("gain: %s" % gain)
+                    for i in range (l) :
+                        self.set_allele (p, pop, i, allele [i])
+                    print (allele)
+                    print ("Eval: %s" % self.evaluate (p, pop))
+                    break
+            else :
+                break
+    # end def lk_optimize
 
     def long_edges (self, allele) :
         l = len (self)
@@ -621,6 +779,11 @@ if __name__ == '__main__' :
         , type    = float
         )
     cmd.add_argument \
+        ( '--lin-kernighan'
+        , help    = 'Use Lin-Kernighan heuristics'
+        , action  = 'store_true'
+        )
+    cmd.add_argument \
         ( '-m', '--max-iter'
         , help    = 'Maximum generations, default=%(default)s'
         , type    = int
@@ -655,44 +818,10 @@ if __name__ == '__main__' :
         , type    = int
         , default = 42
         )
-    cmd.add_argument \
-        ( '--test'
-        , help    = 'Perform some regression tests'
-        , action  = 'store_true'
-        )
     args    = cmd.parse_args ()
     tsp     = TSP (args)
-    if args.test :
-        allele = [
-            0, 213, 239, 221, 227, 217, 215, 109, 216, 211, 210, 108,
-            220, 230, 238, 224, 219, 107, 105, 116, 113, 112, 124, 120,
-            40, 122, 121, 111, 13, 126, 134, 132, 137, 135, 136, 125,
-            12, 119, 118, 117, 218, 214, 222, 235, 234, 225, 223, 226,
-            212, 233, 236, 237, 232, 249, 259, 256, 264, 268, 165, 288,
-            286, 276, 280, 292, 191, 295, 198, 300, 311, 204, 310, 302,
-            290, 284, 279, 272, 273, 285, 289, 283, 269, 270, 303, 296,
-            297, 309, 304, 274, 317, 275, 298, 299, 278, 308, 307, 301,
-            305, 306, 192, 185, 180, 177, 178, 173, 179, 174, 163, 168,
-            176, 183, 205, 206, 89, 69, 74, 73, 65, 64, 172, 175, 87,
-            86, 186, 60, 45, 129, 57, 55, 54, 44, 51, 42, 46, 103, 36,
-            152, 130, 140, 146, 164, 291, 169, 166, 167, 162, 158, 161,
-            148, 147, 145, 151, 156, 143, 287, 277, 281, 282, 293, 294,
-            202, 199, 197, 203, 200, 99, 196, 201, 93, 80, 195, 171,
-            184, 154, 149, 144, 159, 160, 209, 181, 188, 182, 187, 189,
-            190, 193, 194, 170, 314, 265, 263, 261, 255, 252, 267, 266,
-            271, 251, 250, 242, 228, 229, 138, 139, 258, 254, 257, 260,
-            262, 253, 246, 245, 244, 247, 243, 248, 313, 142, 241, 240,
-            312, 128, 131, 127, 123, 141, 231, 155, 157, 150, 208, 153,
-            33, 133, 207, 34, 38, 37, 59, 41, 62, 53, 58, 63, 61, 52,
-            50, 56, 104, 67, 78, 72, 68, 88, 90, 83, 79, 76, 81, 70, 85,
-            77, 82, 84, 94, 97, 98, 92, 100, 95, 96, 101, 91, 66, 71,
-            75, 48, 316, 315, 49, 43, 47, 39, 35, 24, 25, 23, 26, 15,
-            115, 114, 110, 106, 3, 4, 7, 2, 10, 9, 6, 5, 102, 11, 32,
-            31, 29, 30, 27, 19, 16, 17, 18, 21, 20, 28, 14, 22, 8, 1]
-        eval = tsp.or_op (allele, 0, 20, 125, 0, force = True)
-        print (eval)
-        print (allele)
-
+    if args.lin_kernighan :
+        tsp.lk_optimize ()
     else :
         tsp.run ()
     if args.plot :
