@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from argparse import ArgumentParser
 from tsplib95 import load as tspload
 from random   import Random
-from copy     import copy
+from copy     import copy, deepcopy
 from bisect   import bisect_left, bisect_right
 from collections import OrderedDict
 
@@ -71,6 +71,251 @@ class Long_Edge_Iter :
     # end def next
 
 # end class Long_Edge_Iter
+
+class Graph_Segment :
+
+    def __init__ (self, start, end, dir) :
+        self.start = start
+        self.end   = end
+        self.dir   = dir
+        self.pred  = None
+        self.succ  = None
+        self.enext = None
+        self.eprev = None
+    # end def __init__
+
+    def split (self, node) :
+        """ Always split *against* direction dir
+            Return the edge resulting from split operation
+        """
+        assert self.start <= node <= self.end
+        if node == self.start and self.dir == 1 :
+            if not self.pred :
+                return None
+            return (self.start, self.pred.end)
+        if node == self.end and self.dir == -1 :
+            if not self.succ :
+                return None
+            return (self.end, self.succ.start)
+        return (node, (node - self.dir))
+    # end def split
+
+    @classmethod
+    def key (cls, item) :
+        if isinstance (item, cls) :
+            return item.start
+        return item
+    # end def key
+
+    def __str__ (self) :
+        ep = '' if self.eprev is None else self.eprev
+        en = '' if self.enext is None else self.enext
+        sg = '+' if self.dir > 0 else '-'
+        return "%s<%d(%s)%d>%s" % (ep, self.start, sg, self.end, en)
+    __repr__ = __str__
+
+    def __eq__ (self, other) :
+        if isinstance (other, self.__class__) :
+            return self.start == other.start
+        return self.start == other
+    # end def __eq__
+
+    def __lt__ (self, other) :
+        if isinstance (other, self.__class__) :
+            return self.start < other.start
+        return self.start < other
+    # end def __lt__
+
+# end class Graph_Segment
+
+class Broken_Edged_Graph :
+    """ Graph initialized with a given broken edge.
+        This always keeps the pieces sorted in the direction of the end
+        node given in the constructor.
+    """
+
+    def __init__ (self, dim, start, end) :
+        self.dim = dim
+        self.t1  = start
+        self.tn  = end
+        if start == 0 or end == 0 :
+            assert start == dim - 1 or end == dim - 1
+            dir = 1
+            if start == 0 :
+                dir = -1
+                start, end = end, start
+            self.segments = [Graph_Segment (start, end, dir)]
+        elif start < end :
+            g1 = Graph_Segment (0, start, 1)
+            g2 = Graph_Segment (end, dim - 1, 1)
+            g2.succ = g1
+            g1.pred = g2
+            self.segments = [g1, g2]
+        else :
+            g1 = Graph_Segment (start, dim - 1, -1)
+            g2 = Graph_Segment (0, end, -1)
+            g1.succ = g2
+            g2.pred = g1
+            self.segments = [g2, g1]
+    # end def __init__
+
+    def get_segment_index (self, node) :
+        # FIXME: Would be nice to use Graph_Segment.key as key
+        # parameter to bisect, only supported in python 3.10
+        #idx = bisect_left (self.segments, node, key = Graph_Segment.key)
+        idx = bisect_left (self.segments, node)
+        if idx == len (self.segments) or self.segments [idx].start > node :
+            idx -= 1
+        assert 0 <= idx < len (self.segments)
+        return idx
+    # end def get_segment_index
+    
+    def split_edge (self, node) :
+        """ Return the edge resulting from splitting at node.
+            May return None if splitting is not possible.
+        """
+        idx = self.get_segment_index (node)
+        return self.segments [idx].split (node)
+    # end def split_edge
+
+    def split (self, node, edge_next) :
+        """ Perform the split at node
+            Splits the given segment at node and inserts the two new
+            segments in its place. Joins node to edge.
+            Invert (change direction) of all segments in the direction
+            of the split (Which is the counter-direction of the original
+            segment).
+        """
+        #import pdb; pdb.set_trace ()
+        assert edge_next == self.tn
+        idx1    = self.get_segment_index (node)
+        edge    = self.split_edge (node)
+        idx2    = self.get_segment_index (edge [1])
+        self.tn = edge [1]
+        if idx1 == idx2 :
+            seg = self.segments [idx1]
+            if edge [0] < edge [1] :
+                dir = 1
+                st  = idx1 + 2
+                end = len (self.segments) + 1
+                f1 = Graph_Segment (seg.start, edge [0], seg.dir)
+                f2 = Graph_Segment (edge [1], seg.end, seg.dir * -1)
+                self.segments [idx1:idx1+1] = [f1, f2]
+                assert edge [0] == f1.end
+                assert f1.enext is None
+                f1.enext = edge_next
+                #assert edge [0] not in f1.edges
+                #f1.edges [edge [0]] = edge_next
+            else :
+                dir = -1
+                st  = idx1 - 1
+                end = -1
+                f1 = Graph_Segment (seg.start, edge [1], seg.dir * -1)
+                f2 = Graph_Segment (edge [0], seg.end, seg.dir)
+                self.segments [idx1:idx1+1] = [f1, f2]
+                assert edge [0] == f2.start
+                assert f2.eprev is None
+                f2.eprev = edge_next
+                #assert edge [0] not in f2.edges
+                #f2.edges [edge [0]] = edge_next
+            if seg.succ :
+                f2.succ = seg.succ
+                f2.succ.pred = f2
+                f2.succ.dir  = f2.dir
+            if seg.pred :
+                f1.pred = seg.pred
+                f1.pred.succ = f1
+                f1.pred.dir  = f1.dir
+            if seg.eprev is not None :
+                f1.eprev = seg.eprev
+            if seg.enext is not None :
+                f2.enext = seg.enext
+        else :
+            if edge [0] < edge [1] :
+                one, two = idx1, idx2
+                end = -1
+                assert self.segments [idx2].start == edge [0]
+                assert self.segments [idx2].eprev is None
+                self.segments [idx2].eprev = edge_next
+            else :
+                two, one = idx1, idx2
+                end = len (self.segments)
+                assert self.segments [idx1].end == edge [0]
+                assert self.segments [idx1].enext is None
+                self.segments [idx1].enext = edge_next
+            assert self.segments [two].succ == self.segments [one]
+            assert self.segments [one].pred == self.segments [two]
+            assert self.segments [two].end   == edge [0]
+            assert self.segments [one].start == edge [1]
+            self.segments [idx1].succ = None
+            self.segments [idx2].pred = None
+            #assert edge [0] not in self.segments [idx1].edges
+            #self.segments [idx1].edges [edge [0]] = edge_next
+        eidx = self.get_segment_index (edge_next)
+        es   = self.segments [eidx]
+        assert edge_next == es.start or edge_next == es.end
+        if es.start == es.end :
+            if es.eprev is None :
+                assert es.enext is not None
+                es.eprev = edge [0]
+            else :
+                assert es.eprev is not None
+                assert es.enext is None
+                es.enext = edge [0]
+        elif edge_next == es.start :
+            assert es.eprev is None
+            es.eprev = edge [0]
+        else :
+            assert es.enext is None
+            es.enext = edge [0]
+        #assert edge_next not in es.edges
+        #es.edges [edge_next] = edge [0]
+        # Now find the split edge again (idx has changed)
+        # and turn all segments if necessary
+        #import pdb; pdb.set_trace ()
+        self.fix_directions (edge [1])
+    # end def split
+
+    def fix_directions (self, n) :
+        """ Proceed through all new edges and turn segments that are in
+            the wrong direction until we hit a segment that is ok or
+            we're at the end.
+        """
+        se = None
+        f  = self.segments [self.get_segment_index (n)]
+        while True :
+            assert se == f.enext or se == f.eprev
+            # One of those two will not be identical
+            if  (  (se == f.eprev and f.eprev != f.enext)
+                or (n == f.start  and f.start != f.end)
+                ) :
+                assert n == f.start
+                f.dir = 1
+                nn = f.enext
+                se = f.end
+                if f.succ :
+                    nn = f.succ.enext
+                    se = f.succ.end
+            else :
+                assert n == f.end
+                f.dir = -1
+                nn = f.eprev
+                se = f.start
+                if f.pred :
+                    nn = f.pred.eprev
+                    se = f.pred.start
+            if f.succ :
+                f.succ.dir = f.dir
+            if f.pred :
+                f.pred.dir = f.dir
+            if nn is None :
+                assert se == self.t1
+                return
+            n = nn
+            f = self.segments [self.get_segment_index (n)]
+    # end def fix_directions
+
+# end class Broken_Edged_Graph
 
 class TSP (pga.PGA) :
 
@@ -344,16 +589,21 @@ class TSP (pga.PGA) :
         return 0
     # end def or_op
 
-    def lk_candidates (self, allele, t2, ewo, dir) :
+    def lk_candidates (self, allele, t2, ewo) :
         l = len (self)
         candidates = []
         for idx in range (l) :
             if idx == t2 or idx == self.t1 :
                 continue
-            idx2 = (idx + dir) % l
+            edge = self.lk_graph.split_edge (idx)
+            if edge is None :
+                continue
+            idx2 = edge [1]
             if idx2 == self.t1 :
                 continue
             if (idx, idx2) in self.lk_joined :
+                continue
+            if (idx, t2) in self.lk_joined :
                 continue
             if (idx, idx2) in self.lk_broken :
                 continue
@@ -361,90 +611,121 @@ class TSP (pga.PGA) :
                 continue
             if (allele [idx], allele [idx2]) in self.fixed_edges :
                 continue
+            # Lookahead: FIXME
+            #if (idx2, (idx2 - dir) % l) in self.lk_joined :
+            #    continue
+            # Gain condition
             ewn = self.edge_weight (allele [t2], allele [idx])
-            if ewn > ewo :
+            if self.lk_gain + ewo - ewn < self.lk_best_g :
                 continue
-            candidates.append ((idx, ewo - ewn))
+            candidates.append ((edge, ewo - ewn))
         candidates.sort (key = lambda c: -c [1])
         return candidates
     # end def lk_candidates
 
-    def lk_next (self, allele, t1, t2, dir) :
+    def is_valid_tour (self, allele) :
+        l = len (self)
+        d = {}
+        for i in range (l) :
+            a = allele [i]
+            if a < 0 or a >= l :
+                print (allele)
+                return False
+            if a in d :
+                print (allele)
+                return False
+            d [a] = 1
+        return True
+    # end def is_valid_tour
+
+    def lk_next (self, allele, t1, t2) :
+        #import pdb; pdb.set_trace ()
         self.lk_i += 1
         l = len (self)
         self.lk_broken [(t1, t2)] = 1
         self.lk_broken [(t2, t1)] = 1
-        self.lk_dir [t1] = ( dir,  dir * (-dir))
-        self.lk_dir [t2] = (-dir, -dir * (-dir))
         ewo = self.edge_weight (allele [t1], allele [t2])
-        candidates = self.lk_candidates (allele, t2, ewo, -dir)
-        for tk1, g in candidates :
-            tk2 = (tk1 - dir) % l
+        candidates = self.lk_candidates (allele, t2, ewo)
+        for (tk1, tk2), g in candidates :
+            assert (t2, tk1)  not in self.lk_joined
+            assert (tk1, tk2) not in self.lk_broken
             ewo = self.edge_weight (allele [tk1], allele [tk2])
             ewn = self.edge_weight (allele [tk2], allele [self.t1])
             gn  = g + (ewo - ewn)
-            if gn > self.lk_best_g :
+            if gn + self.lk_gain > self.lk_best_g :
                 self.lk_best_g = gn
                 self.lk_best_i = self.lk_i
                 self.lk_best_t = tk2
-            self.lk_joined [(t2, tk1)] = 1
-            self.lk_joined [(tk1, t2)] = 1
+            self.lk_gain += g
+            self.lk_joined [(t2, tk1)] = -1
+            self.lk_joined [(tk1, t2)] = -1
             self.lk_edges.append ((t2, tk1))
-            self.lk_next (allele, tk1, tk2, -dir)
+            oldgraph = deepcopy (self.lk_graph)
+            self.lk_graph.split (tk1, t2)
+            # Debug:
+            a = self.lk_take_tour (allele)
+            if not self.is_valid_tour (a) :
+                import pdb; pdb.set_trace ()
+            assert self.is_valid_tour (a)
+
+            self.lk_next (allele, tk1, tk2)
             if self.lk_best_g :
                 return
             del self.lk_joined [(t2, tk1)]
             del self.lk_joined [(tk1, t2)]
+            del self.lk_broken [(tk1, tk2)]
+            del self.lk_broken [(tk2, tk1)]
             self.lk_edges.pop ()
-        del self.lk_broken [(t1, t2)]
-        del self.lk_broken [(t2, t1)]
-        del self.lk_dir [t2]
+            self.lk_gain -= g
+            self.lk_graph = oldgraph
+        self.lk_i -= 1
     # end def lk_next
 
     def lk_take_tour (self, allele) :
+        import pdb; pdb.set_trace ()
         l  = len (self)
         an = []
         joined = {}
-        dirs = []
+        #import pdb; pdb.set_trace ()
         for i in range (self.lk_best_i) :
             edge = self.lk_edges [i]
-            dirs.append ((edge [0], self.lk_dir [edge [0]][1]))
-            dirs.append ((edge [1], self.lk_dir [edge [1]][1]))
-            if self.lk_dir [edge [0]][0] < 0 :
-                joined [edge [1]] = (edge [1], edge [0])
-            else :
-                joined [edge [0]] = edge
-        if self.lk_dir [self.lk_best_t][0] < 0 :
-            joined [self.t1] = (self.t1, self.lk_best_t)
-        else :
-            joined [self.lk_best_t] = (self.lk_best_t, self.t1)
-        dirs.append ((self.t1, self.lk_dir [self.t1][1]))
-        dirs.append ((self.lk_best_t, self.lk_dir [self.lk_best_t][1]))
-        dirs.sort (key = lambda x : x [0])
-        if dirs [0][0] == 0 :
-            dir = dirs [0][1]
-        else :
-            dir = dirs [-1][1]
-        i = 0
+            for x in edge :
+                if x not in joined :
+                    joined [x] = []
+            joined [edge [1]].append ((edge [1], edge [0]))
+            joined [edge [0]].append (edge)
+        for x in self.lk_best_t, self.t1 :
+            if x not in joined :
+                joined [x] = []
+        joined [self.t1].append ((self.t1, self.lk_best_t))
+        joined [self.lk_best_t].append ((self.lk_best_t, self.t1))
+        i   = 0
+        dir = 1 # clockwise first
         while len (an) != l :
-            j = (i + dir) % l
-            while (i, j) not in self.lk_broken and len (an) < l :
+            while i not in joined and len (an) < l :
                 an.append (allele [i])
-                i += dir
-                j = (i + dir) % l
-            if len (an) == l :
+                i = (i + dir) % l
+            if len (an) >= l :
                 break
             an.append (allele [i])
-            assert joined [i][0] == i
-            #an.append (allele [joined [i][1]])
-            # This assertion should hold for now, will not when we
-            # implement the more complex cases that allow temporary
-            # split if the circle
-            assert self.lk_dir [joined [i][1]][1] == -dir
-            dir = self.lk_dir [joined [i][1]][1]
-            i = joined [i][1]
-        for i in range (l) :
-            allele [i] = an [i]
+            if len (an) >= l :
+                break
+            edge = joined [i].pop ()
+            if not joined [i] :
+                del joined [i]
+            # Remove reverse edge, too
+            revedge = (edge [1], edge [0])
+            del joined [edge [1]][joined [edge [1]].index (revedge)]
+            if not joined [edge [1]] :
+                del joined [edge [1]]
+            assert edge [0] == i
+            # Last edge is not in lk_joined
+            if edge [1] not in joined :
+                if (edge [1], (edge [1] + dir) % l) in self.lk_broken :
+                    dir = -dir
+                assert (edge [1], (edge [1] + dir) % l) not in self.lk_broken
+            i = edge [1]
+        return an
     # end def lk_take_tour
 
     def lk_op (self, allele, t1) :
@@ -457,17 +738,18 @@ class TSP (pga.PGA) :
         self.lk_edges  = []
         self.t1        = t1
         l = len (self)
+        self.lk_gain   = 0
         self.lk_best_g = 0
         self.lk_best_i = -1
-        self.lk_dir    = {}
         # The very first iteration tries to break before and after t1
         self.lk_i = 0
         for dir in -1, 1 :
             t2 = (t1 + dir) % l
-            self.lk_next (allele, t1, t2, dir)
+            self.lk_graph = Broken_Edged_Graph (l, t1, t2)
+            self.lk_next (allele, t1, t2)
             if self.lk_best_g :
-                self.lk_take_tour (allele)
-                return self.lk_best_g
+                n_allele = self.lk_take_tour (allele)
+                return self.lk_best_g, n_allele
     # end def lk_op
 
     def lk_optimize (self, p = 0, pop = pga.PGA_OLDPOP) :
@@ -482,12 +764,11 @@ class TSP (pga.PGA) :
             self.random.shuffle (shuffle)
             for idx in shuffle :
                 print ("Try: %s" % idx)
-                import pdb; pdb.set_trace ()
-                gain = self.lk_op (allele, idx)
+                gain, n_allele = self.lk_op (allele, idx)
                 if gain :
                     print ("gain: %s" % gain)
                     for i in range (l) :
-                        self.set_allele (p, pop, i, allele [i])
+                        self.set_allele (p, pop, i, n_allele [i])
                     print (allele)
                     print ("Eval: %s" % self.evaluate (p, pop))
                     break
