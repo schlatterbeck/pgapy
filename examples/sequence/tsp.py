@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import os
 import sys
 import pga
 import numpy as np
@@ -407,7 +408,8 @@ class TSP (pga.PGA) :
             self.tsp.get_weight (0, 0)
         except (IndexError, KeyError) :
             self.tsp_offset = 1
-        self.minval = self.minvals.get (self.args.tsplibfile, None)
+        key = os.path.basename (self.args.tsplibfile)
+        self.minval = self.minvals.get (key, None)
         d = dict \
             ( random_seed      = args.random_seed
             , maximize         = False
@@ -677,15 +679,19 @@ class TSP (pga.PGA) :
             # This would yield the same edge as the one being split:
             if idx2 == t2 :
                 continue
-            # Lookahead: FIXME
-            #if (idx2, (idx2 - dir) % l) in self.lk_joined :
-            #    continue
+            # Lookahead:
+            ewc = self.edge_weight (allele [edge [0]], allele [edge [1]])
             # Gain condition
             ewn = self.edge_weight (allele [t2], allele [idx])
             if self.lk_gain + ewo - ewn <= self.lk_best_g :
                 continue
-            candidates.append ((edge, ewo - ewn))
-        candidates.sort (key = lambda c: -c [1])
+            # Sorting by ewo - ewn + ewc, see B. Lookahead in paper
+            candidates.append ((edge, ewo - ewn, ewo - ewn + ewc))
+        candidates.sort (key = lambda c: -c [-1])
+        # This would be the method without lookahead:
+        #candidates.sort (key = lambda c: -c [1])
+        if self.lk_i > 2 :
+            return candidates [0:1]
         return candidates
     # end def lk_candidates
 
@@ -711,20 +717,19 @@ class TSP (pga.PGA) :
         self.lk_broken [(t2, t1)] = 1
         ewo = self.edge_weight (allele [t1], allele [t2])
         candidates = self.lk_candidates (allele, t2, ewo)
-        for (tk1, tk2), g in candidates :
+        for (tk1, tk2), g, g2 in candidates :
             assert (t2, tk1)  not in self.lk_joined
             assert (tk1, tk2) not in self.lk_broken
-            ewo = self.edge_weight (allele [tk1], allele [tk2])
-            ewc = self.edge_weight (allele [tk2], allele [self.t1])
-            gn  = g - ewc + ewo
+            ewb = self.edge_weight (allele [tk2], allele [self.t1])
+            gn  = g2 - ewb
             if gn + self.lk_gain > self.lk_best_g :
                 self.lk_best_g = gn + self.lk_gain
                 self.lk_best_i = self.lk_i
                 self.lk_best_t = tk2
             self.lk_gain += g
             if self.args.debug :
-                print ( "g: %5d gn: %5d lkg: %5d best_g: %5d"
-                      % (g, gn, self.lk_gain, self.lk_best_g)
+                print ( "g: %5d gn: %5d lkg: %5d best_g: %5d i:%3d"
+                      % (g, gn, self.lk_gain, self.lk_best_g, self.lk_i)
                       )
             self.lk_joined [(t2, tk1)] = -1
             self.lk_joined [(tk1, t2)] = -1
