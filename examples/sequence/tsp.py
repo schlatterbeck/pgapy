@@ -682,7 +682,7 @@ class TSP (pga.PGA) :
             #    continue
             # Gain condition
             ewn = self.edge_weight (allele [t2], allele [idx])
-            if self.lk_gain + ewo - ewn < self.lk_best_g :
+            if self.lk_gain + ewo - ewn <= self.lk_best_g :
                 continue
             candidates.append ((edge, ewo - ewn))
         candidates.sort (key = lambda c: -c [1])
@@ -715,21 +715,31 @@ class TSP (pga.PGA) :
             assert (t2, tk1)  not in self.lk_joined
             assert (tk1, tk2) not in self.lk_broken
             ewo = self.edge_weight (allele [tk1], allele [tk2])
-            ewn = self.edge_weight (allele [tk2], allele [self.t1])
-            gn  = g + (ewo - ewn)
+            ewc = self.edge_weight (allele [tk2], allele [self.t1])
+            gn  = g - ewc + ewo
             if gn + self.lk_gain > self.lk_best_g :
-                self.lk_best_g = gn
+                self.lk_best_g = gn + self.lk_gain
                 self.lk_best_i = self.lk_i
                 self.lk_best_t = tk2
             self.lk_gain += g
+            if self.args.debug :
+                print ( "g: %5d gn: %5d lkg: %5d best_g: %5d"
+                      % (g, gn, self.lk_gain, self.lk_best_g)
+                      )
             self.lk_joined [(t2, tk1)] = -1
             self.lk_joined [(tk1, t2)] = -1
             self.lk_edges.append ((t2, tk1))
             oldgraph = deepcopy (self.lk_graph)
             self.lk_graph.split (tk1, t2)
+            if self.args.debug >= 2 :
+                a = []
+                for i in self.lk_graph.walk (self.lk_best_i) :
+                    a.append (allele [i])
+                print (np.array (a) + 1)
             # Debug:
-            a = self.lk_take_tour (allele)
-            assert self.is_valid_tour (a)
+            if self.args.debug >= 3 :
+                a = self.lk_take_tour (allele)
+                assert self.is_valid_tour (a)
 
             self.lk_next (allele, tk1, tk2)
             if self.lk_best_g :
@@ -773,6 +783,8 @@ class TSP (pga.PGA) :
             self.lk_next (allele, t1, t2)
             if self.lk_best_g :
                 n_allele = self.lk_take_tour (allele)
+                if self.args.debug :
+                    print (np.array (n_allele) + 1)
                 return self.lk_best_g, n_allele
     # end def lk_op
 
@@ -782,24 +794,26 @@ class TSP (pga.PGA) :
         l = len (self)
         shuffle = [i for i in range (l)]
         allele = [self.get_allele (p, pop, i) for i in range (l)]
-        print (allele)
-        print ("Eval: %s" % self.evaluate (p, pop))
+        #print (allele)
+        #print ("Eval: %s" % self.evaluate (p, pop))
         while True :
             self.random.shuffle (shuffle)
             for idx in shuffle :
-                print ("Try: %s" % idx)
+                #print ("Try: %s" % idx)
                 r = self.lk_op (allele, idx)
                 if r is not None :
                     gain, n_allele = r
-                    print ("gain: %s" % gain)
+                    #print ("gain: %s" % gain)
                     for i in range (l) :
                         self.set_allele (p, pop, i, n_allele [i])
                     allele = n_allele
-                    print (allele)
-                    print ("Eval: %s" % self.evaluate (p, pop))
+                    #print (allele)
+                    #print ("Eval: %s" % self.evaluate (p, pop))
                     break
             else :
                 break
+        print ("Eval: %s" % self.evaluate (p, pop))
+        return allele
     # end def lk_optimize
 
     def long_edges (self, allele) :
@@ -1063,6 +1077,12 @@ if __name__ == '__main__' :
                     'values: worst, best, rand'
         )
     cmd.add_argument \
+        ( '-D', '--debug'
+        , help    = 'Enable debug output and checks'
+        , action  = 'count'
+        , default = 0
+        )
+    cmd.add_argument \
         ( '-e', '--end-of-gene-probability'
         , help    = 'End-of-gene optimization probability, default=%(default)s'
         , type    = float
@@ -1128,7 +1148,8 @@ if __name__ == '__main__' :
     args    = cmd.parse_args ()
     tsp     = TSP (args)
     if args.lin_kernighan :
-        tsp.lk_optimize ()
+        allele = np.array (tsp.lk_optimize ()) + 1
+        print (allele)
     else :
         tsp.run ()
     if args.plot :

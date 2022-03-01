@@ -89,6 +89,11 @@ class TSP :
             #print (self.seqlen (t))
             self.plot (t)
     # end def plotall
+
+    def seqall (self) :
+        for t in self.tour.tours :
+            yield self.seqlen (t)
+    # end def seqall
 # end class TSP
 
 if __name__ == '__main__' :
@@ -109,6 +114,13 @@ if __name__ == '__main__' :
         , default = 0.0
         )
     cmd.add_argument \
+        ( '-n', '--noplot'
+        , help    = 'Do not plot, only print weights'
+        , action  = 'store_false'
+        , default = True
+        , dest    = 'do_plot'
+        )
+    cmd.add_argument \
         ( '-x', '--exchange-x-y'
         , help    = 'Exchange X and Y coordinates (e.g. lin318)'
         , action  = 'store_true'
@@ -124,5 +136,9 @@ if __name__ == '__main__' :
         )
     args    = cmd.parse_args ()
     tsp     = TSP (args)
-    tsp.plotall ()
+    if args.do_plot :
+        tsp.plotall ()
+    else :
+        for s in tsp.seqall () :
+            print ("Len: %s" % s)
 
