@@ -72,33 +72,87 @@ class Long_Edge_Iter :
 
 # end class Long_Edge_Iter
 
+class Segment_Pointer :
+    """ Pointer (currently index) to next/prev segment
+        At some point we may want to modify this to store a ref to the
+        next segment.
+    """
+
+    def __init__ (self, tail, dir) :
+        self.tail = tail
+        self.dir  = dir
+        self.idx  = None
+        self.ptr  = None
+    # end def __init__
+
+    def set_ptr (self, ptr, idx) :
+        assert self.ptr is None
+        self.ptr = ptr
+        self.idx = idx
+    # end def set_ptr
+
+    def __str__ (self) :
+        p = '' if self.ptr is None else self.ptr
+        if self.dir > 0 :
+            return "%d>%s" % (self.tail, p)
+        return "%s<%d" % (p, self.tail)
+    __repr__ = __str__
+
+# end class Segment_Pointer
+
 class Graph_Segment :
 
     def __init__ (self, start, end, dir) :
-        self.start = start
-        self.end   = end
+        self.start = Segment_Pointer (start, -1)
+        self.end   = Segment_Pointer (end, 1)
         self.dir   = dir
         self.pred  = None
         self.succ  = None
-        self.enext = None
-        self.eprev = None
     # end def __init__
 
     def split (self, node) :
         """ Always split *against* direction dir
             Return the edge resulting from split operation
         """
-        assert self.start <= node <= self.end
-        if node == self.start and self.dir == 1 :
+        assert self.start.tail <= node <= self.end.tail
+        if node == self.start.tail and self.dir == 1 :
             if not self.pred :
                 return None
-            return (self.start, self.pred.end)
-        if node == self.end and self.dir == -1 :
+            return (self.start.tail, self.pred.end.tail)
+        if node == self.end.tail and self.dir == -1 :
             if not self.succ :
                 return None
-            return (self.end, self.succ.start)
+            return (self.end.tail, self.succ.start.tail)
         return (node, (node - self.dir))
     # end def split
+
+    @property
+    def enext (self) :
+        return self.end.ptr
+    # end def enext
+
+    @property
+    def eprev (self) :
+        return self.start.ptr
+    # end def eprev
+
+    @property
+    def t_start (self) :
+        """ Transitive version of start
+        """
+        if self.pred :
+            return self.pred.start
+        return self.start
+    # end def transitive_start
+
+    @property
+    def t_end (self) :
+        """ Transitive version of end
+        """
+        if self.succ :
+            return self.succ.end
+        return self.end
+    # end def transitive_start
 
     @classmethod
     def key (cls, item) :
@@ -108,27 +162,25 @@ class Graph_Segment :
     # end def key
 
     def __str__ (self) :
-        ep = '' if self.eprev is None else self.eprev
-        en = '' if self.enext is None else self.enext
         sg = '+' if self.dir > 0 else '-'
-        return "%s<%d(%s)%d>%s" % (ep, self.start, sg, self.end, en)
+        return "%s(%s)%s" % (self.start, sg, self.end)
     __repr__ = __str__
 
     def __eq__ (self, other) :
         if isinstance (other, self.__class__) :
-            return self.start == other.start
+            return self.start.tail == other.start.tail
         return self.start == other
     # end def __eq__
 
     def __lt__ (self, other) :
         if isinstance (other, self.__class__) :
-            return self.start < other.start
-        return self.start < other
+            return self.start.tail < other.start.tail
+        return self.start.tail < other
     # end def __lt__
 
 # end class Graph_Segment
 
-class Broken_Edged_Graph :
+class Segmented_Graph :
     """ Graph initialized with a given broken edge.
         This always keeps the pieces sorted in the direction of the end
         node given in the constructor.
@@ -138,11 +190,11 @@ class Broken_Edged_Graph :
         self.dim = dim
         self.t1  = start
         self.tn  = end
-        if start == 0 or end == 0 :
-            assert start == dim - 1 or end == dim - 1
-            dir = 1
-            if start == 0 :
-                dir = -1
+        self.i   = 0
+        if start == 0 and end == dim - 1 or end == 0 and start == dim - 1 :
+            dir = -1
+            if end == 0 :
+                dir = 1
                 start, end = end, start
             self.segments = [Graph_Segment (start, end, dir)]
         elif start < end :
@@ -164,7 +216,7 @@ class Broken_Edged_Graph :
         # parameter to bisect, only supported in python 3.10
         #idx = bisect_left (self.segments, node, key = Graph_Segment.key)
         idx = bisect_left (self.segments, node)
-        if idx == len (self.segments) or self.segments [idx].start > node :
+        if idx == len (self.segments) or self.segments [idx].start.tail > node :
             idx -= 1
         assert 0 <= idx < len (self.segments)
         return idx
@@ -186,38 +238,32 @@ class Broken_Edged_Graph :
             of the split (Which is the counter-direction of the original
             segment).
         """
-        #import pdb; pdb.set_trace ()
         assert edge_next == self.tn
         idx1    = self.get_segment_index (node)
         edge    = self.split_edge (node)
         idx2    = self.get_segment_index (edge [1])
         self.tn = edge [1]
+        self.i += 1
         if idx1 == idx2 :
             seg = self.segments [idx1]
             if edge [0] < edge [1] :
                 dir = 1
                 st  = idx1 + 2
                 end = len (self.segments) + 1
-                f1 = Graph_Segment (seg.start, edge [0], seg.dir)
-                f2 = Graph_Segment (edge [1], seg.end, seg.dir * -1)
+                f1 = Graph_Segment (seg.start.tail, edge [0], seg.dir)
+                f2 = Graph_Segment (edge [1], seg.end.tail, seg.dir * -1)
                 self.segments [idx1:idx1+1] = [f1, f2]
-                assert edge [0] == f1.end
-                assert f1.enext is None
-                f1.enext = edge_next
-                #assert edge [0] not in f1.edges
-                #f1.edges [edge [0]] = edge_next
+                assert edge [0] == f1.end.tail
+                f1.end.set_ptr (edge_next, self.i)
             else :
                 dir = -1
                 st  = idx1 - 1
                 end = -1
-                f1 = Graph_Segment (seg.start, edge [1], seg.dir * -1)
-                f2 = Graph_Segment (edge [0], seg.end, seg.dir)
+                f1 = Graph_Segment (seg.start.tail, edge [1], seg.dir * -1)
+                f2 = Graph_Segment (edge [0], seg.end.tail, seg.dir)
                 self.segments [idx1:idx1+1] = [f1, f2]
-                assert edge [0] == f2.start
-                assert f2.eprev is None
-                f2.eprev = edge_next
-                #assert edge [0] not in f2.edges
-                #f2.edges [edge [0]] = edge_next
+                assert edge [0] == f2.start.tail
+                f2.start.set_ptr (edge_next, self.i)
             if seg.succ :
                 f2.succ = seg.succ
                 f2.succ.pred = f2
@@ -227,52 +273,39 @@ class Broken_Edged_Graph :
                 f1.pred.succ = f1
                 f1.pred.dir  = f1.dir
             if seg.eprev is not None :
-                f1.eprev = seg.eprev
+                f1.start.set_ptr (seg.eprev, seg.start.idx)
             if seg.enext is not None :
-                f2.enext = seg.enext
+                f2.end.set_ptr (seg.enext, seg.end.idx)
         else :
             if edge [0] < edge [1] :
                 one, two = idx1, idx2
                 end = -1
-                assert self.segments [idx2].start == edge [0]
-                assert self.segments [idx2].eprev is None
-                self.segments [idx2].eprev = edge_next
+                assert self.segments [idx1].start.tail == edge [0]
+                assert self.segments [idx2].end.tail == edge [1]
+                self.segments [idx1].start.set_ptr (edge_next, self.i)
             else :
                 two, one = idx1, idx2
                 end = len (self.segments)
-                assert self.segments [idx1].end == edge [0]
-                assert self.segments [idx1].enext is None
-                self.segments [idx1].enext = edge_next
+                assert self.segments [idx1].end.tail == edge [0]
+                assert self.segments [idx2].start.tail == edge [1]
+                self.segments [idx1].end.set_ptr (edge_next, self.i)
             assert self.segments [two].succ == self.segments [one]
             assert self.segments [one].pred == self.segments [two]
-            assert self.segments [two].end   == edge [0]
-            assert self.segments [one].start == edge [1]
-            self.segments [idx1].succ = None
-            self.segments [idx2].pred = None
-            #assert edge [0] not in self.segments [idx1].edges
-            #self.segments [idx1].edges [edge [0]] = edge_next
+            self.segments [two].succ = None
+            self.segments [one].pred = None
         eidx = self.get_segment_index (edge_next)
         es   = self.segments [eidx]
-        assert edge_next == es.start or edge_next == es.end
-        if es.start == es.end :
-            if es.eprev is None :
-                assert es.enext is not None
-                es.eprev = edge [0]
+        assert edge_next == es.t_start.tail or edge_next == es.t_end.tail
+        if es.t_start.tail == es.t_end.tail :
+            assert es.t_start.ptr is not None or es.t_end.ptr is not None
+            if es.t_start.ptr is None :
+                es.t_start.set_ptr (edge [0], self.i)
             else :
-                assert es.eprev is not None
-                assert es.enext is None
-                es.enext = edge [0]
-        elif edge_next == es.start :
-            assert es.eprev is None
-            es.eprev = edge [0]
+                es.t_end.set_ptr (edge [0], self.i)
+        elif edge_next == es.t_start.tail :
+            es.t_start.set_ptr (edge [0], self.i)
         else :
-            assert es.enext is None
-            es.enext = edge [0]
-        #assert edge_next not in es.edges
-        #es.edges [edge_next] = edge [0]
-        # Now find the split edge again (idx has changed)
-        # and turn all segments if necessary
-        #import pdb; pdb.set_trace ()
+            es.t_end.set_ptr (edge [0], self.i)
         self.fix_directions (edge [1])
     # end def split
 
@@ -284,26 +317,20 @@ class Broken_Edged_Graph :
         se = None
         f  = self.segments [self.get_segment_index (n)]
         while True :
-            assert se == f.enext or se == f.eprev
+            assert se == f.t_end.ptr or se == f.t_start.ptr
             # One of those two will not be identical
-            if  (  (se == f.eprev and f.eprev != f.enext)
-                or (n == f.start  and f.start != f.end)
+            if  (  (se == f.t_start.ptr  and f.t_start.ptr  != f.t_end.ptr)
+                or (n  == f.t_start.tail and f.t_start.tail != f.t_end.tail)
                 ) :
-                assert n == f.start
+                assert n == f.t_start.tail
                 f.dir = 1
-                nn = f.enext
-                se = f.end
-                if f.succ :
-                    nn = f.succ.enext
-                    se = f.succ.end
+                nn = f.t_end.ptr
+                se = f.t_end.tail
             else :
-                assert n == f.end
+                assert n == f.t_end.tail
                 f.dir = -1
-                nn = f.eprev
-                se = f.start
-                if f.pred :
-                    nn = f.pred.eprev
-                    se = f.pred.start
+                nn = f.t_start.ptr
+                se = f.t_start.tail
             if f.succ :
                 f.succ.dir = f.dir
             if f.pred :
@@ -315,7 +342,43 @@ class Broken_Edged_Graph :
             f = self.segments [self.get_segment_index (n)]
     # end def fix_directions
 
-# end class Broken_Edged_Graph
+    def walk (self, last_idx) :
+        idx  = self.t1
+        prev = None
+        c    = 0
+        dir  = None
+        while c < self.dim :
+            f = self.segments [self.get_segment_index (idx)]
+            if dir is None :
+                if prev is None :
+                    dir = -f.dir
+                else :
+                    if c == self.dim - 1 :
+                        dir = 1
+                    elif f.start.tail == f.end.tail :
+                        assert prev == f.start.ptr or prev == f.end.ptr
+                        if f.start.ptr == prev :
+                            dir = 1
+                        else :
+                            dir = -1
+                    else :
+                        dir = 1 if f.start.tail == idx else -1
+            e = f.end
+            if dir < 0 :
+                e = f.start
+            for i in range (idx, e.tail + dir, dir) :
+                yield i
+                c += 1
+            if e.idx is not None and e.idx <= last_idx :
+                idx  = e.ptr
+                prev = e.tail
+                dir  = None
+            else :
+                idx = (i + dir) % self.dim
+                # keep dir
+    # end def walk
+
+# end class Segmented_Graph
 
 class TSP (pga.PGA) :
 
@@ -611,6 +674,9 @@ class TSP (pga.PGA) :
                 continue
             if (allele [idx], allele [idx2]) in self.fixed_edges :
                 continue
+            # This would yield the same edge as the one being split:
+            if idx2 == t2 :
+                continue
             # Lookahead: FIXME
             #if (idx2, (idx2 - dir) % l) in self.lk_joined :
             #    continue
@@ -639,7 +705,6 @@ class TSP (pga.PGA) :
     # end def is_valid_tour
 
     def lk_next (self, allele, t1, t2) :
-        #import pdb; pdb.set_trace ()
         self.lk_i += 1
         l = len (self)
         self.lk_broken [(t1, t2)] = 1
@@ -664,8 +729,6 @@ class TSP (pga.PGA) :
             self.lk_graph.split (tk1, t2)
             # Debug:
             a = self.lk_take_tour (allele)
-            if not self.is_valid_tour (a) :
-                import pdb; pdb.set_trace ()
             assert self.is_valid_tour (a)
 
             self.lk_next (allele, tk1, tk2)
@@ -682,49 +745,10 @@ class TSP (pga.PGA) :
     # end def lk_next
 
     def lk_take_tour (self, allele) :
-        import pdb; pdb.set_trace ()
-        l  = len (self)
         an = []
-        joined = {}
-        #import pdb; pdb.set_trace ()
-        for i in range (self.lk_best_i) :
-            edge = self.lk_edges [i]
-            for x in edge :
-                if x not in joined :
-                    joined [x] = []
-            joined [edge [1]].append ((edge [1], edge [0]))
-            joined [edge [0]].append (edge)
-        for x in self.lk_best_t, self.t1 :
-            if x not in joined :
-                joined [x] = []
-        joined [self.t1].append ((self.t1, self.lk_best_t))
-        joined [self.lk_best_t].append ((self.lk_best_t, self.t1))
-        i   = 0
-        dir = 1 # clockwise first
-        while len (an) != l :
-            while i not in joined and len (an) < l :
-                an.append (allele [i])
-                i = (i + dir) % l
-            if len (an) >= l :
-                break
+        for i in self.lk_graph.walk (self.lk_best_i) :
             an.append (allele [i])
-            if len (an) >= l :
-                break
-            edge = joined [i].pop ()
-            if not joined [i] :
-                del joined [i]
-            # Remove reverse edge, too
-            revedge = (edge [1], edge [0])
-            del joined [edge [1]][joined [edge [1]].index (revedge)]
-            if not joined [edge [1]] :
-                del joined [edge [1]]
-            assert edge [0] == i
-            # Last edge is not in lk_joined
-            if edge [1] not in joined :
-                if (edge [1], (edge [1] + dir) % l) in self.lk_broken :
-                    dir = -dir
-                assert (edge [1], (edge [1] + dir) % l) not in self.lk_broken
-            i = edge [1]
+        #print (an)
         return an
     # end def lk_take_tour
 
@@ -745,7 +769,7 @@ class TSP (pga.PGA) :
         self.lk_i = 0
         for dir in -1, 1 :
             t2 = (t1 + dir) % l
-            self.lk_graph = Broken_Edged_Graph (l, t1, t2)
+            self.lk_graph = Segmented_Graph (l, t1, t2)
             self.lk_next (allele, t1, t2)
             if self.lk_best_g :
                 n_allele = self.lk_take_tour (allele)
@@ -764,11 +788,13 @@ class TSP (pga.PGA) :
             self.random.shuffle (shuffle)
             for idx in shuffle :
                 print ("Try: %s" % idx)
-                gain, n_allele = self.lk_op (allele, idx)
-                if gain :
+                r = self.lk_op (allele, idx)
+                if r is not None :
+                    gain, n_allele = r
                     print ("gain: %s" % gain)
                     for i in range (l) :
                         self.set_allele (p, pop, i, n_allele [i])
+                    allele = n_allele
                     print (allele)
                     print ("Eval: %s" % self.evaluate (p, pop))
                     break
