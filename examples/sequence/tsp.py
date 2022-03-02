@@ -387,7 +387,7 @@ class TSP (pga.PGA) :
     # eil50 with rand-seed 1 and 0.8 or-op (max 4) yields 426
     minvals = \
         { 'oliver30.tsp'  : 420 # 421 according to WSF89
-        #, 'eil50.tsp'     : 426 # 428 according to WSF89
+        , 'eil50.tsp'     : 426 # 428 according to WSF89
         , 'eil51.tsp'     : 426
         , 'eil75.tsp'     : 535 # 545 according to WSF89
         , 'eil76.tsp'     : 538
@@ -713,6 +713,7 @@ class TSP (pga.PGA) :
     def lk_next (self, allele, t1, t2) :
         self.lk_i += 1
         l = len (self)
+        assert (allele [t1], allele [t2]) not in self.fixed_edges
         self.lk_broken [(t1, t2)] = 1
         self.lk_broken [(t2, t1)] = 1
         ewo = self.edge_weight (allele [t1], allele [t2])
@@ -741,6 +742,7 @@ class TSP (pga.PGA) :
                 for i in self.lk_graph.walk (self.lk_best_i) :
                     a.append (allele [i])
                 print (np.array (a) + 1)
+                print (self.lk_graph.segments)
             # Debug:
             if self.args.debug >= 3 :
                 a = self.lk_take_tour (allele)
@@ -784,6 +786,8 @@ class TSP (pga.PGA) :
         self.lk_i = 0
         for dir in -1, 1 :
             t2 = (t1 + dir) % l
+            if (allele [t1], allele [t2]) in self.fixed_edges :
+                continue
             self.lk_graph = Segmented_Graph (l, t1, t2)
             self.lk_next (allele, t1, t2)
             if self.lk_best_g :
@@ -800,7 +804,10 @@ class TSP (pga.PGA) :
         shuffle = [i for i in range (l)]
         allele = [self.get_allele (p, pop, i) for i in range (l)]
         #print (allele)
-        #print ("Eval: %s" % self.evaluate (p, pop))
+        if self.args.debug :
+            print ("Eval: %s" % self.evaluate (p, pop))
+            a = np.array (allele) + 1
+            print (a)
         while True :
             self.random.shuffle (shuffle)
             for idx in shuffle :
