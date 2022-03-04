@@ -79,11 +79,12 @@ class Segment_Pointer :
         next segment.
     """
 
-    def __init__ (self, tail, dir) :
-        self.tail = tail
-        self.dir  = dir
-        self.idx  = None
-        self.ptr  = None
+    def __init__ (self, parent, tail, dir) :
+        self.parent = parent
+        self.tail   = tail
+        self.dir    = dir
+        self.idx    = None
+        self.ptr    = None
     # end def __init__
 
     def set_ptr (self, ptr, idx) :
@@ -93,10 +94,12 @@ class Segment_Pointer :
     # end def set_ptr
 
     def __str__ (self) :
-        p = '' if self.ptr is None else self.ptr
+        p  = '' if self.ptr is None else self.ptr
+        t1 = '=' if self.parent.succ else '>'
+        t2 = '=' if self.parent.pred else '<'
         if self.dir > 0 :
-            return "%d>%s" % (self.tail, p)
-        return "%s<%d" % (p, self.tail)
+            return "%d%s%s" % (self.tail, t1, p)
+        return "%s%s%d" % (p, t2, self.tail)
     __repr__ = __str__
 
 # end class Segment_Pointer
@@ -104,26 +107,29 @@ class Segment_Pointer :
 class Graph_Segment :
 
     def __init__ (self, start, end, dir) :
-        self.start = Segment_Pointer (start, -1)
-        self.end   = Segment_Pointer (end, 1)
+        self.start = Segment_Pointer (self, start, -1)
+        self.end   = Segment_Pointer (self, end, 1)
         self.dir   = dir
         self.pred  = None
         self.succ  = None
     # end def __init__
 
-    def split (self, node) :
+    def split (self, node, rev = False) :
         """ Always split *against* direction dir
+            Unless we explicitly have specified reverse "rev".
             Return the edge resulting from split operation
         """
         assert self.start.tail <= node <= self.end.tail
-        if node == self.start.tail and self.dir == 1 :
+        if node == self.start.tail and (self.dir == 1 or rev) :
             if not self.pred :
                 return None
             return (self.start.tail, self.pred.end.tail)
-        if node == self.end.tail and self.dir == -1 :
+        if node == self.end.tail and (self.dir == -1 or rev) :
             if not self.succ :
                 return None
             return (self.end.tail, self.succ.start.tail)
+        if rev :
+            return (node, (node + self.dir))
         return (node, (node - self.dir))
     # end def split
 
@@ -192,6 +198,7 @@ class Segmented_Graph :
         self.t1  = start
         self.tn  = end
         self.i   = 0
+        self.other_half = None
         if start == 0 and end == dim - 1 or end == 0 and start == dim - 1 :
             dir = -1
             if end == 0 :
@@ -222,16 +229,42 @@ class Segmented_Graph :
         assert 0 <= idx < len (self.segments)
         return idx
     # end def get_segment_index
+
+    def in_other_half (self, node) :
+        assert 1 <= self.i <= 3
+        up = (self.other_half [1] - self.other_half [0]) % self.dim
+        if 0 <= (node - self.other_half [0]) % self.dim <= up :
+            return True
+        return False
+    # end def in_other_half
     
-    def split_edge (self, node) :
+    def split_edge (self, node, rev = False) :
         """ Return the edge resulting from splitting at node.
+            Usually returns an edge that will not split the circle in
+            two halves unless we explicitly specify rev=True.
             May return None if splitting is not possible.
         """
         idx = self.get_segment_index (node)
-        return self.segments [idx].split (node)
+        seg = self.segments [idx]
+        # There must be at least one node to go back to in other half
+        if  (   rev and self.i == 0
+            and (node - seg.dir) % self.dim == (self.tn + seg.dir) % self.dim
+            ) :
+            return None
+        if rev and self.i > 2 :
+            return None
+        if rev and self.i > 0 and not self.other_half :
+            return None
+        # No reversing in wrong half of circle, but sign in segment is wrong
+        if not rev and self.other_half and not self.in_other_half (node) :
+            return None
+        # In iter 2 we *must* cross over to other half
+        if self.i == 2 and self.other_half and not self.in_other_half (node) :
+            return None
+        return seg.split (node, rev)
     # end def split_edge
 
-    def split (self, node, edge_next) :
+    def split (self, node, edge_next, rev = False) :
         """ Perform the split at node
             Splits the given segment at node and inserts the two new
             segments in its place. Joins node to edge.
@@ -241,10 +274,22 @@ class Segmented_Graph :
         """
         assert edge_next == self.tn
         idx1    = self.get_segment_index (node)
-        edge    = self.split_edge (node)
+        edge    = self.split_edge (node, rev)
         idx2    = self.get_segment_index (edge [1])
         self.tn = edge [1]
         self.i += 1
+        if self.other_half :
+            if self.in_other_half (node) :
+                self.other_half = None
+            else :
+                assert self.i <= 2
+        if rev and self.i == 1 :
+            assert not self.other_half
+            seg = self.segments [idx1]
+            if seg.dir > 0 :
+                self.other_half = (seg.t_start.tail, node)
+            else :
+                self.other_half = (node, seg.t_end.tail)
         if idx1 == idx2 :
             seg = self.segments [idx1]
             if edge [0] < edge [1] :
@@ -307,7 +352,22 @@ class Segmented_Graph :
             es.t_start.set_ptr (edge [0], self.i)
         else :
             es.t_end.set_ptr (edge [0], self.i)
-        self.fix_directions (edge [1])
+        # Do not attempt direction fixing while circle is split
+        # But fix the one segment that matters
+        if self.other_half :
+            seg = self.segments [self.get_segment_index (self.t1)]
+            if self.t1 == seg.t_start.tail :
+                seg.dir = 1
+            elif self.t1 == seg.t_end.tail :
+                seg.dir = -1
+            else :
+                assert 0
+            if seg.succ :
+                seg.succ.dir = seg.dir
+            if seg.pred :
+                seg.pred.dir = seg.dir
+        else :
+            self.fix_directions (edge [1])
     # end def split
 
     def fix_directions (self, n) :
@@ -387,7 +447,7 @@ class TSP (pga.PGA) :
     # eil50 with rand-seed 1 and 0.8 or-op (max 4) yields 426
     minvals = \
         { 'oliver30.tsp'  : 420 # 421 according to WSF89
-        , 'eil50.tsp'     : 426 # 428 according to WSF89
+        , 'eil50.tsp'     : 425 # 428 according to WSF89
         , 'eil51.tsp'     : 426
         , 'eil75.tsp'     : 535 # 545 according to WSF89
         , 'eil76.tsp'     : 538
@@ -660,36 +720,35 @@ class TSP (pga.PGA) :
         for idx in range (l) :
             if idx == t2 or idx == self.t1 :
                 continue
-            edge = self.lk_graph.split_edge (idx)
-            if edge is None :
-                continue
-            idx2 = edge [1]
-            if idx2 == self.t1 :
-                continue
-            if (idx, idx2) in self.lk_joined :
-                continue
-            if (idx, t2) in self.lk_joined :
-                continue
-            if (idx, idx2) in self.lk_broken :
-                continue
-            if (t2, idx) in self.lk_broken :
-                continue
-            if (allele [idx], allele [idx2]) in self.fixed_edges :
-                continue
-            # This would yield the same edge as the one being split:
-            if idx2 == t2 :
-                continue
-            # Lookahead:
-            ewc = self.edge_weight (allele [edge [0]], allele [edge [1]])
-            # Gain condition
-            ewn = self.edge_weight (allele [t2], allele [idx])
-            if self.lk_gain + ewo - ewn <= self.lk_best_g :
-                continue
-            # Sorting by ewo - ewn + ewc, see B. Lookahead in paper
-            candidates.append ((edge, ewo - ewn, ewo - ewn + ewc))
+            for rev in False, True :
+                edge = self.lk_graph.split_edge (idx, rev)
+                if edge is None :
+                    continue
+                idx2 = edge [1]
+                if idx2 == self.t1 :
+                    continue
+                if (idx, idx2) in self.lk_joined :
+                    continue
+                if (idx, t2) in self.lk_joined :
+                    continue
+                if (idx, idx2) in self.lk_broken :
+                    continue
+                if (t2, idx) in self.lk_broken :
+                    continue
+                if (allele [idx], allele [idx2]) in self.fixed_edges :
+                    continue
+                # This would yield the same edge as the one being split:
+                if idx2 == t2 :
+                    continue
+                # Lookahead:
+                ewc = self.edge_weight (allele [edge [0]], allele [edge [1]])
+                # Gain condition
+                ewn = self.edge_weight (allele [t2], allele [idx])
+                if self.lk_gain + ewo - ewn <= self.lk_best_g :
+                    continue
+                # Sorting by ewo - ewn + ewc, see B. Lookahead in paper
+                candidates.append ((edge, rev, ewo - ewn, ewo - ewn + ewc))
         candidates.sort (key = lambda c: -c [-1])
-        # This would be the method without lookahead:
-        #candidates.sort (key = lambda c: -c [1])
         if self.lk_i > 2 :
             return candidates [0:1]
         return candidates
@@ -718,35 +777,41 @@ class TSP (pga.PGA) :
         self.lk_broken [(t2, t1)] = 1
         ewo = self.edge_weight (allele [t1], allele [t2])
         candidates = self.lk_candidates (allele, t2, ewo)
-        for (tk1, tk2), g, g2 in candidates :
+        for (tk1, tk2), rev, g, g2 in candidates :
             assert (t2, tk1)  not in self.lk_joined
             assert (tk1, tk2) not in self.lk_broken
             ewb = self.edge_weight (allele [tk2], allele [self.t1])
             gn  = g2 - ewb
-            if gn + self.lk_gain > self.lk_best_g :
-                self.lk_best_g = gn + self.lk_gain
-                self.lk_best_i = self.lk_i
-                self.lk_best_t = tk2
-            self.lk_gain += g
-            if self.args.debug :
-                print ( "g: %5d gn: %5d lkg: %5d best_g: %5d i:%3d"
-                      % (g, gn, self.lk_gain, self.lk_best_g, self.lk_i)
-                      )
             self.lk_joined [(t2, tk1)] = -1
             self.lk_joined [(tk1, t2)] = -1
             self.lk_edges.append ((t2, tk1))
             oldgraph = deepcopy (self.lk_graph)
-            self.lk_graph.split (tk1, t2)
-            if self.args.debug >= 2 :
-                a = []
-                for i in self.lk_graph.walk (self.lk_best_i) :
-                    a.append (allele [i])
-                print (np.array (a) + 1)
+            self.lk_graph.split (tk1, t2, rev)
+            # Do not attempt to join to t1 if we have a split circle
+            if not self.lk_graph.other_half :
+                if gn + self.lk_gain > self.lk_best_g :
+                    self.lk_best_g = gn + self.lk_gain
+                    self.lk_best_i = self.lk_i
+                    self.lk_best_t = tk2
+            self.lk_gain += g
+            if self.args.debug :
+                x = 'X' if self.lk_graph.other_half else ''
+                print ( "g: %5d gn: %5d lkg: %5d best_g: %5d i:%3d %s"
+                      % (g, gn, self.lk_gain, self.lk_best_g, self.lk_i, x)
+                      )
                 print (self.lk_graph.segments)
+                print ( "t1: %s tn: %s, oh: %s"
+                      % ( self.lk_graph.t1
+                        , self.lk_graph.tn
+                        , self.lk_graph.other_half
+                        )
+                      )
             # Debug:
-            if self.args.debug >= 3 :
+            if self.args.debug :
                 a = self.lk_take_tour (allele)
                 assert self.is_valid_tour (a)
+                if self.args.debug >= 2 :
+                    print (np.array (a) + 1)
 
             self.lk_next (allele, tk1, tk2)
             if self.lk_best_g :
