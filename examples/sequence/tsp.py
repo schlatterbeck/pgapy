@@ -120,16 +120,22 @@ class Graph_Segment :
             Return the edge resulting from split operation
         """
         assert self.start.tail <= node <= self.end.tail
-        if node == self.start.tail and (self.dir == 1 or rev) :
+        if  (   node == self.start.tail
+            and (self.dir == 1 and not rev or self.dir == -1 and rev)
+            ) :
             if not self.pred :
                 return None
             return (self.start.tail, self.pred.end.tail)
-        if node == self.end.tail and (self.dir == -1 or rev) :
+        if  (   node == self.end.tail
+            and (self.dir == -1 and not rev or self.dir == 1 and rev)
+            ) :
             if not self.succ :
                 return None
             return (self.end.tail, self.succ.start.tail)
         if rev :
+            assert node + self.dir >= 0
             return (node, (node + self.dir))
+        assert node - self.dir >= 0
         return (node, (node - self.dir))
     # end def split
 
@@ -430,6 +436,8 @@ class Segmented_Graph :
             for i in range (idx, e.tail + dir, dir) :
                 yield i
                 c += 1
+                if c == self.dim :
+                    break
             if e.idx is not None and e.idx <= last_idx :
                 idx  = e.ptr
                 prev = e.tail
@@ -757,13 +765,19 @@ class TSP (pga.PGA) :
     def is_valid_tour (self, allele) :
         l = len (self)
         d = {}
+        if len (allele) != l :
+            print ("Invalid length: %s" % len (allele))
+            print (np.array (allele) + 1)
+            return False
         for i in range (l) :
             a = allele [i]
             if a < 0 or a >= l :
-                print (allele)
+                print ("Invalid: %s" % (a + 1))
+                print (np.array (allele) + 1)
                 return False
             if a in d :
-                print (allele)
+                print ("Dupe: %s" % (a + 1))
+                print (np.array (allele) + 1)
                 return False
             d [a] = 1
         return True
@@ -806,8 +820,8 @@ class TSP (pga.PGA) :
                         , self.lk_graph.other_half
                         )
                       )
-            # Debug:
-            if self.args.debug :
+            # Debug (FIXME: Should at some point be turned off):
+            if self.args.debug >= 0 :
                 a = self.lk_take_tour (allele)
                 assert self.is_valid_tour (a)
                 if self.args.debug >= 2 :

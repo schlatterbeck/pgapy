@@ -29,6 +29,27 @@ class TSP :
         return self.tsp.get_weight (edge [0] + self.off, edge [1] + self.off)
     # end def edge_weight
 
+    def is_valid_tour (self, seq, seqoff = 1) :
+        l = self.tsp.dimension
+        d = {}
+        if len (seq) != l :
+            print ("Invalid length: %s" % len (seq))
+            print (seq)
+            return False
+        for i in range (l) :
+            a = seq [i]
+            if a <= 0 or a > l :
+                print ("Invalid: %s" % (a))
+                print (seq)
+                return False
+            if a in d :
+                print ("Dupe: %s" % (a))
+                print (seq)
+                return False
+            d [a] = 1
+        return True
+    # end def is_valid_tour
+
     def plot (self, seq, seqoff = 1) :
         l = len (seq)
         # k% Longest edges
@@ -86,12 +107,14 @@ class TSP :
 
     def plotall (self) :
         for t in self.tour.tours :
+            self.is_valid_tour (t)
             #print (self.seqlen (t))
             self.plot (t)
     # end def plotall
 
     def seqall (self) :
         for t in self.tour.tours :
+            self.is_valid_tour (t)
             yield self.seqlen (t)
     # end def seqall
 # end class TSP
