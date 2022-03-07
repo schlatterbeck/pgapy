@@ -535,6 +535,11 @@ class TSP (pga.PGA) :
         self.normal_fail       = 0
         self.long_edge_tries   = 0
         self.long_edge_success = 0
+        # LK-Op
+        self.lk_op_tries       = 0
+        self.lk_op_success     = 0
+        self.lk_op_step        = 0
+        self.lk_op_fail        = 0
         # For brute-force search note edges that failed completely
         self.good_edges        = {}
         self.prune_edges       = {}
@@ -543,7 +548,20 @@ class TSP (pga.PGA) :
         self.prune_value       = 10
         self.n_generation      = 300
         self.n_remove          = 0
+        # Checked-out alleles cannot be further optimized with lk_op,
+        # don't try.
+        self.checked_out       = set ()
     # end def __init__
+
+    def add_checkout (self, allele) :
+        self.checked_out.add (self.normalize_allele (allele))
+    # end def add_checkout
+
+    def in_checkout (self, allele) :
+        if not self.checked_out :
+            return False
+        return self.normalize_allele (allele) in self.checked_out
+    # end def in_checkout
 
     def edge_weight (self, i, j) :
         return self.tsp.get_weight (j + self.tsp_offset, i + self.tsp_offset)
@@ -558,6 +576,37 @@ class TSP (pga.PGA) :
             s += self.edge_weight (a1, a2)
         return s
     # end def evaluate
+
+    def normalize_allele (self, allele) :
+        r = []
+        l = len (allele)
+        if self.fixed_edges :
+            ek = sorted (list (self.fixed_edges)) [0]
+            for i in range (l) :
+                j = (i + 1) % l
+                if (allele [i], allele [j]) in self.fixed_edges :
+                    if (allele [i], allele [j]) == ek :
+                        idx = i
+                        dir = -1
+                        break
+                    elif (allele [j], allele [i]) == ek :
+                        idx = j
+                        dir = 1
+                        break
+            else :
+                assert 0
+        else :
+            idx = allele.index (0)
+            j   = (idx + 1) % l
+            k   = (idx - 1) % l
+            if allele [j] < allele [k] :
+                dir = 1
+            else :
+                dir = -1
+        for i in range (l) :
+            r.append (allele [(idx + dir * i) % l])
+        return tuple (r)
+    # end def normalize_allele
 
     def plot (self, idx = None, pop = None) :
         if pop is None :
@@ -584,14 +633,29 @@ class TSP (pga.PGA) :
         plt.show ()
     # end def plot
 
+    def check_duplicate (self, p1, pop1, p2, pop2) :
+        l = len (self)
+        a1 = [self.get_allele (p1, pop1, i) for i in range (l)]
+        a2 = [self.get_allele (p2, pop2, i) for i in range (l)]
+        return self.normalize_allele (a1) == self.normalize_allele (a2)
+    # end def check_duplicate
+
     def stop_cond (self) :
+        pop = pga.PGA_OLDPOP
         if self.minval is not None :
-            best = self.get_best_report (pga.PGA_OLDPOP, 0)
+            best = self.get_best_report (pop, 0)
             if best <= self.minval :
                 return True
-        if self.check_stopping_conditions () :
-            return True
-        return False
+        # Stop if all alleles up to fixed_idx cannot be improved by lk_op
+        if self.args.fixed_idx :
+            l = len (self)
+            for p in range (self.args.fixed_idx + 1) :
+                allele = [self.get_allele (p, pop, i) for i in range (l)]
+                if not self.in_checkout (allele) :
+                    break
+            else :
+                return True
+        return self.check_stopping_conditions ()
     # end stop_cond
 
     def print_string (self, file, p, pop) :
@@ -607,6 +671,16 @@ class TSP (pga.PGA) :
         print ( "Long edges: %d/%d"
               % (self.long_edge_success, self.long_edge_tries)
               )
+        print ( "LK-Op: %d/%d (%d)"
+              % ( self.lk_op_success, self.lk_op_tries, self.lk_op_step)
+              , end = ''
+              )
+        if self.args.ops_for_gene :
+            print ( " fail: %d co: %d"
+                  % (self.lk_op_fail, len (self.checked_out))
+                  )
+        else :
+            print ('')
         if self.args.optimize_harder :
             print ( "Hard-tries: %d/%d hardfail: %d"
                   % (self.hard_success, self.hard_tries, self.try_harder_fail)
@@ -784,6 +858,7 @@ class TSP (pga.PGA) :
     # end def is_valid_tour
 
     def lk_next (self, allele, t1, t2) :
+        self.lk_op_step += 1
         self.lk_i += 1
         l = len (self)
         assert (allele [t1], allele [t2]) not in self.fixed_edges
@@ -952,27 +1027,40 @@ class TSP (pga.PGA) :
         return r
     # end def next_shuffle_index
 
-    def update_eval (self, p, pop, v) :
+    def update_eval (self, p, pop, gain) :
         ev = self.get_evaluation (p, pop)
-        self.set_evaluation (p, pop, ev - v)
+        self.set_evaluation (p, pop, ev - gain)
         if self.evaluate (p, pop) != self.get_evaluation (p, pop) :
             import pdb; pdb.set_trace ()
     # end def update_eval
 
-    def try_or_op_two_op (self, allele) :
+    def try_or_op_two_op (self, allele, force = False) :
         long_edge_iter = Long_Edge_Iter (self, allele)
         l = len (self)
         self.random.shuffle (self.v_idx1)
-        if self.args.or_op_for_gene :
-            orop = self.random_flip (self.args.or_op_probability)
-        eval = 0
+        if self.args.ops_for_gene :
+            do_orop = self.random_flip (self.args.or_op_probability)
+            do_lkop = self.random_flip (self.args.lk_probability)
+            eog     = self.random_flip (self.args.end_of_gene_probability)
+        gain = 0
         for idx in self.v_idx1 :
-            if self.random_flip (1 - self.args.end_of_gene_probability) :
+            if not self.args.ops_for_gene :
+                do_orop = self.random_flip (self.args.or_op_probability)
+                do_lkop = self.random_flip (self.args.lk_probability)
+                eog = self.random_flip (self.args.end_of_gene_probability)
+            if not eog and not force :
                 continue
             self.tries += 1
-            if not self.args.or_op_for_gene :
-                orop = self.random_flip (self.args.or_op_probability)
-            if orop :
+            if do_lkop :
+                if not self.in_checkout (allele) :
+                    r   = self.lk_op (allele, idx)
+                    self.lk_op_tries += 1
+                    if r :
+                        gain, n_allele = r
+                        self.lk_op_success += 1
+                        allele [:] = n_allele
+                        break
+            elif do_orop :
                 self.or_op_tries += 1
                 il = (idx - 1) % l
                 if (allele [idx], allele [il]) in self.fixed_edges :
@@ -984,8 +1072,8 @@ class TSP (pga.PGA) :
                     continue
                 inv  = self.random_flip (0.5)
                 idx2 = self.next_shuffle_index (allele, idx, n)
-                eval = self.or_op (allele, il, (il + n) % l, idx2, inv)
-                if eval :
+                gain = self.or_op (allele, il, (il + n) % l, idx2, inv)
+                if gain :
                     self.or_op_success += 1
                     break
             else :
@@ -993,21 +1081,48 @@ class TSP (pga.PGA) :
                 if (allele [idx], allele [(idx + 1) % l]) in self.fixed_edges :
                     continue
                 idx2 = self.next_shuffle_index (allele, idx)
-                eval = self.two_op (allele, idx, idx2)
-                if eval :
+                gain = self.two_op (allele, idx, idx2)
+                if gain :
                     self.two_op_success += 1
                     break
             if self.random_flip (self.long_edge_probability) :
                 e = long_edge_iter.next ()
                 for inv in False, True :
                     self.long_edge_tries += 1
-                    eval = self.or_op \
+                    gain = self.or_op \
                         (allele, e [0][0], e [1][0], e [2][0], inv)
-                    if eval :
+                    if gain :
                         self.long_edge_success += 1
-                        return eval
-        return eval
+                        return gain
+        else :
+            if self.args.ops_for_gene and do_lkop and (eog or force) :
+                assert not gain
+                self.lk_op_fail += 1
+                self.add_checkout (allele)
+        return gain
     # end def try_or_op_two_op
+
+    def try_lk_op_only (self, pop) :
+        l = len (self)
+        for p in range (self.args.fixed_idx, -1, -1) :
+            allele = [self.get_allele (p, pop, i) for i in range (l)]
+            if self.in_checkout (allele) :
+                self.lk_op_fail += 1
+                continue
+            self.random.shuffle (self.v_idx1)
+            for idx in self.v_idx1 :
+                r   = self.lk_op (allele, idx)
+                self.lk_op_tries += 1
+                if r :
+                    gain, n_allele = r
+                    self.lk_op_success += 1
+                    for i, a in enumerate (n_allele) :
+                        self.set_allele (p, pop, i, a)
+                    self.update_eval (p, pop, gain)
+                    return gain
+            self.lk_op_fail += 1
+            self.add_checkout (allele)
+    # end def try_lk_op_only
 
     def dont_use_edge (self, edge) :
         if edge in self.fixed_edges :
@@ -1099,15 +1214,25 @@ class TSP (pga.PGA) :
             , rand  = self.random_interval (0, self.pop_size - 1)
             )
         local_opt = lopt.get (self.args.optimize_harder, -1)
+        if  (    self.args.fixed_idx
+             and self.args.lk_probability == 1
+             and self.args.end_of_gene_probability == 0
+            ) :
+            self.try_lk_op_only (pop)
+            return
         for p in range (self.pop_size) :
             assert self.get_evaluation_up_to_date (p, pop)
             allele_a = [self.get_allele (p, pop, i) for i in range (l)]
             # allele_b is later updated in-place
             allele_b = copy (allele_a)
+            force = \
+                (  self.args.best  and lopt ['best'] == p
+                or self.args.fixed_idx and p == self.args.fixed_idx
+                )
             if p == local_opt :
                 eval = self.try_or_op_harder (allele_b)
             else :
-                eval = self.try_or_op_two_op (allele_b)
+                eval = self.try_or_op_two_op (allele_b, force = force)
             if eval :
                 for i, v in enumerate (allele_b) :
                     self.set_allele (p, pop, i, v)
@@ -1168,6 +1293,11 @@ if __name__ == '__main__' :
                     'values: worst, best, rand'
         )
     cmd.add_argument \
+        ( '-B', '--best'
+        , help    = 'Alway include best individual in hillclimbing'
+        , action  = 'store_true'
+        )
+    cmd.add_argument \
         ( '-D', '--debug'
         , help    = 'Enable debug output and checks'
         , action  = 'count'
@@ -1180,9 +1310,15 @@ if __name__ == '__main__' :
         , default = 0.2
         )
     cmd.add_argument \
-        ( '-G', '--or-op-for-gene'
-        , help    = 'Decide Or-op vs. Two-op once per gene'
+        ( '-G', '--ops-for-gene'
+        , help    = 'Decide Or-op vs. Two-op vs. ... once per gene'
         , action  = 'store_true'
+        )
+    cmd.add_argument \
+        ( '-k', '--lk-probability'
+        , help    = 'Probability of LK-Op during GA search, default=%(default)s'
+        , type    = float
+        , default = 0.01
         )
     cmd.add_argument \
         ( '-l', '--long-edge-ratio'
@@ -1198,7 +1334,7 @@ if __name__ == '__main__' :
         )
     cmd.add_argument \
         ( '--lin-kernighan'
-        , help    = 'Use Lin-Kernighan heuristics'
+        , help    = 'Use Lin-Kernighan heuristics not GA'
         , action  = 'store_true'
         )
     cmd.add_argument \
@@ -1235,6 +1371,11 @@ if __name__ == '__main__' :
         , help    = 'Random seed to for initializing random number generator'
         , type    = int
         , default = 42
+        )
+    cmd.add_argument \
+        ( '-I', '--fixed-idx'
+        , help    = 'Fixed index to mutate'
+        , type    = int
         )
     args    = cmd.parse_args ()
     tsp     = TSP (args)
