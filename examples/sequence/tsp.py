@@ -966,8 +966,10 @@ class TSP (pga.PGA) :
             self.random.shuffle (shuffle)
             for idx in shuffle :
                 #print ("Try: %s" % idx)
+                self.lk_op_tries += 1
                 r = self.lk_op (allele, idx)
                 if r is not None :
+                    self.lk_op_success += 1
                     gain, n_allele = r
                     #print ("gain: %s" % gain)
                     for i in range (l) :
@@ -979,6 +981,9 @@ class TSP (pga.PGA) :
             else :
                 break
         print ("Eval: %s" % self.evaluate (p, pop))
+        print ( "LK-Op: %d/%d (%d)"
+              % ( self.lk_op_success, self.lk_op_tries, self.lk_op_step)
+              )
         return allele
     # end def lk_optimize
 
@@ -1318,7 +1323,7 @@ if __name__ == '__main__' :
         ( '-k', '--lk-probability'
         , help    = 'Probability of LK-Op during GA search, default=%(default)s'
         , type    = float
-        , default = 0.01
+        , default = 0.0
         )
     cmd.add_argument \
         ( '-l', '--long-edge-ratio'

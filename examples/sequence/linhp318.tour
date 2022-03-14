@@ -1,5 +1,5 @@
 NAME: linhp318.tour
-COMMENT: Tours from Lin & Kernighan 1973 and some own (better and interesting) tours. Tours with length 45740 and 46596 are from the L&K paper.
+COMMENT: Tours from Lin & Kernighan 1973 and some own (better and interesting) tours. Tours with length 45740 and 46596 are from the L&K paper. Note that best-known list from tsplib mentions this problem with a solution 41345 which is below the lin318 problem without the fixed edge, so it is probably not counting the length of the fixed edge.
 TYPE: TOUR
 DIMENSION: 318
 TOUR_SECTION

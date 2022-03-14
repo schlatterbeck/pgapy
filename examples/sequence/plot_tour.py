@@ -23,6 +23,8 @@ class TSP :
             e = self.tsp.get_weight (0, 0)
         except (IndexError, KeyError) :
             self.off = 1
+        if self.tour.name == 'linhp318.tour' :
+            self.fixed_edge_len = self.edge_weight ((1, 214))
     # end def __init__
 
     def edge_weight (self, edge) :
@@ -92,7 +94,12 @@ class TSP :
                 x2, y2 = y2, x2
             plt.plot ([x1, x2], [y1, y2], 'r' + style)
         slen = self.seqlen (seq, seqoff = seqoff)
-        plt.title ("%s (%s)" % (self.tsp.name, slen))
+        if self.tour.name == 'linhp318.tour' :
+            plt.title ( "%s (%s %s)"
+                      % (self.tsp.name, slen, slen - self.fixed_edge_len)
+                      )
+        else :
+            plt.title ("%s (%s)" % (self.tsp.name, slen))
         plt.show ()
     # end def plot
 
