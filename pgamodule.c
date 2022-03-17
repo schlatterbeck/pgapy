@@ -61,11 +61,15 @@ static int       error_occurred = 0;
  * Convenience functions in module
  *********************************/
 /* Visual C disable warning about unused variable "self" */
+#ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4100)
+#endif
 
 static PyObject *das_dennis (PyObject *self, PyObject *args, PyObject *kw)
+#ifdef _MSC_VER
 #pragma warning(pop)
+#endif
 {
     int i, j;
     int dim, npart;
@@ -280,10 +284,14 @@ static FILE *get_fp (PyObject *self)
     }
     Py_DECREF   (pyfp);
     /* Visual C disable warning about size */
+    #ifdef _MSC_VER
     #pragma warning(push)
     #pragma warning(disable:4305)
+    #endif
     return (FILE *)lfp;
+    #ifdef _MSC_VER
     #pragma warning(pop)
+    #endif
 }
 
 /*
