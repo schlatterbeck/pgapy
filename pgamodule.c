@@ -60,8 +60,16 @@ static int       error_occurred = 0;
 /*********************************
  * Convenience functions in module
  *********************************/
+/* Visual C disable warning about unused variable "self" */
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4100)
+#endif
 
 static PyObject *das_dennis (PyObject *self, PyObject *args, PyObject *kw)
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 {
     int i, j;
     int dim, npart;
@@ -169,7 +177,7 @@ static PyMethodDef Module_Methods [] =
 { { "das_dennis", (PyCFunction)das_dennis, METH_VARARGS | METH_KEYWORDS
   , "Return Das/Dennis points"
   }
-, {} /* EMPTY VALUE AS END-MARKER */
+, { NULL } /* EMPTY VALUE AS END-MARKER */
 };
 
 /***********************
@@ -266,16 +274,24 @@ static PGAContext *get_context (PyObject *self)
 static FILE *get_fp (PyObject *self)
 {
     PyObject   *pyfp = PyObject_GetAttrString (self, "_fp");
-    FILE *fp;
+    long long lfp;
     if (!pyfp) {
         return NULL;
     }
-    if (!PyArg_Parse (pyfp, "l", &fp)) {
+    if (!PyArg_Parse (pyfp, "L", &lfp)) {
         Py_DECREF   (pyfp);
         return NULL;
     }
     Py_DECREF   (pyfp);
-    return fp;
+    /* Visual C disable warning about size */
+    #ifdef _MSC_VER
+    #pragma warning(push)
+    #pragma warning(disable:4305)
+    #endif
+    return (FILE *)lfp;
+    #ifdef _MSC_VER
+    #pragma warning(pop)
+    #endif
 }
 
 /*
@@ -283,7 +299,7 @@ static FILE *get_fp (PyObject *self)
  */
 static PyObject *get_self (PGAContext *ctx)
 {
-    PyObject *self, *PGA_ctx = Py_BuildValue ("l", (long) ctx);
+    PyObject *self, *PGA_ctx = Py_BuildValue ("L", (long long) ctx);
 
     if (!PGA_ctx) {
         return NULL;
@@ -596,7 +612,7 @@ static void print_gene (PGAContext *ctx, FILE *fp, int p, int pop)
             error_occurred = 1;
             goto errout;
         }
-        pyfp = Py_BuildValue ("l", (long) fp);
+        pyfp = Py_BuildValue ("L", (long long) fp);
         ERR_CHECK_X (pyfp);
         if (PyObject_SetAttrString (self, "_fp", pyfp) < 0) {
             error_occurred = 1;
@@ -695,7 +711,7 @@ static int init_sequence
             );
     assert (constcheck);
     if (sequence) {
-        int i, len = PySequence_Length (sequence);
+        Py_ssize_t i, len = PySequence_Length (sequence);
         if (len < 0) {
             return 0;
         }
@@ -748,7 +764,7 @@ Py_ssize_t parse_points (int dim, PyObject *points, void **result)
     Py_ssize_t length;
     PyObject *point = NULL;
     PyObject *res = NULL, *res2 = NULL;
-    void *refpoints = NULL;
+    double *refpoints = NULL;
 
     if (!PySequence_Check (points)) {
         PyErr_SetString
@@ -766,8 +782,7 @@ Py_ssize_t parse_points (int dim, PyObject *points, void **result)
         goto errout;
     }
     for (i=0; i<length; i++) {
-        int l;
-        double (*rp)[dim] = (double (*)[3]) refpoints;
+        Py_ssize_t l;
 
         point = PySequence_GetItem (points, i);
         ERR_CHECK_X (point);
@@ -784,7 +799,7 @@ Py_ssize_t parse_points (int dim, PyObject *points, void **result)
             res2 = PyNumber_Float (res);
             ERR_CHECK_X (res2);
             Py_CLEAR (res);
-            rp [i][j] = PyFloat_AsDouble (res2);
+            refpoints [dim * i + j] = PyFloat_AsDouble (res2);
             if (PyErr_Occurred ()) {
                 goto errout;
             }
@@ -1070,7 +1085,10 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     }
     {
         int i;
-        argc = PySequence_Length (argv);
+        Py_ssize_t argc_py = PySequence_Length (argv);
+        /* Avoid warnings on size of int vs Py_ssize_t */
+        assert (argc_py < INT_MAX);
+        argc = (int)argc_py;
         c_argv = malloc ((argc + 1) * sizeof (char *));
         c_argv [argc] = NULL;
         for (i = 0; i < argc; i++) {
@@ -1100,7 +1118,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         , max ? PGA_MAXIMIZE : PGA_MINIMIZE
         );
     /* handle context pointer */
-    PGA_ctx = Py_BuildValue ("l", (long) ctx);
+    PGA_ctx = Py_BuildValue ("L", (long long) ctx);
     PyObject_SetItem        (contexts, PGA_ctx, self);
     if (PyObject_SetAttrString (self, "context", PGA_ctx) < 0) {
         Py_CLEAR (PGA_ctx);
@@ -1358,7 +1376,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     }
     if (integer_init_permute) {
         int i;
-        int len = PySequence_Length (integer_init_permute);
+        Py_ssize_t len = PySequence_Length (integer_init_permute);
         int permute_lh [2];
         if (len < 0) {
             return INIT_FAIL;
@@ -1399,7 +1417,8 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     if (init || init_percent) {
         int datatype = PGAGetDataType (ctx);
         int is_real  = (datatype == PGA_DATATYPE_REAL);
-        int i, len;
+        int i;
+        Py_ssize_t len;
         void *i_low, *i_high;
         PyObject *initvals = (init ? init : init_percent);
 
@@ -1985,7 +2004,7 @@ static PyObject *PGA_get_evaluation (PyObject *self, PyObject *args)
         return NULL;
     }
     if (ctx->ga.NumAuxEval == 0) {
-        return Py_BuildValue ("d", PGAGetEvaluation (ctx, p, pop));
+        return Py_BuildValue ("d", _PGAGetEvaluation (ctx, p, pop, NULL));
     }
     tuple = PyTuple_New (ctx->ga.NumAuxEval + 1);
     if (tuple == NULL) {
@@ -2377,16 +2396,60 @@ static PyObject *PGA_set_evaluation (PyObject *self, PyObject *args)
     PGAContext *ctx = NULL;
     int p, pop;
     double val;
+    Py_ssize_t nargs, i;
+    double *values;
+    PyObject *res;
 
-    if (!PyArg_ParseTuple(args, "iid", &p, &pop, &val)) {
-        return NULL;
-    }
     if (!(ctx = get_context (self))) {
         return NULL;
     }
-
-    PGASetEvaluation (ctx, p, pop, val);
-    Py_INCREF   (Py_None);
+    nargs = PGAGetNumAuxEval (ctx);
+    if (PySequence_Length (args) != nargs + 3) {
+        PyErr_SetString
+            ( PyExc_ValueError
+            , "set_evaluation needs p, pop and the values"
+            );
+        return NULL;
+    }
+    if ((values = malloc (sizeof (double) * nargs)) == NULL) {
+        return PyErr_NoMemory ();
+    }
+    res = PySequence_GetItem (args, 0);
+    if (res == NULL) {
+        return NULL;
+    }
+    if (!PyArg_Parse (res, "i", &p)) {
+        return NULL;
+    }
+    Py_DECREF (res);
+    res = PySequence_GetItem (args, 1);
+    if (res == NULL) {
+        return NULL;
+    }
+    if (!PyArg_Parse (res, "i", &pop)) {
+        return NULL;
+    }
+    Py_DECREF (res);
+    res = PySequence_GetItem (args, 2);
+    if (res == NULL) {
+        return NULL;
+    }
+    if (!PyArg_Parse (res, "d", &val)) {
+        return NULL;
+    }
+    Py_DECREF (res);
+    for (i=0; i<nargs; i++) {
+        res = PySequence_GetItem (args, i + 3);
+        if (res == NULL) {
+            return NULL;
+        }
+        if (!PyArg_Parse (res, "d", values + i)) {
+            return NULL;
+        }
+        Py_DECREF (res);
+    }
+    _PGASetEvaluation (ctx, p, pop, val, values);
+    Py_INCREF (Py_None);
     return Py_None;
 }
 
@@ -2523,7 +2586,7 @@ static PyMethodDef PGA_methods [] =
 , { "set_random_seed",           PGA_set_random_seed,           METH_VARARGS
   , "Set random seed to integer value"
   }
-, {} /* EMPTY VALUE AS END-MARKER */
+, { NULL } /* EMPTY VALUE AS END-MARKER */
 };
 
 /**********************************
@@ -2661,7 +2724,7 @@ static PyGetSetDef PGA_getset [] =
 , GETTER_ENTRY (tournament_with_replacement)
 , GETTER_ENTRY (truncation_proportion)
 , GETTER_ENTRY (uniform_crossover_prob)
-, {}
+, { NULL }
 };
 
 /***************************

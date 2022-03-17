@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This needs the FANN neural network library.
 # http://leenissen.dk/fann/wp/

@@ -5,6 +5,10 @@ PGAPy: Python Wrapper for PGAPack Parallel Genetic Algorithm Library
 
 :Author: Ralf Schlatterbeck <rsc@runtux.com>
 
+News 03-2022: Attempt to make this installable on Windows. This involves
+some workaround in the code because the visual compiler does not support
+certain C99 constructs.
+
 News 01-2022: This version wraps multiple evaluation with NSGA-III (note
 the additional 'I').
 

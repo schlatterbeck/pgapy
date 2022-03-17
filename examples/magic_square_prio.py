@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 from __future__ import print_function, division
 from pga import PGA, PGA_REPORT_STRING
