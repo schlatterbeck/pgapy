@@ -58,7 +58,6 @@ modulename = environ.get ('PGA_MODULE', 'module_from_pgapack_submodule')
 module_from_pgapack_submodule = Extension \
     ( 'pga'
     , sources = ['pgamodule.c'] + pgapack_sources + [stub]
-    , extra_compile_args = ['-fPIC']
     , define_macros = [('FAKE_MPI', '1')]
     , include_dirs  = ['.', 'pgapack/fakempi', 'pgapack/include']
     , depends       = ['pgapack/include/pgapack.h', 'pgapack/fakempi/mpi.h']
