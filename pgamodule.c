@@ -256,16 +256,24 @@ int compare_constdef (const void *v1, const void *v2)
 static PGAContext *get_context (PyObject *self)
 {
     PyObject   *PGA_ctx = PyObject_GetAttrString (self, "context");
-    PGAContext *ctx;
+    long long llctx;
     if (!PGA_ctx) {
         return NULL;
     }
-    if (!PyArg_Parse (PGA_ctx, "l", &ctx)) {
+    if (!PyArg_Parse (PGA_ctx, "L", &llctx)) {
         Py_DECREF   (PGA_ctx);
         return NULL;
     }
     Py_DECREF   (PGA_ctx);
-    return ctx;
+    /* Visual C disable warning about size */
+    #ifdef _MSC_VER
+    #pragma warning(push)
+    #pragma warning(disable:4305)
+    #endif
+    return (PGAContext *)llctx;
+    #ifdef _MSC_VER
+    #pragma warning(pop)
+    #endif
 }
 
 /*
