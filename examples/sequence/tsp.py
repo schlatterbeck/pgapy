@@ -466,6 +466,7 @@ class TSP (pga.PGA) :
         , 'gr24.tsp'      : 1272
         , 'gr48.tsp'      : 5046
         , 'gr120.tsp'     : 6942
+        , 'berlin52.tsp'  : 7542
         }
 
     def __init__ (self, args) :
@@ -757,11 +758,11 @@ class TSP (pga.PGA) :
             ix  = (st + i) % l
             assert (ix != idx3)
             v = allele [ix]
-            if lv is not None :
-                eo += self.edge_weight (lv, v)
+#            if lv is not None :
+#                eo += self.edge_weight (lv, v)
             lv = v
             seq.append (v)
-        eb  = eo
+#        eb  = eo
         bef = allele [(st - 1) % l]
         aft = allele [(st + n) % l]
         eo += self.edge_weight (bef, seq [0])
@@ -773,10 +774,10 @@ class TSP (pga.PGA) :
         if inv :
             en += self.edge_weight (y1, seq [-1])
             en += self.edge_weight (seq [0], y2)
-            for i in range (n - 1) :
-                en += self.edge_weight (seq [i], seq [i + 1])
+#            for i in range (n - 1) :
+#                en += self.edge_weight (seq [i], seq [i + 1])
         else :
-            en += eb
+#            en += eb
             en += self.edge_weight (y1, seq [0])
             en += self.edge_weight (seq [-1], y2)
         if (en < eo or force) :
@@ -895,8 +896,8 @@ class TSP (pga.PGA) :
                         , self.lk_graph.other_half
                         )
                       )
-            # Debug (FIXME: Should at some point be turned off):
-            if self.args.debug >= 0 :
+            # Debug: Some expensive assertions
+            if self.args.debug > 0 :
                 a = self.lk_take_tour (allele)
                 assert self.is_valid_tour (a)
                 if self.args.debug >= 2 :
