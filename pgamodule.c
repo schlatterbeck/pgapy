@@ -192,7 +192,8 @@ typedef struct
 
 /* These need to be kept sorted */
 static constdef_t constdef [] =
-    { {"PGA_CROSSOVER_ONEPT",       PGA_CROSSOVER_ONEPT       }
+    { {"PGA_CROSSOVER_EDGE",        PGA_CROSSOVER_EDGE        }
+    , {"PGA_CROSSOVER_ONEPT",       PGA_CROSSOVER_ONEPT       }
     , {"PGA_CROSSOVER_SBX",         PGA_CROSSOVER_SBX         }
     , {"PGA_CROSSOVER_TWOPT",       PGA_CROSSOVER_TWOPT       }
     , {"PGA_CROSSOVER_UNIFORM",     PGA_CROSSOVER_UNIFORM     }
@@ -206,6 +207,10 @@ static constdef_t constdef [] =
     , {"PGA_FITNESS_NORMAL",        PGA_FITNESS_NORMAL        }
     , {"PGA_FITNESS_RANKING",       PGA_FITNESS_RANKING       }
     , {"PGA_FITNESS_RAW",           PGA_FITNESS_RAW           }
+    , {"PGA_MIX_MUTATE_AND_CROSS",  PGA_MIX_MUTATE_AND_CROSS  }
+    , {"PGA_MIX_MUTATE_ONLY",       PGA_MIX_MUTATE_ONLY       }
+    , {"PGA_MIX_MUTATE_OR_CROSS",   PGA_MIX_MUTATE_OR_CROSS   }
+    , {"PGA_MIX_TRADITIONAL",       PGA_MIX_TRADITIONAL       }
     , {"PGA_MUTATION_CONSTANT",     PGA_MUTATION_CONSTANT     }
     , {"PGA_MUTATION_DE",           PGA_MUTATION_DE           }
     , {"PGA_MUTATION_GAUSSIAN",     PGA_MUTATION_GAUSSIAN     }
@@ -887,6 +892,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     PyObject *mutation_and_crossover = NULL;
     PyObject *mutation_or_crossover = NULL;
     PyObject *mutation_only = NULL;
+    int mixing_type = 0;
     PyObject *refpoints = NULL;
     PyObject *refdirs = NULL;
     int refdir_partitions = 0;
@@ -894,6 +900,8 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     PyObject *argv = NULL;
     char **c_argv = NULL;
     PGAContext *ctx;
+    PyObject *fixed_edges = NULL;
+    int fixed_edges_symmetric = PGA_TRUE;
     static char *kwlist[] =
         { "type"
         , "length"
@@ -943,6 +951,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         , "mutation_and_crossover"
         , "mutation_or_crossover"
         , "mutation_only"
+        , "mixing_type"
         , "p_tournament_prob"
         , "fitness_type"
         , "max_fitness_rank"
@@ -960,6 +969,8 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         , "refdir_partitions"
         , "refdir_scale"
         , "argv"
+        , "fixed_edges"
+        , "fixed_edges_symmetric"
         , NULL
         };
 
@@ -967,7 +978,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             ( args
             , kw
             , "Oi|OiiOOOiiiidOiiOOOiidOOOddiOiOOiddd"
-              "iiiddddddOOOdiddiiiidiiiOOidO"
+              "iiiddddddOOOididdidiidiiiOOidOOi"
             , kwlist
             , &type
             , &length
@@ -1017,6 +1028,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             , &mutation_and_crossover
             , &mutation_or_crossover
             , &mutation_only
+            , &mixing_type
             , &p_tournament_prob
             , &fitness_type
             , &max_fitness_rank
@@ -1034,6 +1046,8 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             , &refdir_partitions
             , &refdir_scale
             , &argv
+            , &fixed_edges
+            , &fixed_edges_symmetric
             )
         )
     {
@@ -1078,7 +1092,6 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             );
         return INIT_FAIL;
     }
-
     /* If user didn't specify argv we get sys.argv */
     if (!argv) {
         PyObject *sys = PyImport_ImportModule ("sys");
@@ -1184,6 +1197,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         if (  crossover_type != PGA_CROSSOVER_ONEPT
            && crossover_type != PGA_CROSSOVER_TWOPT
            && crossover_type != PGA_CROSSOVER_UNIFORM
+           && crossover_type != PGA_CROSSOVER_EDGE
            )
         {
             PyErr_SetString (PyExc_ValueError, "invalid crossover_type");
@@ -1563,6 +1577,19 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     if (mutation_only && PyObject_IsTrue (mutation_only)) {
         PGASetMutationOnlyFlag (ctx, PGA_TRUE);
     }
+    if (mixing_type != 0) {
+        if (  mixing_type != PGA_MIX_TRADITIONAL
+           && mixing_type != PGA_MIX_MUTATE_OR_CROSS
+           && mixing_type != PGA_MIX_MUTATE_AND_CROSS
+           && mixing_type != PGA_MIX_MUTATE_ONLY
+           )
+        {
+            PyErr_SetString
+                (PyExc_ValueError, "invalid mixing_type");
+            return INIT_FAIL;
+        }
+        PGASetMixingType (ctx, mixing_type);
+    }
     if (mutation_type) {
         int data_type = PGAGetDataType (ctx);
         if (data_type != PGA_DATATYPE_REAL && data_type != PGA_DATATYPE_INTEGER)
@@ -1692,6 +1719,45 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         PGASetReferenceDirections
             (ctx, ndirs, ref, refdir_partitions, refdir_scale);
     }
+    if (fixed_edges) {
+        Py_ssize_t i, j, len = PySequence_Length (fixed_edges);
+        PGAInteger (*fix)[2];
+        if (len < 0) {
+            PyErr_SetString \
+                ( PyExc_ValueError
+                , "Fixed edges must be a sequence of sequences of length 2"
+                );
+        }
+        fix = malloc (len * 2 * sizeof (PGAInteger));
+        if (fix == NULL) {
+            PyErr_NoMemory ();
+            return INIT_FAIL;
+        }
+        for (i=0; i<len; i++) {
+            PyObject *s = PySequence_GetItem (fixed_edges, i);
+            if (PySequence_Length (s) != 2) {
+                free (fix);
+                PyErr_SetString \
+                    ( PyExc_ValueError
+                    , "Fixed edges must be a sequence of sequences of length 2"
+                    );
+                return INIT_FAIL;
+            }
+            for (j=0; j<2; j++) {
+                PyObject *v = PySequence_GetItem (s, j);
+                if (!PyArg_Parse (v, "l", fix [i] + j)) {
+                    PyErr_SetString \
+                        (PyExc_ValueError , "Failed to parse fixed edge value");
+                    return INIT_FAIL;
+                }
+                Py_DECREF (v);
+            }
+            Py_DECREF (s);
+        }
+        PGAIntegerSetFixedEdges (ctx, len, fix, fixed_edges_symmetric);
+        free (fix);
+    }
+
     PGASetUp (ctx);
 
     return 0;
@@ -2184,6 +2250,20 @@ static PyObject *PGA_get_real_from_gray_code (PyObject *self, PyObject *args)
         ("d", PGAGetRealFromGrayCode (ctx, p, pop, frm, to, l, u));
 }
 
+static PyObject *PGA_get_worst_index (PyObject *self, PyObject *args)
+{
+    PGAContext *ctx = NULL;
+    int pop;
+
+    if (!PyArg_ParseTuple(args, "i", &pop)) {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    return Py_BuildValue ("i", PGAGetWorstIndex (ctx, pop));
+}
+
 /*
  * Python gene print function -- can be overridden in descendent class
  */
@@ -2554,6 +2634,9 @@ static PyMethodDef PGA_methods [] =
   }
 , { "get_real_from_gray_code",   PGA_get_real_from_gray_code,   METH_VARARGS
   , "Get real value from binary string encoded in gray code"
+  }
+, { "get_worst_index",           PGA_get_worst_index,           METH_VARARGS
+  , "Get worst index in population pop"
   }
 , { "print_context",             PGA_print_context,             METH_VARARGS
   , "Python context print, debug info about PGApack context"
