@@ -2801,7 +2801,7 @@ GETTER_FUNCTION (PGAGetUniformCrossoverProb,     uniform_crossover_prob, d)
 /*               pgapack name                pgapy name           type  max */
 SETTER_FUNCTION (PGASetCrossoverProb,        crossover_prob,         d,  1)
 SETTER_FUNCTION (PGASetEpsilonExponent,      epsilon_exponent,       d, 10)
-SETTER_FUNCTION (PGASetMultiObjPrecision,    multi_obj_precision,    d, 14)
+SETTER_FUNCTION (PGASetMultiObjPrecision,    multi_obj_precision,    i, 14)
 SETTER_FUNCTION (PGASetPTournamentProb,      p_tournament_prob,      d,  1)
 SETTER_FUNCTION (PGASetUniformCrossoverProb, uniform_crossover_prob, d,  1)
 
