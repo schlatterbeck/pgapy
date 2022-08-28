@@ -189,7 +189,8 @@ Constructor Parameters
 
 PGApack has a lot of ``PGASet`` and ``PGAGet`` functions for setting
 parameters. These are reflected in constructor parameters on the one hand
-and in read-only properties of a ``PGA`` object on the other hand. The
+and in (typically read-only, but see below) properties of a ``PGA``
+object on the other hand. The
 following table gives an overview of all the original PGApack names and
 the names of the python wrapper. For the PGApack name I've only listed
 the ``PGASet`` function, in many cases there is a corresponding
@@ -198,6 +199,7 @@ constructor parameter this is indicated in the "Prop" column. In some
 cases properties are missing because no corresponding ``PGAGet`` function
 is implemented in PGApack, in other cases returning a numeric value that
 has a symbolic constant in PGApy doesn't make much sense.
+
 The properties have the same name as the constructor parameter.
 There are Properties that don't have a corresponding constructor
 parameter, namely the ``eval_count`` property (returning the count of
@@ -230,6 +232,12 @@ implicitly set with the ``length`` parameter. The ``string_length`` is
 also available as the length of the ``PGA`` object using the Python
 built-in ``len`` function.
 
+Some properties can now also be set *during* the run of the optimizer.
+These currently are ``crossover_prob``, ``epsilon_exponent``,
+``multi_obj_precision``, ``p_tournament_prob``, and
+``uniform_crossover_prob``. Just assign to the member variable of
+the optimizer (child of PGA.pga) object.
+
 ==================================== ================================= ====== ====
 PGApack name                         Constructor parameter             Type   Prop
 ==================================== ================================= ====== ====
@@ -239,9 +247,25 @@ PGApack name                         Constructor parameter             Type   Pr
 ``PGASetCrossoverSBXOncePerString``  ``crossover_SBX_once_per_string`` int    yes
 ``PGASetCrossoverProb``              ``crossover_prob``                float  yes
 ``PGASetCrossoverType``              ``crossover_type``                sym    no
+``PGASetDEAuxFactor``                ``DE_aux_factor``                 double yes
+``PGASetDECrossoverProb``            ``DE_crossover_prob``             double yes
+``PGASetDECrossoverType``            ``DE_crossover_type``             sym    no
+``PGASetDEDither``                   ``DE_dither``                     double yes
+``PGASetDEDitherPerIndividual``      ``DE_dither_per_individual``      bool   no
+``PGASetDEJitter``                   ``DE_jitter``                     double yes
+``PGASetDENumDiffs``                 ``DE_num_diffs``                  int    yes
+``PGASetDEProbabilityEO``            ``DE_probability_EO``             double yes
+``PGASetDEScaleFactor``              ``DE_scale_factor``               double yes
+``PGASetDEVariant``                  ``DE_variant``                    sym    yes
+``PGASetEpsilonExponent``            ``epsilon_exponent``              float  yes
+``PGASetEpsilonGeneration``          ``epsilon_generation``            int    yes
+``PGASetEpsilonTheta``               ``epsilon_theta``                 int    yes
 ``PGAGetEvalCount``                  ``eval_count``                    int    yes
 ``PGASetFitnessCmaxValue``           ``fitness_cmax``                  float  yes
+``PGASetFitnessMinType``             ``fitness_min_type``              sym    no
 ``PGASetFitnessType``                ``fitness_type``                  sym    no
+``PGAIntegerSetFixedEdges``          ``fixed_edges``                          no
+``PGAIntegerSetFixedEdges``          ``fixed_edges_symmetric``         bool   no
 ``PGAGetGAIterValue``                ``GA_iter``                       int    yes
 ``PGASetIntegerInitPermute``         ``integer_init_permute``          int2   no
 ``PGASetIntegerInitRange``           ``init``                                 no
@@ -249,6 +273,8 @@ PGApack name                         Constructor parameter             Type   Pr
 ``PGASetMaxGAIterValue``             ``max_GA_iter``                   int    yes
 ``PGASetMaxNoChangeValue``           ``max_no_change``                 int    no
 ``PGASetMaxSimilarityValue``         ``max_similarity``                int    no
+``PGASetMixingType``                 ``mixing_type``                   sym    no
+``PGASetMultiObjPrecision``          ``multi_obj_precision``           int    yes
 ``PGASetMutationAndCrossoverFlag``   ``mutation_and_crossover``        int    yes
 ``PGASetMutationBounceBackFlag``     ``mutation_bounce_back``          int    yes
 ``PGASetMutationBoundedFlag``        ``mutation_bounded``              int    yes
@@ -272,6 +298,10 @@ PGApack name                         Constructor parameter             Type   Pr
 ``PGASetRandomSeed``                 ``random_seed``                   int    yes
 ``PGASetRealInitRange``              ``init``                                 no
 ``PGASetRealInitPercent``            ``init_percent``                         no
+``PGASetReferenceDirections``        ``refdir_partitions``             int    no
+``PGASetReferenceDirections``        ``refdir_scale``                  double no
+``PGASetReferenceDirections``        ``reference_directions``                 no
+``PGASetReferencePoints``            ``reference_points``                     no
 ``PGASetRestartFlag``                ``restart``                       int    yes
 ``PGASetRestartFrequencyValue``      ``restart_frequency``             int    yes
 ``PGASetRTRWindowSize``              ``rtr_window_size``               int    yes
@@ -284,6 +314,9 @@ PGApack name                         Constructor parameter             Type   Pr
 ``PGASetTruncationProportion``       ``truncation_proportion``         float  yes
 ``PGASetUniformCrossoverProb``       ``uniform_crossover_prob``        float  yes
 ==================================== ================================= ====== ====
+
+Note: The mutation_or_crossover and mutation_and_crossover parameters are
+deprecated, use mixing_type instead!
 
 PGA Object Methods
 ------------------
@@ -399,6 +432,7 @@ The following PGApack constants are available:
 ========================== ===========================================
 Constant                   Description
 ========================== ===========================================
+PGA_CROSSOVER_EDGE         Edge crossover for permutations
 PGA_CROSSOVER_ONEPT        One-point Crossover
 PGA_CROSSOVER_SBX          Simulated Binary Crossover
 PGA_CROSSOVER_TWOPT        Two-point Crossover
@@ -532,6 +566,16 @@ your Extension-configuration to the standard ``setup.py``.
 
 Changes
 -------
+
+Version 1.8: Epsilon-constrained optimization
+
+- Epsilon-constrained optimization
+- Precision for printing evals in multi-objective optimization, use this
+  feature for making regression-test work on AMD where a floating-point
+  difference in the 16th or so decimal place made a test fail
+- Crossover for permutations
+- Version-numbers: try to match pgapack, we might still diverge in the
+  last digit, though
 
 Version 1.2: Many-objective optimization with NSGA-III
 
