@@ -1,4 +1,4 @@
-/* Copyright (C) 2005-20 Dr. Ralf Schlatterbeck Open Source Consulting.
+/* Copyright (C) 2005-22 Dr. Ralf Schlatterbeck Open Source Consulting.
  * Reichergasse 131, A-3411 Weidling.
  * Web: http://www.runtux.com Email: office@runtux.com
  * ****************************************************************************
@@ -902,6 +902,10 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     PGAContext *ctx;
     PyObject *fixed_edges = NULL;
     int fixed_edges_symmetric = PGA_TRUE;
+    int epsilon_generation = 0;
+    double epsilon_exponent = -1;
+    int epsilon_theta = -1;
+    int multi_obj_precision = -1;
     static char *kwlist[] =
         { "type"
         , "length"
@@ -971,6 +975,10 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         , "argv"
         , "fixed_edges"
         , "fixed_edges_symmetric"
+        , "epsilon_generation"
+        , "epsilon_exponent"
+        , "epsilon_theta"
+        , "multi_obj_precision"
         , NULL
         };
 
@@ -978,7 +986,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             ( args
             , kw
             , "Oi|OiiOOOiiiidOiiOOOiidOOOddiOiOOiddd"
-              "iiiddddddOOOididdidiidiiiOOidOOi"
+              "iiiddddddOOOididdidiidiiiOOidOOiidii"
             , kwlist
             , &type
             , &length
@@ -1048,6 +1056,10 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             , &argv
             , &fixed_edges
             , &fixed_edges_symmetric
+            , &epsilon_generation
+            , &epsilon_exponent
+            , &epsilon_theta
+            , &multi_obj_precision
             )
         )
     {
@@ -1756,6 +1768,18 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         }
         PGAIntegerSetFixedEdges (ctx, len, fix, fixed_edges_symmetric);
         free (fix);
+    }
+    if (epsilon_generation) {
+        PGASetEpsilonGeneration (ctx, epsilon_generation);
+    }
+    if (epsilon_exponent > 0) {
+        PGASetEpsilonExponent (ctx, epsilon_exponent);
+    }
+    if (epsilon_theta > 0) {
+        PGASetEpsilonTheta (ctx, epsilon_theta);
+    }
+    if (multi_obj_precision > 0) {
+        PGASetMultiObjPrecision (ctx, multi_obj_precision);
     }
 
     PGASetUp (ctx);
@@ -2695,6 +2719,35 @@ static PyMethodDef PGA_methods [] =
         return Py_BuildValue (XSTR(arg), pganame (ctx));              \
     }
 
+#define ST_DATATYPE_d double
+#define ST_DATATYPE_i int
+#define ST_CONV_d(x) PyFloat_AsDouble(x)
+#define ST_CONV_i(x) PyLong_AsLong(x)
+#define ST_DECLARE_TMPVAR(name, arg) ST_DATATYPE_##arg name
+#define ST_DATATYPE_CONV(arg, value) ST_CONV_##arg(value)
+
+/* Only to be used with arg=d or arg=i */
+#define SETTER_FUNCTION(pganame, attrname, arg, maxval) \
+    static int PGA_SET_ ## attrname (PyObject *self, PyObject *v, void *c) \
+    {                                                                      \
+        PGAContext *ctx;                                                   \
+        ST_DECLARE_TMPVAR(tmp, arg);                                       \
+        if (!(ctx = get_context (self))) {                                 \
+            return -1;                                                     \
+        }                                                                  \
+        tmp = ST_DATATYPE_CONV(arg, v);                                    \
+	if (PyErr_Occurred ()) {                                           \
+	    return -1;                                                     \
+	}                                                                  \
+        if (maxval && tmp > maxval) {                                      \
+            PyErr_SetString (PyExc_ValueError, "Too large");               \
+            return -1;                                                     \
+        }                                                                  \
+        pganame (ctx, tmp);                                                \
+        return 0;                                                          \
+    }
+
+
 /* These do *NOT* end in semicolon */
 GETTER_FUNCTION (PGAGetCrossoverProb,            crossover_prob,         d)
 GETTER_FUNCTION (PGAGetCrossoverBounceBackFlag,  crossover_bounce_back,  i)
@@ -2710,11 +2763,15 @@ GETTER_FUNCTION (PGAGetDECrossoverProb,          DE_crossover_prob,      d)
 GETTER_FUNCTION (PGAGetDEJitter,                 DE_jitter,              d)
 GETTER_FUNCTION (PGAGetDEDither,                 DE_dither,              d)
 GETTER_FUNCTION (PGAGetDEProbabilityEO,          DE_probability_EO,      d)
+GETTER_FUNCTION (PGAGetEpsilonExponent,          epsilon_exponent,       d)
+GETTER_FUNCTION (PGAGetEpsilonGeneration,        epsilon_generation,     i)
+GETTER_FUNCTION (PGAGetEpsilonTheta,             epsilon_theta,          i)
 GETTER_FUNCTION (PGAGetEvalCount,                eval_count,             i)
 GETTER_FUNCTION (PGAGetFitnessCmaxValue,         fitness_cmax,           d)
 GETTER_FUNCTION (PGAGetGAIterValue,              GA_iter,                i)
 GETTER_FUNCTION (PGAGetMaxFitnessRank,           max_fitness_rank,       d)
 GETTER_FUNCTION (PGAGetMaxGAIterValue,           max_GA_iter,            i)
+GETTER_FUNCTION (PGAGetMultiObjPrecision,        multi_obj_precision,    i)
 GETTER_FUNCTION (PGAGetMutationAndCrossoverFlag, mutation_and_crossover, i)
 GETTER_FUNCTION (PGAGetMutationBounceBackFlag,   mutation_bounce_back,   i)
 GETTER_FUNCTION (PGAGetMutationBoundedFlag,      mutation_bounded,       i)
@@ -2739,6 +2796,14 @@ GETTER_FUNCTION (PGAGetTournamentSize,           tournament_size,        d)
 GETTER_FUNCTION (PGAGetTournamentWithReplacement,tournament_with_replacement,i)
 GETTER_FUNCTION (PGAGetTruncationProportion,     truncation_proportion,  d)
 GETTER_FUNCTION (PGAGetUniformCrossoverProb,     uniform_crossover_prob, d)
+
+/* These do *NOT* end in semicolon */
+/*               pgapack name                pgapy name           type  max */
+SETTER_FUNCTION (PGASetCrossoverProb,        crossover_prob,         d,  1)
+SETTER_FUNCTION (PGASetEpsilonExponent,      epsilon_exponent,       d, 10)
+SETTER_FUNCTION (PGASetMultiObjPrecision,    multi_obj_precision,    d, 14)
+SETTER_FUNCTION (PGASetPTournamentProb,      p_tournament_prob,      d,  1)
+SETTER_FUNCTION (PGASetUniformCrossoverProb, uniform_crossover_prob, d,  1)
 
 /* This is a special getter because it doesn't have a single data type */
 static PyObject *PGA_mutation_value (PyObject *self, void *closure)
@@ -2768,19 +2833,25 @@ static PyObject *PGA_num_eval (PyObject *self, void *closure)
 
 #define GETTER_ENTRY(name) \
     { XSTR(name), PGA_ ## name }
+#define GETSET_ENTRY(name) \
+    { XSTR(name), PGA_ ## name, PGA_SET_ ## name }
 
 static PyGetSetDef PGA_getset [] =
 /*  name      .get                  .set   .doc .closure */
-{ GETTER_ENTRY (crossover_prob)
+{ GETSET_ENTRY (crossover_prob)
 , GETTER_ENTRY (crossover_bounce_back)
 , GETTER_ENTRY (crossover_bounded)
 , GETTER_ENTRY (crossover_SBX_eta)
 , GETTER_ENTRY (crossover_SBX_once_per_string)
+, GETSET_ENTRY (epsilon_exponent)
+, GETTER_ENTRY (epsilon_generation)
+, GETTER_ENTRY (epsilon_theta)
 , GETTER_ENTRY (eval_count)
 , GETTER_ENTRY (fitness_cmax)
 , GETTER_ENTRY (GA_iter)
 , GETTER_ENTRY (max_fitness_rank)
 , GETTER_ENTRY (max_GA_iter)
+, GETSET_ENTRY (multi_obj_precision)
 , GETTER_ENTRY (mutation_and_crossover)
 , GETTER_ENTRY (mutation_or_crossover)
 , GETTER_ENTRY (mutation_only)
@@ -2803,7 +2874,7 @@ static PyGetSetDef PGA_getset [] =
 , GETTER_ENTRY (num_replace)
 , GETTER_ENTRY (pop_size)
 , GETTER_ENTRY (print_frequency)
-, GETTER_ENTRY (p_tournament_prob)
+, GETSET_ENTRY (p_tournament_prob)
 , GETTER_ENTRY (randomize_select)
 , GETTER_ENTRY (random_seed)
 , GETTER_ENTRY (restart)
@@ -2814,7 +2885,7 @@ static PyGetSetDef PGA_getset [] =
 , GETTER_ENTRY (tournament_size)
 , GETTER_ENTRY (tournament_with_replacement)
 , GETTER_ENTRY (truncation_proportion)
-, GETTER_ENTRY (uniform_crossover_prob)
+, GETSET_ENTRY (uniform_crossover_prob)
 , { NULL }
 };
 
