@@ -5,6 +5,10 @@ PGAPy: Python Wrapper for PGAPack Parallel Genetic Algorithm Library
 
 :Author: Ralf Schlatterbeck <rsc@runtux.com>
 
+News 08-2022: Epsilon-constrained optimization and a crossover variant
+that preserves permutations (so with integer genes the gene can represent
+a permutation).
+
 News 03-2022: Attempt to make this installable on Windows. This involves
 some workaround in the code because the visual compiler does not support
 certain C99 constructs.
