@@ -39,14 +39,16 @@
 
 /* Conditional compilation for python2 vs python3 */
 # if IS_PY3
-# define PyInt_Type PyLong_Type
-# define PyString_Check PyUnicode_Check
-# define PyString_FromString(x) PyUnicode_FromString((x))
+# define PyInt_Type_Compat PyLong_Type
+# define PyString_Check_Compat PyUnicode_Check
+# define PyString_FromString_Compat(x) PyUnicode_FromString((x))
 # define PyFileObject PyObject
-# define PyFile_Check(x) PyObject_IsInstance((x), (PyObject *)&PyIOBase_Type)
 # define FAIL NULL
 # else /* Python 2 */
 # define FAIL
+# define PyString_Check_Compat PyString_Check
+# define PyString_FromString_Compat(x) PyString_FromString((x))
+# define PyInt_Type_Compat PyInt_Type
 # endif /* Python 2 */
 
 /*
@@ -1077,7 +1079,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     if (PyObject_IsSubclass (type, (PyObject *)&PyBool_Type)) {
         pga_type = PGA_DATATYPE_BINARY;
     }
-    else if (  PyObject_IsSubclass (type, (PyObject *)&PyInt_Type)
+    else if (  PyObject_IsSubclass (type, (PyObject *)&PyInt_Type_Compat)
             || PyObject_IsSubclass (type, (PyObject *)&PyLong_Type)
             )
     {
@@ -1089,7 +1091,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     }
     else if (  PyBytes_Check (type)
             || PyUnicode_Check (type)
-            || PyString_Check (type)
+            || PyString_Check_Compat (type)
             )
     {
         pga_type = PGA_DATATYPE_CHARACTER;
@@ -3000,7 +3002,7 @@ PyMODINIT_FUNC initpga (void)
     PyObject *module = NULL;
     constdef_t  *cd;
     PyObject *module_Dict;
-    PyObject *version = PyString_FromString (VERSION);
+    PyObject *version = PyString_FromString_Compat (VERSION);
     PyObject *weakref = PyImport_ImportModule ("weakref");
 
     if (!version || !weakref) {
