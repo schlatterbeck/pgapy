@@ -499,6 +499,69 @@ static int check_stop (PGAContext *ctx)
 }
 
 /*
+ * Used only for user defined data type.
+ * Copy the python object and update refcounts.
+ * We explicitly do *NOT* do a deepcopy!
+ * This is because the python implementation will in many cases allocate
+ * a new object anyway, so copying the to-be-overwritten object once
+ * doesn't make sense from a performance perspective.
+ */
+static void copystring (PGAContext *ctx, int p1, int pop1, int p2, int pop2)
+{
+    PGAIndividual *src = PGAGetIndividual (ctx, p1, pop1);
+    PGAIndividual *dst = PGAGetIndividual (ctx, p2, pop2);
+    ERR_CHECK_X (!error_occurred);
+    ERR_CHECK_X (src->chrom);
+    if (src == dst) {
+        return;
+    }
+    if (dst->chrom != NULL) {
+        Py_DECREF (dst->chrom);
+        dst->chrom = NULL;
+    }
+    assert (src->chrom != NULL);
+    dst->chrom = src->chrom;
+    Py_INCREF (src->chrom);
+errout:
+    return;
+}
+
+/*
+ * Used if the calling object has an initstring method.
+ * Otherwise use built-in default for the datatype.
+ * Note: In python this is also used when createstring requests
+ * initialization of a string.
+ */
+static void initstring (PGAContext *ctx, int p, int pop)
+{
+    PyObject *self = NULL, *r = NULL;
+    ERR_CHECK_X (!error_occurred);
+    self = get_self (ctx);
+    ERR_CHECK_X (self);
+    r    = PyObject_CallMethod (self, "initstring", "ii", p, pop);
+    ERR_CHECK_X (r);
+errout:
+    Py_CLEAR (r);
+    Py_CLEAR (self);
+    return;
+}
+
+/*
+ * Used only for user defined data type.
+ * If the initflag is zero, we do no initialization and assert that the
+ * chromosome is a NULL pointer. Otherwise we call self.initstring.
+ */
+static void createstring (PGAContext *ctx, int p, int pop, int initflag)
+{
+    PGAIndividual *ind = PGAGetIndividual (ctx, p, pop);
+    if (!initflag) {
+        assert (ind->chrom == NULL);
+        return;
+    }
+    initstring (ctx, p, pop);
+}
+
+/*
  * Used if the calling object has a crossover method.
  * Otherwise use built-in default for the datatype.
  * Perform crossover from p1 and p2 into c1 and c2
@@ -512,24 +575,6 @@ static void crossover
     ERR_CHECK_X (self);
     r    = PyObject_CallMethod
         (self, "crossover", "iiiiii", p1, p2, p_pop, c1, c2, c_pop);
-    ERR_CHECK_X (r);
-errout:
-    Py_CLEAR (r);
-    Py_CLEAR (self);
-    return;
-}
-
-/*
- * Used if the calling object has an initstring method.
- * Otherwise use built-in default for the datatype.
- */
-static void initstring (PGAContext *ctx, int p, int pop)
-{
-    PyObject *self = NULL, *r = NULL;
-    ERR_CHECK_X (!error_occurred);
-    self = get_self (ctx);
-    ERR_CHECK_X (self);
-    r    = PyObject_CallMethod (self, "initstring", "ii", p, pop);
     ERR_CHECK_X (r);
 errout:
     Py_CLEAR (r);
@@ -586,6 +631,9 @@ errout:
     return retval;
 }
 
+/*
+ * Used if the calling object has a pre_eval method.
+ */
 static void pre_eval (PGAContext *ctx, int pop)
 {
     PyObject *self = NULL, *r = NULL;
@@ -653,6 +701,86 @@ errout:
     Py_CLEAR (r);
     Py_CLEAR (self);
 }
+
+/******************
+ * Serialization
+ ******************/
+
+static void *serialize_object  = NULL;
+static void *serialize_inner   = NULL;
+static PyObject *pickle_module = NULL;
+
+/*
+ * Used only for user defined data type.
+ * This implementation relies on a serialization to be immediately used
+ * and freed afterwards.
+ */
+static size_t serialize (PGAContext *ctx, int p, int pop, void **ser)
+{
+    PGAIndividual *ind = PGAGetIndividual (ctx, p, pop);
+    Py_ssize_t serial_size = 0;
+    ERR_CHECK_X (!error_occurred);
+    ERR_CHECK_X (ind->chrom != NULL);
+    ERR_CHECK_X (serialize_object == NULL);
+    ERR_CHECK_X (serialize_inner  == NULL);
+    if (pickle_module == NULL) {
+        pickle_module = PyImport_ImportModule ("pickle");
+    }
+    ERR_CHECK_X (pickle_module);
+    serialize_object = PyObject_CallMethod
+        (pickle_module, "dumps", "O", ind->chrom);
+    ERR_CHECK_X (serialize_object);
+    serial_size = PyByteArray_Size (serialize_object);
+    ERR_CHECK_X (serial_size >= 0);
+    serialize_inner = PyByteArray_AsString (serialize_object);
+    ERR_CHECK_X (serialize_inner);
+    goto out;
+errout:
+    Py_CLEAR (serialize_object);
+    serialize_object = serialize_inner = NULL;
+out:
+    *ser = serialize_inner;
+    return (size_t)serial_size;
+}
+
+/*
+ * The pointer is immediately freed after being used, so we free the
+ * corresponding python object here.
+ */
+static void serialize_free (void *p)
+{
+    PyObject *o = serialize_object;
+    assert (o != NULL);
+    assert (p == serialize_inner);
+    Py_DECREF (o);
+    serialize_object = NULL;
+    serialize_inner  = NULL;
+}
+
+static void deserialize
+    (PGAContext *ctx, int p, int pop, const void *serial, size_t size)
+{
+    PGAIndividual *ind = PGAGetIndividual (ctx, p, pop);
+    PyObject *serialized = PyByteArray_FromStringAndSize (serial, size);
+    PyObject *obj = NULL;
+    ERR_CHECK_X (!error_occurred);
+    ERR_CHECK_X (serialized);
+    if (pickle_module == NULL) {
+        pickle_module = PyImport_ImportModule ("pickle");
+    }
+    ERR_CHECK_X (pickle_module);
+    obj = PyObject_CallMethod (pickle_module, "loads", "O", serialized);
+    ERR_CHECK_X (obj);
+    if (ind->chrom != NULL) {
+        Py_DECREF (ind->chrom);
+        ind->chrom = NULL;
+    }
+    /* No need to increment refcount */
+    ind->chrom = obj;
+errout:
+    Py_CLEAR (serialized);
+}
+
 
 /******************
  * Helper functions
@@ -1096,12 +1224,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     {
         pga_type = PGA_DATATYPE_CHARACTER;
     } else {
-        /* FIXME: Implement PGA_DATATYPE_USER */
-        PyErr_SetString \
-            ( PyExc_NotImplementedError
-            , "Gene type must currently be one of [bool, int, real, string]"
-            );
-        return INIT_FAIL;
+        pga_type = PGA_DATATYPE_USER;
     }
 
     if (maximize) {
@@ -1169,33 +1292,76 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     }
     Py_CLEAR (PGA_ctx);
 
-    if (PyObject_HasAttrString (self, "check_duplicate")) {
+    /* If using userdefined datatypes we also set the user functions
+     * because PGAPack requires these and for many use-cases they are
+     * not used. The effect when such a function is needed (and called)
+     * is that a traceback is raised that the method is non-existing.
+     * This is considered better than PGAPack terminating with an error.
+     * Some of the functions are *only* defined internally and do not
+     * call into python methods.
+     */
+    if (  PyObject_HasAttrString (self, "check_duplicate")
+       || ctx->ga.datatype == PGA_DATATYPE_USER
+       )
+    {
         PGASetUserFunction
             (ctx, PGA_USERFUNCTION_DUPLICATE, (void *)check_duplicate);
     }
-    if (PyObject_HasAttrString (self, "crossover")) {
+    PGASetUserFunction (ctx, PGA_USERFUNCTION_STOPCOND, (void *)check_stop);
+    if (ctx->ga.datatype == PGA_DATATYPE_USER) {
+        PGASetUserFunction
+            (ctx, PGA_USERFUNCTION_COPYSTRING, (void *)copystring);
+    }
+    if (ctx->ga.datatype == PGA_DATATYPE_USER) {
+        PGASetUserFunction
+            (ctx, PGA_USERFUNCTION_CREATESTRING, (void *)createstring);
+    }
+    if (  PyObject_HasAttrString (self, "crossover")
+       || ctx->ga.datatype == PGA_DATATYPE_USER
+       )
+    {
         PGASetUserFunction (ctx, PGA_USERFUNCTION_CROSSOVER, (void *)crossover);
+    }
+    if (ctx->ga.datatype == PGA_DATATYPE_USER) {
+        PGASetUserFunction
+            (ctx, PGA_USERFUNCTION_DESERIALIZE, (void *)deserialize);
     }
     if (PyObject_HasAttrString (self, "endofgen")) {
         PGASetUserFunction (ctx, PGA_USERFUNCTION_ENDOFGEN, (void *)endofgen);
     }
-    if (PyObject_HasAttrString (self, "initstring")) {
+    if (  PyObject_HasAttrString (self, "gene_difference")
+       || ctx->ga.datatype == PGA_DATATYPE_USER
+       )
+    {
+        PGASetUserFunction
+            (ctx, PGA_USERFUNCTION_GEN_DISTANCE, (void *)gene_difference);
+    }
+    if (  PyObject_HasAttrString (self, "initstring")
+       || ctx->ga.datatype == PGA_DATATYPE_USER
+       )
+    {
         PGASetUserFunction
             (ctx, PGA_USERFUNCTION_INITSTRING, (void *)initstring);
     }
-    if (PyObject_HasAttrString (self, "mutation")) {
+    if (  PyObject_HasAttrString (self, "mutation")
+       || ctx->ga.datatype == PGA_DATATYPE_USER
+       )
+    {
         PGASetUserFunction (ctx, PGA_USERFUNCTION_MUTATION, (void *)mutation);
-    }
-    if (PyObject_HasAttrString (self, "gene_difference")) {
-        PGASetUserFunction
-            (ctx, PGA_USERFUNCTION_GEN_DIFFERENCE, (void *)gene_difference);
     }
     if (PyObject_HasAttrString (self, "pre_eval")) {
         PGASetUserFunction
             (ctx, PGA_USERFUNCTION_PRE_EVAL, (void *)pre_eval);
     }
     PGASetUserFunction (ctx, PGA_USERFUNCTION_PRINTSTRING, (void *)print_gene);
-    PGASetUserFunction (ctx, PGA_USERFUNCTION_STOPCOND,    (void *)check_stop);
+    if (ctx->ga.datatype == PGA_DATATYPE_USER) {
+        PGASetUserFunction
+            (ctx, PGA_USERFUNCTION_SERIALIZE, (void *)serialize);
+    }
+    if (ctx->ga.datatype == PGA_DATATYPE_USER) {
+        PGASetUserFunction
+            (ctx, PGA_USERFUNCTION_SERIALIZE_FREE, (void *)serialize_free);
+    }
 
     if (crossover_prob >= 0) {
         PGASetCrossoverProb (ctx, crossover_prob);
@@ -1832,7 +1998,7 @@ static PyObject *PGA_encode_int_as_binary (PyObject *self, PyObject *args)
     PGAContext *ctx = NULL;
     int p, pop, frm, to, val;
 
-    if (!PyArg_ParseTuple(args, "iiiii", &p, &pop, &frm, &to, &val)) {
+    if (!PyArg_ParseTuple (args, "iiiii", &p, &pop, &frm, &to, &val)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -1860,7 +2026,7 @@ static PyObject *PGA_encode_int_as_gray_code (PyObject *self, PyObject *args)
     PGAContext *ctx = NULL;
     int p, pop, frm, to, val;
 
-    if (!PyArg_ParseTuple(args, "iiiii", &p, &pop, &frm, &to, &val)) {
+    if (!PyArg_ParseTuple (args, "iiiii", &p, &pop, &frm, &to, &val)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -1949,7 +2115,7 @@ static PyObject *PGA_euclidian_distance (PyObject *self, PyObject *args)
     double dist = 0.0;
     PGAContext *ctx;
 
-    if (!PyArg_ParseTuple(args, "iiii", &p1, &pop1, &p2, &pop2)) {
+    if (!PyArg_ParseTuple (args, "iiii", &p1, &pop1, &p2, &pop2)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -1973,7 +2139,7 @@ static PyObject *PGA_evaluate (PyObject *self, PyObject *args)
 {
     int p, pop;
 
-    if (!PyArg_ParseTuple(args, "ii", &p, &pop)) {
+    if (!PyArg_ParseTuple (args, "ii", &p, &pop)) {
         return NULL;
     }
     PyErr_SetString \
@@ -1989,7 +2155,7 @@ static PyObject *PGA_fitness (PyObject *self, PyObject *args)
     PGAContext *ctx;
     int pop;
 
-    if (!PyArg_ParseTuple(args, "i", &pop)) {
+    if (!PyArg_ParseTuple (args, "i", &pop)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -1999,6 +2165,75 @@ static PyObject *PGA_fitness (PyObject *self, PyObject *args)
     Py_INCREF   (Py_None);
     return Py_None;
 }
+
+/* Used to set the gene for user defined datatypes.
+ * If no user defined datatypes are in use, raise a ValueError.
+ * This gets p, pop, userdata, the last being a PyObject (an instance of
+ * the user defined datatype)
+ */
+static PyObject *PGA_set_gene (PyObject *self, PyObject *args)
+{
+    PGAContext *ctx;
+    int p, pop;
+    PyObject *gene = NULL;
+    PGAIndividual *ind = NULL;
+    if (!PyArg_ParseTuple (args, "iiO", &p, &pop, &gene)) {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    if (ctx->ga.datatype != PGA_DATATYPE_USER) {
+        PyErr_SetString
+            ( PyExc_ValueError
+            , "This method is used only for user-defined datatypes"
+            );
+        return NULL;
+    }
+    ind = PGAGetIndividual (ctx, p, pop);
+    /* Decrement refcount of stored user data object if existing */
+    if (ind->chrom != NULL) {
+        Py_DECREF (ind->chrom);
+        ind->chrom = NULL;
+    }
+    ind->chrom = gene;
+    Py_INCREF (gene);
+    Py_INCREF (Py_None);
+    return Py_None;
+}
+
+/* Used to retrieve the gene for user defined datatypes.
+ * If no user defined datatypes are in use, raise a ValueError.
+ * This gets p, pop and returns the gene, a PyObject (an instance of the
+ * user defined datatype)
+ */
+static PyObject *PGA_get_gene (PyObject *self, PyObject *args)
+{
+    PGAContext *ctx;
+    int p, pop;
+    PGAIndividual *ind = NULL;
+    if (!PyArg_ParseTuple (args, "ii", &p, &pop)) {
+        return NULL;
+    }
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    if (ctx->ga.datatype != PGA_DATATYPE_USER) {
+        PyErr_SetString
+            ( PyExc_ValueError
+            , "This method is used only for user-defined datatypes"
+            );
+        return NULL;
+    }
+    ind = PGAGetIndividual (ctx, p, pop);
+    if (ind->chrom == NULL) {
+        PyErr_SetString (PyExc_ValueError, "This gene is not set");
+        return NULL;
+    }
+    Py_INCREF (ind->chrom);
+    return ind->chrom;
+}
+
 
 /*
  * Get and Set methods.
@@ -2011,7 +2246,7 @@ static PyObject *PGA_get_allele (PyObject *self, PyObject *args)
     if (error_occurred) {
         return NULL;
     }
-    if (!PyArg_ParseTuple(args, "iii", &p, &pop, &i)) {
+    if (!PyArg_ParseTuple (args, "iii", &p, &pop, &i)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -2022,7 +2257,7 @@ static PyObject *PGA_get_allele (PyObject *self, PyObject *args)
     }
 
     switch (PGAGetDataType (ctx)) {
-    case PGA_DATATYPE_BINARY :
+    case PGA_DATATYPE_BINARY:
     {
         int allele = PGAGetBinaryAllele (ctx, p, pop, i);
         if (error_occurred) {
@@ -2031,7 +2266,7 @@ static PyObject *PGA_get_allele (PyObject *self, PyObject *args)
         return Py_BuildValue ("i", allele);
         break;
     }
-    case PGA_DATATYPE_CHARACTER :
+    case PGA_DATATYPE_CHARACTER:
     {
         char allele = PGAGetCharacterAllele (ctx, p, pop, i);
         if (error_occurred) {
@@ -2040,7 +2275,7 @@ static PyObject *PGA_get_allele (PyObject *self, PyObject *args)
         return Py_BuildValue ("c", allele);
         break;
     }
-    case PGA_DATATYPE_INTEGER :
+    case PGA_DATATYPE_INTEGER:
     {
         int allele = PGAGetIntegerAllele (ctx, p, pop, i);
         if (error_occurred) {
@@ -2049,7 +2284,7 @@ static PyObject *PGA_get_allele (PyObject *self, PyObject *args)
         return Py_BuildValue ("i", allele);
         break;
     }
-    case PGA_DATATYPE_REAL :
+    case PGA_DATATYPE_REAL:
     {
         double allele = PGAGetRealAllele (ctx, p, pop, i);
         if (error_occurred) {
@@ -2058,7 +2293,12 @@ static PyObject *PGA_get_allele (PyObject *self, PyObject *args)
         return Py_BuildValue ("d", allele);
         break;
     }
-    default :
+    case PGA_DATATYPE_USER:
+    {
+        PyErr_SetString (PyExc_ValueError, "No allele for user data type");
+        return NULL;
+    }
+    default:
         assert (0);
     }
     if (error_occurred) {
@@ -2073,7 +2313,7 @@ static PyObject *PGA_get_best_index (PyObject *self, PyObject *args)
     PGAContext *ctx = NULL;
     int pop;
 
-    if (!PyArg_ParseTuple(args, "i", &pop)) {
+    if (!PyArg_ParseTuple (args, "i", &pop)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -2087,7 +2327,7 @@ static PyObject *PGA_get_best_report (PyObject *self, PyObject *args)
     PGAContext *ctx = NULL;
     int pop, idx;
 
-    if (!PyArg_ParseTuple(args, "ii", &pop, &idx)) {
+    if (!PyArg_ParseTuple (args, "ii", &pop, &idx)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -2101,7 +2341,7 @@ static PyObject *PGA_get_best_report_index (PyObject *self, PyObject *args)
     PGAContext *ctx = NULL;
     int pop, idx;
 
-    if (!PyArg_ParseTuple(args, "ii", &pop, &idx)) {
+    if (!PyArg_ParseTuple (args, "ii", &pop, &idx)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -2118,7 +2358,7 @@ static PyObject *PGA_get_evaluation (PyObject *self, PyObject *args)
     int p, pop, i;
     const double *aux;
 
-    if (!PyArg_ParseTuple(args, "ii", &p, &pop))
+    if (!PyArg_ParseTuple (args, "ii", &p, &pop))
     {
         return NULL;
     }
@@ -2158,7 +2398,7 @@ static PyObject *PGA_get_evaluation_up_to_date (PyObject *self, PyObject *args)
     PGAContext *ctx = NULL;
     int p, pop;
 
-    if (!PyArg_ParseTuple(args, "ii", &p, &pop)) {
+    if (!PyArg_ParseTuple (args, "ii", &p, &pop)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -2172,7 +2412,7 @@ static PyObject *PGA_get_fitness (PyObject *self, PyObject *args)
     PGAContext *ctx = NULL;
     int p, pop;
 
-    if (!PyArg_ParseTuple(args, "ii", &p, &pop)) {
+    if (!PyArg_ParseTuple (args, "ii", &p, &pop)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -2186,7 +2426,7 @@ static PyObject *PGA_get_int_from_binary (PyObject *self, PyObject *args)
     PGAContext *ctx = NULL;
     int p, pop, frm, to;
 
-    if (!PyArg_ParseTuple(args, "iiii", &p, &pop, &frm, &to)) {
+    if (!PyArg_ParseTuple (args, "iiii", &p, &pop, &frm, &to)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -2212,7 +2452,7 @@ static PyObject *PGA_get_int_from_gray_code (PyObject *self, PyObject *args)
     PGAContext *ctx = NULL;
     int p, pop, frm, to;
 
-    if (!PyArg_ParseTuple(args, "iiii", &p, &pop, &frm, &to)) {
+    if (!PyArg_ParseTuple (args, "iiii", &p, &pop, &frm, &to)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -2250,7 +2490,7 @@ static PyObject *PGA_get_real_from_binary (PyObject *self, PyObject *args)
     int p, pop, frm, to;
     double l, u;
 
-    if (!PyArg_ParseTuple(args, "iiiidd", &p, &pop, &frm, &to, &l, &u))
+    if (!PyArg_ParseTuple (args, "iiiidd", &p, &pop, &frm, &to, &l, &u))
     {
         return NULL;
     }
@@ -2279,7 +2519,7 @@ static PyObject *PGA_get_real_from_gray_code (PyObject *self, PyObject *args)
     int p, pop, frm, to;
     double l, u;
 
-    if (!PyArg_ParseTuple(args, "iiiidd", &p, &pop, &frm, &to, &l, &u))
+    if (!PyArg_ParseTuple (args, "iiiidd", &p, &pop, &frm, &to, &l, &u))
     {
         return NULL;
     }
@@ -2307,7 +2547,7 @@ static PyObject *PGA_get_worst_index (PyObject *self, PyObject *args)
     PGAContext *ctx = NULL;
     int pop;
 
-    if (!PyArg_ParseTuple(args, "i", &pop)) {
+    if (!PyArg_ParseTuple (args, "i", &pop)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -2326,7 +2566,7 @@ static PyObject *PGA_print_string (PyObject *self, PyObject *args)
     int           p, pop;
     FILE         *fp = NULL;
 
-    if (!PyArg_ParseTuple(args, "Oii", &file, &p, &pop)) {
+    if (!PyArg_ParseTuple (args, "Oii", &file, &p, &pop)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -2336,19 +2576,29 @@ static PyObject *PGA_print_string (PyObject *self, PyObject *args)
         return NULL;
     }
     switch (PGAGetDataType (ctx)) {
-    case PGA_DATATYPE_BINARY :
+    case PGA_DATATYPE_BINARY:
         PGABinaryPrintString    (ctx, fp, p, pop);
         break;
-    case PGA_DATATYPE_CHARACTER :
+    case PGA_DATATYPE_CHARACTER:
         PGACharacterPrintString (ctx, fp, p, pop);
         break;
-    case PGA_DATATYPE_INTEGER :
+    case PGA_DATATYPE_INTEGER:
         PGAIntegerPrintString   (ctx, fp, p, pop);
         break;
-    case PGA_DATATYPE_REAL :
+    case PGA_DATATYPE_REAL:
         PGARealPrintString      (ctx, fp, p, pop);
         break;
-    default :
+    case PGA_DATATYPE_USER:
+    {
+        PGAIndividual *ind = PGAGetIndividual (ctx, p, pop);
+        if (ind->chrom == NULL) {
+            PyErr_SetString (PyExc_ValueError, "This gene is not set");
+            return NULL;
+        }
+        PyObject_Print (ind->chrom, fp, 0);
+        break;
+    }
+    default:
         assert (0);
     }
     fflush (fp);
@@ -2364,7 +2614,7 @@ static PyObject *PGA_print_context (PyObject *self, PyObject *args)
 {
     PGAContext   *ctx = NULL;
 
-    if (!PyArg_ParseTuple(args, "")) {
+    if (!PyArg_ParseTuple (args, "")) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -2390,7 +2640,7 @@ static PyObject *PGA_random_flip (PyObject *self, PyObject *args)
     PGAContext *ctx = NULL;
     double     probability;
 
-    if (!PyArg_ParseTuple(args, "d", &probability)) {
+    if (!PyArg_ParseTuple (args, "d", &probability)) {
         return NULL;
     }
     if (!check_probability (probability)) {
@@ -2407,7 +2657,7 @@ static PyObject *PGA_random_gaussian (PyObject *self, PyObject *args)
     PGAContext *ctx;
     double     l, r;
 
-    if (!PyArg_ParseTuple(args, "dd", &l, &r)) {
+    if (!PyArg_ParseTuple (args, "dd", &l, &r)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -2424,7 +2674,7 @@ static PyObject *PGA_random_interval (PyObject *self, PyObject *args)
     if (error_occurred) {
         return NULL;
     }
-    if (!PyArg_ParseTuple(args, "ii", &l, &r)) {
+    if (!PyArg_ParseTuple (args, "ii", &l, &r)) {
         return NULL;
     }
     check_interval (l, r);
@@ -2439,7 +2689,7 @@ static PyObject *PGA_random_uniform (PyObject *self, PyObject *args)
     PGAContext *ctx;
     double     l, r;
 
-    if (!PyArg_ParseTuple(args, "dd", &l, &r)) {
+    if (!PyArg_ParseTuple (args, "dd", &l, &r)) {
         return NULL;
     }
     check_interval (l, r);
@@ -2469,7 +2719,7 @@ static PyObject *PGA_select_next_index (PyObject *self, PyObject *args)
     PGAContext *ctx = NULL;
     int pop;
 
-    if (!PyArg_ParseTuple(args, "i", &pop)) {
+    if (!PyArg_ParseTuple (args, "i", &pop)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -2487,7 +2737,7 @@ static PyObject *PGA_set_allele (PyObject *self, PyObject *args)
     if (error_occurred) {
         return NULL;
     }
-    if (!PyArg_ParseTuple(args, "iiiO", &p, &pop, &i, &val)) {
+    if (!PyArg_ParseTuple (args, "iiiO", &p, &pop, &i, &val)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -2498,7 +2748,7 @@ static PyObject *PGA_set_allele (PyObject *self, PyObject *args)
     }
 
     switch (PGAGetDataType (ctx)) {
-    case PGA_DATATYPE_BINARY :
+    case PGA_DATATYPE_BINARY:
     {
         int allele;
         if (!PyArg_Parse (val, "i", &allele))
@@ -2506,7 +2756,7 @@ static PyObject *PGA_set_allele (PyObject *self, PyObject *args)
         PGASetBinaryAllele (ctx, p, pop, i, allele);
         break;
     }
-    case PGA_DATATYPE_CHARACTER :
+    case PGA_DATATYPE_CHARACTER:
     {
         char allele;
         if (!PyArg_Parse (val, "c", &allele))
@@ -2514,7 +2764,7 @@ static PyObject *PGA_set_allele (PyObject *self, PyObject *args)
         PGASetCharacterAllele (ctx, p, pop, i, allele);
         break;
     }
-    case PGA_DATATYPE_INTEGER :
+    case PGA_DATATYPE_INTEGER:
     {
         int allele;
         if (!PyArg_Parse (val, "i", &allele))
@@ -2522,7 +2772,7 @@ static PyObject *PGA_set_allele (PyObject *self, PyObject *args)
         PGASetIntegerAllele (ctx, p, pop, i, allele);
         break;
     }
-    case PGA_DATATYPE_REAL :
+    case PGA_DATATYPE_REAL:
     {
         double allele;
         if (!PyArg_Parse (val, "d", &allele))
@@ -2530,7 +2780,12 @@ static PyObject *PGA_set_allele (PyObject *self, PyObject *args)
         PGASetRealAllele (ctx, p, pop, i, allele);
         break;
     }
-    default :
+    case PGA_DATATYPE_USER:
+    {
+        PyErr_SetString (PyExc_ValueError, "No allele for user data type");
+        return NULL;
+    }
+    default:
         assert (0);
     }
     if (error_occurred) {
@@ -2607,7 +2862,7 @@ static PyObject *PGA_set_evaluation_up_to_date (PyObject *self, PyObject *args)
     PGAContext *ctx = NULL;
     int p, pop, status;
 
-    if (!PyArg_ParseTuple(args, "iii", &p, &pop, &status)) {
+    if (!PyArg_ParseTuple (args, "iii", &p, &pop, &status)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -2624,7 +2879,7 @@ static PyObject *PGA_set_random_seed (PyObject *self, PyObject *args)
     PGAContext *ctx = NULL;
     int seed;
 
-    if (!PyArg_ParseTuple(args, "i", &seed)) {
+    if (!PyArg_ParseTuple (args, "i", &seed)) {
         return NULL;
     }
     if (!(ctx = get_context (self))) {
@@ -2681,6 +2936,9 @@ static PyMethodDef PGA_methods [] =
 , { "get_fitness",               PGA_get_fitness,               METH_VARARGS
   , "Get fitness of an individual"
   }
+, { "get_gene",                  PGA_get_gene,                  METH_VARARGS
+  , "Get gene for user defined datatype"
+  }
 , { "get_int_from_binary",       PGA_get_int_from_binary,       METH_VARARGS
   , "Get integer value from binary string encoded in BCD"
   }
@@ -2734,6 +2992,9 @@ static PyMethodDef PGA_methods [] =
   }
 , { "set_evaluation_up_to_date", PGA_set_evaluation_up_to_date, METH_VARARGS
   , "Set evaluation up to date or not up to date (to True or False)"
+  }
+, { "set_gene",                  PGA_set_gene,                  METH_VARARGS
+  , "Set gene for user defined datatype"
   }
 , { "set_random_seed",           PGA_set_random_seed,           METH_VARARGS
   , "Set random seed to integer value"
