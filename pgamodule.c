@@ -732,7 +732,7 @@ static size_t serialize (PGAContext *ctx, int p, int pop, void **ser)
     ERR_CHECK_X (serialize_object);
     serial_size = PyByteArray_Size (serialize_object);
     ERR_CHECK_X (serial_size >= 0);
-    serialize_inner = PyByteArray_AsString (serialize_object);
+    serialize_inner = PyBytes_AsString (serialize_object);
     ERR_CHECK_X (serialize_inner);
     goto out;
 errout:
@@ -761,9 +761,10 @@ static void deserialize
     (PGAContext *ctx, int p, int pop, const void *serial, size_t size)
 {
     PGAIndividual *ind = PGAGetIndividual (ctx, p, pop);
-    PyObject *serialized = PyByteArray_FromStringAndSize (serial, size);
+    PyObject *serialized = NULL;
     PyObject *obj = NULL;
     ERR_CHECK_X (!error_occurred);
+    serialized = PyBytes_FromStringAndSize (serial, size);
     ERR_CHECK_X (serialized);
     if (pickle_module == NULL) {
         pickle_module = PyImport_ImportModule ("pickle");
