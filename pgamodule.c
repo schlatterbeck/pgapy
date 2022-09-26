@@ -988,6 +988,16 @@ errout:
 
 #define INIT_FAIL -1
 
+/* Registered as atexit function and also called by destructor */
+static void exitfunc (void)
+{
+    int mpi_finalized = 0;
+    MPI_Finalized (&mpi_finalized);
+    if (!mpi_finalized) {
+        MPI_Finalize ();
+    }
+}
+
 static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
 {
     int argc = 0, max = 0, length = 0, pop_size = 0, pga_type = 0;
@@ -1056,6 +1066,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     double epsilon_exponent = -1;
     int epsilon_theta = -1;
     int multi_obj_precision = -1;
+    int retval = -1;
     static char *kwlist[] =
         { "type"
         , "length"
@@ -1286,6 +1297,13 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             strcpy (c_argv [i], PyBytes_AsString (b));
             Py_DECREF (b);
         }
+    }
+
+    MPI_Init (&argc, &c_argv);
+    retval = atexit (exitfunc);
+    if (retval != 0) {
+        PyErr_SetString (PyExc_RuntimeError, "Cannot register exit function");
+        return INIT_FAIL;
     }
 
     ctx = PGACreate
@@ -3238,6 +3256,7 @@ static void PGA_dealloc (PyObject *self)
         PGADestroy (ctx);
     }
     self->ob_type->tp_free (self);
+    exitfunc ();
 }
 
 static PyObject *PGA_new (PyTypeObject *type, PyObject *args, PyObject *kwds)
