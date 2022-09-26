@@ -757,6 +757,17 @@ static void serialize_free (void *p)
     serialize_inner  = NULL;
 }
 
+/*
+ * Free the gene
+ */
+static void chrom_free (PGAIndividual *ind)
+{
+    if (ind->chrom != NULL) {
+        Py_DECREF (ind->chrom);
+        ind->chrom = NULL;
+    }
+}
+
 static void deserialize
     (PGAContext *ctx, int p, int pop, const void *serial, size_t size)
 {
@@ -1362,6 +1373,10 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     if (ctx->ga.datatype == PGA_DATATYPE_USER) {
         PGASetUserFunction
             (ctx, PGA_USERFUNCTION_SERIALIZE_FREE, (void *)serialize_free);
+    }
+    if (ctx->ga.datatype == PGA_DATATYPE_USER) {
+        PGASetUserFunction
+            (ctx, PGA_USERFUNCTION_CHROM_FREE, (void *)chrom_free);
     }
 
     if (crossover_prob >= 0) {
@@ -3130,6 +3145,17 @@ static PyObject *PGA_num_eval (PyObject *self, void *closure)
     return Py_BuildValue ("i", PGAGetNumAuxEval (ctx) + 1);
 }
 
+/* Yet another explicit getter which uses the default mpi communicator */
+static PyObject *PGA_mpi_rank (PyObject *self, void *closure)
+{
+    PGAContext *ctx;
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    return Py_BuildValue ("i", PGAGetRank (ctx, MPI_COMM_WORLD));
+}
+
+
 #define GETTER_ENTRY(name) \
     { XSTR(name), PGA_ ## name }
 #define GETSET_ENTRY(name) \
@@ -3142,6 +3168,14 @@ static PyGetSetDef PGA_getset [] =
 , GETTER_ENTRY (crossover_bounded)
 , GETTER_ENTRY (crossover_SBX_eta)
 , GETTER_ENTRY (crossover_SBX_once_per_string)
+, GETTER_ENTRY (DE_variant)
+, GETTER_ENTRY (DE_num_diffs)
+, GETTER_ENTRY (DE_scale_factor)
+, GETTER_ENTRY (DE_aux_factor)
+, GETTER_ENTRY (DE_crossover_prob)
+, GETTER_ENTRY (DE_jitter)
+, GETTER_ENTRY (DE_dither)
+, GETTER_ENTRY (DE_probability_EO)
 , GETSET_ENTRY (epsilon_exponent)
 , GETTER_ENTRY (epsilon_generation)
 , GETTER_ENTRY (epsilon_theta)
@@ -3150,6 +3184,7 @@ static PyGetSetDef PGA_getset [] =
 , GETTER_ENTRY (GA_iter)
 , GETTER_ENTRY (max_fitness_rank)
 , GETTER_ENTRY (max_GA_iter)
+, GETTER_ENTRY (mpi_rank)
 , GETSET_ENTRY (multi_obj_precision)
 , GETTER_ENTRY (mutation_and_crossover)
 , GETTER_ENTRY (mutation_or_crossover)
@@ -3160,14 +3195,6 @@ static PyGetSetDef PGA_getset [] =
 , GETTER_ENTRY (mutation_bounce_back)
 , GETTER_ENTRY (mutation_prob)
 , GETTER_ENTRY (mutation_value)
-, GETTER_ENTRY (DE_variant)
-, GETTER_ENTRY (DE_num_diffs)
-, GETTER_ENTRY (DE_scale_factor)
-, GETTER_ENTRY (DE_aux_factor)
-, GETTER_ENTRY (DE_crossover_prob)
-, GETTER_ENTRY (DE_jitter)
-, GETTER_ENTRY (DE_dither)
-, GETTER_ENTRY (DE_probability_EO)
 , GETTER_ENTRY (num_constraint)
 , GETTER_ENTRY (num_eval)
 , GETTER_ENTRY (num_replace)
