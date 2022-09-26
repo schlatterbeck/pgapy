@@ -260,8 +260,13 @@ int compare_constdef (const void *v1, const void *v2)
  */
 static PGAContext *get_context (PyObject *self)
 {
-    PyObject   *PGA_ctx = PyObject_GetAttrString (self, "context");
+    PyObject   *PGA_ctx = NULL;
     long long llctx;
+
+    if (error_occurred) {
+        return NULL;
+    }
+    PGA_ctx = PyObject_GetAttrString (self, "context");
     if (!PGA_ctx) {
         return NULL;
     }
@@ -653,6 +658,9 @@ errout:
 
 static int check_allele (PGAContext *ctx, int p, int pop, int i)
 {
+    if (error_occurred) {
+        return 1;
+    }
     if (pop != PGA_OLDPOP && pop != PGA_NEWPOP) {
         char x [50];
         sprintf (x, "%d: invalid population", pop);
@@ -1998,6 +2006,9 @@ static PyObject *PGA_get_allele (PyObject *self, PyObject *args)
     PGAContext *ctx = NULL;
     int p, pop, i;
 
+    if (error_occurred) {
+        return NULL;
+    }
     if (!PyArg_ParseTuple(args, "iii", &p, &pop, &i)) {
         return NULL;
     }
@@ -2012,29 +2023,44 @@ static PyObject *PGA_get_allele (PyObject *self, PyObject *args)
     case PGA_DATATYPE_BINARY :
     {
         int allele = PGAGetBinaryAllele (ctx, p, pop, i);
+        if (error_occurred) {
+            return NULL;
+        }
         return Py_BuildValue ("i", allele);
         break;
     }
     case PGA_DATATYPE_CHARACTER :
     {
         char allele = PGAGetCharacterAllele (ctx, p, pop, i);
+        if (error_occurred) {
+            return NULL;
+        }
         return Py_BuildValue ("c", allele);
         break;
     }
     case PGA_DATATYPE_INTEGER :
     {
         int allele = PGAGetIntegerAllele (ctx, p, pop, i);
+        if (error_occurred) {
+            return NULL;
+        }
         return Py_BuildValue ("i", allele);
         break;
     }
     case PGA_DATATYPE_REAL :
     {
         double allele = PGAGetRealAllele (ctx, p, pop, i);
+        if (error_occurred) {
+            return NULL;
+        }
         return Py_BuildValue ("d", allele);
         break;
     }
     default :
         assert (0);
+    }
+    if (error_occurred) {
+        return NULL;
     }
     Py_INCREF   (Py_None);
     return Py_None;
@@ -2393,6 +2419,9 @@ static PyObject *PGA_random_interval (PyObject *self, PyObject *args)
     PGAContext *ctx = NULL;
     int        l, r;
 
+    if (error_occurred) {
+        return NULL;
+    }
     if (!PyArg_ParseTuple(args, "ii", &l, &r)) {
         return NULL;
     }
@@ -2453,6 +2482,9 @@ static PyObject *PGA_set_allele (PyObject *self, PyObject *args)
     PGAContext *ctx = NULL;
     int p, pop, i;
 
+    if (error_occurred) {
+        return NULL;
+    }
     if (!PyArg_ParseTuple(args, "iiiO", &p, &pop, &i, &val)) {
         return NULL;
     }
@@ -2498,6 +2530,9 @@ static PyObject *PGA_set_allele (PyObject *self, PyObject *args)
     }
     default :
         assert (0);
+    }
+    if (error_occurred) {
+        return NULL;
     }
     Py_INCREF   (Py_None);
     return Py_None;
