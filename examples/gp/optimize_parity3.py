@@ -2,6 +2,7 @@
 
 import pga
 import sys
+import weakref
 from gp import F_nand, Terminal, Genetic_Programming, Function
 from random import Random
 from argparse import ArgumentParser
@@ -9,7 +10,7 @@ from argparse import ArgumentParser
 class PGA_Random (Random) :
 
     def __init__ (self, pga_instance) :
-        self.pga_instance = pga_instance
+        self.pga_instance = weakref.ref (pga_instance)
         super ().__init__ (1)
     # end def __init__
 
@@ -22,7 +23,7 @@ class PGA_Random (Random) :
     # end def setstate
 
     def random (self) :
-        return self.pga_instance.random01 ()
+        return self.pga_instance ().random01 ()
     # end def random
 
 # end class PGA_Random
@@ -119,5 +120,8 @@ if __name__ == '__main__':
         )
     args = cmd.parse_args ()
     ga = Find_Parity_3 (args)
+    #print (ga.mpi_rank, sys.getrefcount (ga))
     ga.run ()
+    #print (ga.mpi_rank, sys.getrefcount (ga))
+    #ga = None
 
