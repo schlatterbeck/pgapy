@@ -195,7 +195,7 @@ class Function (Node):
 
 # end def Function
 
-class Terminal (Node):
+class _Terminal (Node):
     """ A Terminal (a leaf of the tree)
         Needs to be instantiated with a name and optionally an index.
     """
@@ -226,14 +226,6 @@ class Terminal (Node):
         return self.values [self.format ()]
     # end def value
 
-    @value.setter
-    def value (self, value):
-        """ This sets value by key in the class.
-            So all nonterminals with same name and index have same value
-        """
-        self.values [self.format ()] = value
-    # end def value
-
     def format (self):
         if self.index is None:
             return self.name
@@ -245,7 +237,31 @@ class Terminal (Node):
         return self.value
     # end def eval
 
-# end def Terminal
+# end def _Terminal
+
+class Terminal (_Terminal):
+
+    @_Terminal.value.setter
+    def value (self, value):
+        """ This sets value by key in the class.
+            So all nonterminals with same name and index have same value
+        """
+        self.values [self.format ()] = value
+    # end def value
+
+# end class Terminal
+
+class Const (Terminal):
+    """ A constant """
+
+    def __init__ (self, name, index = None):
+        self.name  = name
+        assert index is None
+        self.index = None
+        self.values [self.format ()] = float (name)
+    # end def __init__
+
+# end class Const
 
 class F_add (Function):
     fmt = '(%s + %s)'
