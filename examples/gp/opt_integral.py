@@ -129,24 +129,19 @@ class Find_Integral (pga.PGA, Genetic_Programming):
         print (s)
     # end def eval_solution
 
-    def mutation (self, p, pop, pm):
-        """ No mutation """
-        return 0
-    # end def mutation
-
     def crossover (self, p1_i, p2_i, ppop, c1_i, c2_i, cpop):
         p1 = self.get_gene (p1_i, ppop)
         p2 = self.get_gene (p2_i, ppop)
+        if p1.evalue is None:
+            assert self.get_evaluation_up_to_date (p1_i, ppop)
+            p1.evalue = self.get_evaluation (p1_i, ppop)
+        if p2.evalue is None:
+            assert self.get_evaluation_up_to_date (p2_i, ppop)
+            p2.evalue = self.get_evaluation (p2_i, ppop)
         c1, c2 = p1.crossover (p2, self.random)
         self.set_gene (c1_i, cpop, c1)
         self.set_gene (c2_i, cpop, c2)
     # end def crossover
-
-    def initstring (self, p, pop):
-        if not self.randpop:
-            self.randpop = self.ramped_half_and_half (self.popsize, 6)
-        self.set_gene (p, pop, self.randpop.pop ())
-    # end def initstring
 
     def eval (self, x, *args):
         for n, t in enumerate (self.prange):
@@ -168,6 +163,31 @@ class Find_Integral (pga.PGA, Genetic_Programming):
         return v
     # end def eval
 
+    def evaluate (self, p, pop, tree = None):
+        self.phenotype (p, pop, tree = tree)
+        s = 0
+        for n, Y in enumerate (self.Y):
+            self.k = n + 1.0
+            s += sum (np.abs (Y - self.eval (self.X)))
+        if self.individuum.p_eval is not None and self.args.min_change:
+            chg = abs (self.individuum.p_eval - s)
+            chg /= self.individuum.p_eval
+            if chg < self.args.min_change:
+                return 1e5
+        return s
+    # end def evaluate
+
+    def initstring (self, p, pop):
+        if not self.randpop:
+            self.randpop = self.ramped_half_and_half (self.popsize, 6)
+        self.set_gene (p, pop, self.randpop.pop ())
+    # end def initstring
+
+    def mutation (self, p, pop, pm):
+        """ No mutation """
+        return 0
+    # end def mutation
+
     def phenotype (self, p, pop, tree = None):
         if tree is None:
             tree = self.get_gene (p, pop)
@@ -183,15 +203,6 @@ class Find_Integral (pga.PGA, Genetic_Programming):
             for n, t in enumerate (self.prange):
                 self.param [t.name] = popt [n]
     # end def phenotype
-
-    def evaluate (self, p, pop, tree = None):
-        self.phenotype (p, pop, tree = tree)
-        s = 0
-        for n, Y in enumerate (self.Y):
-            self.k = n + 1.0
-            s += sum (np.abs (Y - self.eval (self.X)))
-        return s
-    # end def evaluate
 
     def print_string (self, file, p, pop, tree = None):
         print ("%d iterations" % self.GA_iter, file = file)
@@ -239,6 +250,12 @@ def main ():
         , help    = "Maximum number of generations, default=%(default)s"
         , type    = int
         , default = 50
+        )
+    cmd.add_argument \
+        ( '--min-change'
+        , help    = "Minimum change compared to parent, default=%(default)s"
+        , type    = float
+        , default = 0
         )
     cmd.add_argument \
         ( '-p', '--popsize'

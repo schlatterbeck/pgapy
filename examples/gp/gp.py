@@ -11,35 +11,56 @@ import random
 #     by Means of Natural Selection. MIT Press, Cambridge, January 1992.
 
 class Offspring:
+    max_tries = 5
 
     def __init__ (self, node, random):
-        self.node = deepcopy (node)
+        self.random    = random
+        self.node      = deepcopy (node)
+        self.max_depth = self.node.max_depth
+        self.depth     = self.node.depth
         assert not isinstance (self, Terminal)
-        self.use_terminal = random.random () < 0.1
-        if self.use_terminal:
-            self.idx       = random.randrange (self.node.n_terminals)
-            self.component = self.node.get_terminal (self.idx)
-        else:
-            self.idx       = random.randrange (self.node.n_func)
-            self.component = self.node.get_function (self.idx)
+        self.compute_component ()
     # end def __init__
 
+    def compute_component (self, depth = None):
+        random = self.random
+        for i in range (self.max_tries):
+            if depth is not None and depth + self.depth > self.max_depth:
+                self.component = self.node.get_by_maxdepth (depth, random)
+            else:
+                self.use_terminal = random.random () < 0.1
+                if self.use_terminal:
+                    self.idx       = random.randrange (self.node.n_terminals)
+                    self.component = self.node.get_terminal (self.idx)
+                else:
+                    self.idx       = random.randrange (self.node.n_func)
+                    self.component = self.node.get_function (self.idx)
+            if self.component.depth < self.node.max_depth:
+                break
+    # end def compute_component
+
     def crossover (self, other):
-        # Refuse to be replaced by a terminal
-        if not self.component.parent and isinstance (other, Terminal):
-            return self.node
-        if self.component.parent:
-            parent = self.component.parent
-            pidx   = parent.child_idx (self.component)
-            assert pidx is not None
-            # Check maximum depth
-            if self.component.d_root + other.depth > self.node.max_depth:
-                return self.node
-            parent.replace_child (pidx, deepcopy (other))
-            node   = self.node
-        else:
-            node   = deepcopy (other)
-            node.parent = None
+        node = self.node
+        for i in range (self.max_tries):
+            if i:
+                self.compute_component (depth = other.depth)
+            # Refuse to be replaced by a terminal
+            if not self.component.parent and isinstance (other, Terminal):
+                continue
+            if self.component.parent:
+                parent = self.component.parent
+                pidx   = parent.child_idx (self.component)
+                assert pidx is not None
+                # Check maximum depth
+                if self.component.d_root + other.depth > self.node.max_depth:
+                    continue
+                parent.replace_child (pidx, deepcopy (other))
+                node   = self.node
+            else:
+                node   = deepcopy (other)
+                node.parent = None
+            break
+        assert node.depth <= self.max_depth
         #node.invariant (down = True)
         return node
     # end def crossover
@@ -52,6 +73,8 @@ class Node:
     def __init__ (self):
         self._parent = None
         self.d_root  = 0
+        self.p_eval  = None # eval of parent
+        self.evalue  = None # own eval
     # end def __init__
 
     @property
@@ -62,26 +85,27 @@ class Node:
     @parent.setter
     def parent (self, parent):
         self._parent = parent
-        if parent is None:
-            self.d_root = 0
-        else:
-            self.d_root = parent.d_root + 1
+        self.update_d_root ()
+        if parent is not None:
             assert self in self._parent.children
             self._parent.update_depth ()
     # end def parent
 
-    def invariant (self, down = False):
-        if isinstance (self, Terminal):
-            return
-        if self.n_func != 1 + sum (c.n_func for c in self.children):
-            import pdb; pdb.set_trace ()
-        if down:
-            for c in self.children:
-                c.invariant (down = True)
-        else:
-            if self.parent:
-                self.parent.invariant ()
-    # end def invariant
+    def as_dot (self, first = True):
+        """ Output graphviz dot format
+        """
+        r = []
+        if first:
+            r.append ('digraph "%s" {' % id (self))
+        r.append ('"%s" [label = "%s"];' % (id (self), self.name))
+        for c in self.children:
+            r.append ('"%s" -> "%s";' % (id (self), id (c)))
+        for c in self.children:
+            r.append (c.as_dot (first = False))
+        if first:
+            r.append ('}')
+        return '\n'.join (r)
+    # end def as_dot
 
     def crossover (self, other, random):
         offspring = [Offspring (self, random), Offspring (other, random)]
@@ -89,8 +113,61 @@ class Node:
             [ offspring [i].crossover (offspring [1-i].component)
               for i in range (2)
             ]
+        for n, c in enumerate (crossed):
+            c.p_eval = offspring [n].node.evalue
         return crossed
     # end def crossover
+
+    def _get_by_maxdepth (self, depth, idx):
+        if idx == 0:
+            if self.d_root + depth > self.max_depth:
+                import pdb; pdb.set_trace ()
+            assert self.d_root + depth <= self.max_depth
+            return self
+        idx -= 1
+        if self.d_root + depth == self.max_depth:
+            return idx
+        for c in self.children:
+            r = c._get_by_maxdepth (depth, idx)
+            if isinstance (r, Node):
+                return r
+            idx = r
+        return idx
+    # end def _get_by_maxdepth
+
+    def get_by_maxdepth (self, depth, random):
+        if depth == self.max_depth:
+            return self
+        count = self.get_maxdepth_count (depth)
+        assert count
+        idx   = random.randrange (count)
+        return self._get_by_maxdepth (depth, idx)
+    # end def get_by_maxdepth
+
+    def get_function (self, n):
+        assert n < self.n_func
+        if n == 0:
+            assert isinstance (self, Function)
+            return self
+        count = 1
+        for c in self.children:
+            if n < count + c.n_func:
+                return c.get_function (n - count)
+            count += c.n_func
+        assert None
+    # end def get_function
+
+    def get_maxdepth_count (self, depth):
+        """ Return number of nodes with given d_root + depth <= maxdepth
+        """
+        count = 0
+        if self.d_root + depth >= self.max_depth:
+            return count
+        count += 1
+        for c in self.children:
+            count += c.get_maxdepth_count (depth)
+        return count
+    # end def get_maxdepth_count
 
     def get_terminal (self, n):
         assert n < self.n_terminals
@@ -105,18 +182,31 @@ class Node:
         assert None
     # end def get_terminal
 
-    def get_function (self, n):
-        assert n < self.n_func
-        if n == 0:
-            assert isinstance (self, Function)
-            return self
-        count = 1
+    def invariant (self, down = False):
+        if not self.parent and self.d_root != 0:
+            import pdb; pdb.set_trace ()
+        if self.parent and self.d_root != self.parent.d_root + 1:
+            import pdb; pdb.set_trace ()
+        if isinstance (self, Terminal):
+            return
+        if self.n_func != 1 + sum (c.n_func for c in self.children):
+            import pdb; pdb.set_trace ()
+        if down:
+            for c in self.children:
+                c.invariant (down = True)
+        else:
+            if self.parent:
+                self.parent.invariant ()
+    # end def invariant
+
+    def update_d_root (self):
+        if self.parent is None:
+            self.d_root = 0
+        else:
+            self.d_root = self.parent.d_root + 1
         for c in self.children:
-            if n < count + c.n_func:
-                return c.get_function (n - count)
-            count += c.n_func
-        assert None
-    # end def get_function
+            c.update_d_root ()
+    # end def update_d_root
 
 # end class Node
 
@@ -174,6 +264,7 @@ class Function (Node):
         d_n_func      += self.children [index].n_func
         self.update_n (d_n_terminals, d_n_func)
         child.parent = self
+        child.update_d_root ()
     # end def replace_child
 
     def update_depth (self):
