@@ -49,25 +49,6 @@ class Find_XOR (pga.PGA, Genetic_Programming):
             )
     # end def __init__
 
-    def mutation (self, p, pop, pm):
-        """ No mutation """
-        return 0
-    # end def mutation
-
-    def crossover (self, p1_i, p2_i, ppop, c1_i, c2_i, cpop):
-        p1 = self.get_gene (p1_i, ppop)
-        p2 = self.get_gene (p2_i, ppop)
-        c1, c2 = p1.crossover (p2, self.random)
-        self.set_gene (c1_i, cpop, c1)
-        self.set_gene (c2_i, cpop, c2)
-    # end def crossover
-
-    def initstring (self, p, pop):
-        if not self.randpop:
-            self.randpop = self.ramped_half_and_half (self.popsize, 6)
-        self.set_gene (p, pop, self.randpop.pop ())
-    # end def initstring
-
     def evaluate (self, p, pop):
         tree = self.get_gene (p, pop)
         r = 0

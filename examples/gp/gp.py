@@ -91,13 +91,18 @@ class Node:
             self._parent.update_depth ()
     # end def parent
 
+    @property
+    def symbol (self):
+        return getattr (self, 'sym', self.name)
+    # end def symbol
+
     def as_dot (self, first = True):
         """ Output graphviz dot format
         """
         r = []
         if first:
             r.append ('digraph "%s" {' % id (self))
-        r.append ('"%s" [label = "%s"];' % (id (self), self.name))
+        r.append ('"%s" [label = "%s"];' % (id (self), self.symbol))
         for c in self.children:
             r.append ('"%s" -> "%s";' % (id (self), id (c)))
         for c in self.children:
@@ -221,7 +226,11 @@ class Function (Node):
     def __init__ (self, *children):
         assert len (children) <= self.arity
         if not self.fmt:
-            self.fmt = '%s (%s)' % (self.name, ', '.join (('%s',) * self.arity))
+            if getattr (self, 'sym', None) is not None:
+                self.fmt = '(%%s %s %%s)' % self.symbol
+            else:
+                param = ', '.join (('%s',) * self.arity)
+                self.fmt = '%s (%s)' % (self.name, param)
         self.children = list (children)
         self.n_terminals = sum (c.n_terminals for c in self.children)
         self.n_func      = sum (c.n_func      for c in self.children) + 1
@@ -268,7 +277,7 @@ class Function (Node):
     # end def replace_child
 
     def update_depth (self):
-        depth   = max (c.depth for c in self.children) + 1
+        depth = max (c.depth for c in self.children) + 1
         if depth != self.depth:
             self.depth = depth
             if self.parent:
@@ -355,7 +364,7 @@ class Const (Terminal):
 # end class Const
 
 class F_add (Function):
-    fmt = '(%s + %s)'
+    sym = '+'
 
     def eval (self):
         return sum (c.eval () for c in self.children)
@@ -364,7 +373,7 @@ class F_add (Function):
 # end class F_add
 
 class F_sub (Function):
-    fmt = '(%s - %s)'
+    sym = '-'
 
     def eval (self):
         assert len (self.children) == 2
@@ -375,7 +384,7 @@ class F_sub (Function):
 # end class F_sub
 
 class F_mul (Function):
-    fmt = '(%s * %s)'
+    sym = '*'
 
     def eval (self):
         return reduce (mul, (c.eval () for c in  self.children), 1)
@@ -384,7 +393,7 @@ class F_mul (Function):
 # end class F_mul
 
 class F_div (Function):
-    fmt = '(%s / %s)'
+    sym = '/'
 
     def eval (self):
         """ [1], p.82: Return 1 in case of division by 0
@@ -566,10 +575,14 @@ class Genetic_Programming:
         """ The ramped half-and-half strategy [1] for producing a random
             population of n individuals. This uses a ramped depth from 2
             to depth with equal number of individuals in each ramped
-            depth. It creates half of the individuals with
+            depth (except that in lower depth there may not be enough
+            different individuals). It creates half of the individuals with
             fulldepth = True and the other half with fulldepth = False.
+            The number if filled with trees of the maximum depth with
+            fulldepth = False.
         """
-        pop = []
+        ntries = 5
+        treedict = {}
         k = n // (depth - 1)
         r = n - (k * (depth - 1))
         h = [k//2, k//2 + k - (k // 2) * 2]
@@ -579,9 +592,68 @@ class Genetic_Programming:
             ll = h if d != depth - 2 else lh
             for x, nh in enumerate (ll):
                 for i in range (nh):
-                    pop.append (self.random_tree (d + 2, fulldepth = x))
-        return pop
+                    for tr in range (ntries):
+                        t = self.random_tree (d + 2, fulldepth = x)
+                        f = t.format ()
+                        if f not in treedict:
+                            treedict [f] = t
+                            break
+        while len (treedict) < n:
+            t = self.random_tree (depth, fulldepth = False)
+            f = t.format ()
+            if f not in treedict:
+                treedict [f] = t
+        return list (treedict.values ())
     # end def ramped_half_and_half
+
+    # methods needed for the GA
+
+    def check_duplicate (self, p1, pop1, p2, pop2):
+        g1 = self.get_gene (p1, pop1)
+        g2 = self.get_gene (p2, pop2)
+        return g1.format () == g2.format ()
+    # end def check_duplicate
+
+    def crossover (self, p1_i, p2_i, ppop, c1_i, c2_i, cpop):
+        p1 = self.get_gene (p1_i, ppop)
+        p2 = self.get_gene (p2_i, ppop)
+        if p1.evalue is None:
+            assert self.get_evaluation_up_to_date (p1_i, ppop)
+            r = self.get_evaluation (p1_i, ppop)
+            if np.isscalar (r):
+                p1.evalue = r
+            else:
+                p1.evalue = r [0]
+        if p2.evalue is None:
+            assert self.get_evaluation_up_to_date (p2_i, ppop)
+            r = self.get_evaluation (p2_i, ppop)
+            if np.isscalar (r):
+                p2.evalue = r
+            else:
+                p2.evalue = r [0]
+        c1, c2 = p1.crossover (p2, self.random)
+        self.set_gene (c1_i, cpop, c1)
+        self.set_gene (c2_i, cpop, c2)
+    # end def crossover
+
+    def initstring (self, p, pop):
+        if not self.randpop:
+            self.randpop = self.ramped_half_and_half (self.popsize, 6)
+        self.set_gene (p, pop, self.randpop.pop ())
+    # end def initstring
+
+    def mutation (self, p, pop, pm):
+        """ If we want no duplicates, the GA will repeatedly call
+            mutation until a string is found that is not in the
+            population.
+            We simply create a completely new individual for now.
+        """
+        if random.random () < pm:
+            t = self.random_tree (6, fulldepth = False)
+            self.set_gene (p, pop, t)
+            return 1
+        return 0
+    # end def mutation
 
 # end class Genetic_Programming
 

@@ -89,18 +89,25 @@ class Find_Integral (pga.PGA, Genetic_Programming):
             self.prange = self.terminals [lower:-1]
         else:
             self.prange = self.terminals [lower:]
-        pga.PGA.__init__ \
-            ( self, Function, 10
-            , maximize        = False
+        d = dict \
+            ( maximize        = False
             , pop_size        = self.popsize
             , num_replace     = self.popsize - self.popsize // 10
             , tournament_size = args.tournament_size
-            , mutation_prob   = 0.0
+            , mutation_prob   = 0.01
+            , crossover_prob  = 1.0
             , max_GA_iter     = args.generations
             , random_seed     = args.random_seed
             , print_options   = [pga.PGA_REPORT_STRING]
             , print_frequency = 1
+            , tournament_with_replacement = False
+            #, no_duplicates   = True
             )
+        if self.args.multiobjective:
+            d ['num_replace']    = self.popsize
+            d ['num_eval']       = 2
+            d ['num_constraint'] = 0
+        pga.PGA.__init__ (self, Function, 10, **d)
         npoints = 50
         self.X = np.arange (0, np.pi + np.pi / npoints, np.pi / npoints)
         def func (x, k = 1):
@@ -129,20 +136,6 @@ class Find_Integral (pga.PGA, Genetic_Programming):
         print (s)
     # end def eval_solution
 
-    def crossover (self, p1_i, p2_i, ppop, c1_i, c2_i, cpop):
-        p1 = self.get_gene (p1_i, ppop)
-        p2 = self.get_gene (p2_i, ppop)
-        if p1.evalue is None:
-            assert self.get_evaluation_up_to_date (p1_i, ppop)
-            p1.evalue = self.get_evaluation (p1_i, ppop)
-        if p2.evalue is None:
-            assert self.get_evaluation_up_to_date (p2_i, ppop)
-            p2.evalue = self.get_evaluation (p2_i, ppop)
-        c1, c2 = p1.crossover (p2, self.random)
-        self.set_gene (c1_i, cpop, c1)
-        self.set_gene (c2_i, cpop, c2)
-    # end def crossover
-
     def eval (self, x, *args):
         for n, t in enumerate (self.prange):
             try:
@@ -166,27 +159,25 @@ class Find_Integral (pga.PGA, Genetic_Programming):
     def evaluate (self, p, pop, tree = None):
         self.phenotype (p, pop, tree = tree)
         s = 0
+        max_hits = np.size (self.Y)
+        hits = 0
         for n, Y in enumerate (self.Y):
             self.k = n + 1.0
-            s += sum (np.abs (Y - self.eval (self.X)))
+            v = np.abs (Y - self.eval (self.X))
+            hits += (v < 1e-3).sum ()
+            s += v.sum ()
+        points = self.individuum.n_func + self.individuum.n_terminals
         if self.individuum.p_eval is not None and self.args.min_change:
             chg = abs (self.individuum.p_eval - s)
             chg /= self.individuum.p_eval
             if chg < self.args.min_change:
+                if self.args.multiobjective:
+                    return 1e5, 1e5
                 return 1e5
+        if self.args.multiobjective:
+            return s, max (points, 20)
         return s
     # end def evaluate
-
-    def initstring (self, p, pop):
-        if not self.randpop:
-            self.randpop = self.ramped_half_and_half (self.popsize, 6)
-        self.set_gene (p, pop, self.randpop.pop ())
-    # end def initstring
-
-    def mutation (self, p, pop, pm):
-        """ No mutation """
-        return 0
-    # end def mutation
 
     def phenotype (self, p, pop, tree = None):
         if tree is None:
@@ -213,10 +204,23 @@ class Find_Integral (pga.PGA, Genetic_Programming):
             fmt = '%s=%%.11g' % t.name
             fmts.append (fmt)
             args.append (self.param [t.name])
-        print ('; '.join (fmts) % tuple (args))
+        if args:
+            print ('; '.join (fmts) % tuple (args))
         file.flush ()
         if not tree:
+            ev = self.get_evaluation (p, pop)
+            if np.isscalar (ev):
+                ev = [ev]
+            print \
+                ( 'evaluation: %s' % ', '.join ('%.8g' % x for x in ev)
+                , file = file
+                )
+            file.flush ()
             super ().print_string (file, p, pop)
+            print (file = file)
+        if self.args.verbose:
+            print (self.individuum.as_dot (), file = file)
+        file.flush ()
     # end def print_string
 
     def stop_cond (self):
@@ -258,6 +262,11 @@ def main ():
         , default = 0
         )
     cmd.add_argument \
+        ( '-M', '--multiobjective'
+        , help    = "Use multi-objective optimization"
+        , action  = 'store_true'
+        )
+    cmd.add_argument \
         ( '-p', '--popsize'
         , help    = "Population size, default=%(default)s"
         , type    = int
@@ -274,6 +283,11 @@ def main ():
         , help    = "Number of individuals in tournament, default=%(default)s"
         , type    = int
         , default = 7
+        )
+    cmd.add_argument \
+        ( '-v', '--verbose'
+        , help    = "Print graphviz (.dot) output when printing a string"
+        , action  = 'store_true'
         )
     cmd.add_argument \
         ( '-1', '--use-constant-1'
