@@ -101,7 +101,7 @@ class Find_Integral (pga.PGA, Genetic_Programming):
             , print_options   = [pga.PGA_REPORT_STRING]
             , print_frequency = 1
             , tournament_with_replacement = False
-            #, no_duplicates   = True
+            , no_duplicates   = True
             )
         if self.args.multiobjective:
             d ['num_replace']    = self.popsize
@@ -166,7 +166,7 @@ class Find_Integral (pga.PGA, Genetic_Programming):
             v = np.abs (Y - self.eval (self.X))
             hits += (v < 1e-3).sum ()
             s += v.sum ()
-        points = self.individuum.n_func + self.individuum.n_terminals
+        points = self.individuum.n_funcs + self.individuum.n_terminals
         if self.individuum.p_eval is not None and self.args.min_change:
             chg = abs (self.individuum.p_eval - s)
             chg /= self.individuum.p_eval
@@ -175,7 +175,7 @@ class Find_Integral (pga.PGA, Genetic_Programming):
                     return 1e5, 1e5
                 return 1e5
         if self.args.multiobjective:
-            return s, max (points, 20)
+            return s, max (self.individuum.depth, self.args.min_depth)
         return s
     # end def evaluate
 
@@ -198,6 +198,7 @@ class Find_Integral (pga.PGA, Genetic_Programming):
     def print_string (self, file, p, pop, tree = None):
         print ("%d iterations" % self.GA_iter, file = file)
         self.phenotype (p, pop, tree)
+        ind = self.individuum
         fmts = []
         args = []
         for t in self.prange:
@@ -215,11 +216,19 @@ class Find_Integral (pga.PGA, Genetic_Programming):
                 ( 'evaluation: %s' % ', '.join ('%.8g' % x for x in ev)
                 , file = file
                 )
+            print \
+                ( 'terminals: %s, functions: %s, depth: %s'
+                % (ind.n_terminals, ind.n_funcs, ind.depth)
+                , file = file
+                )
             file.flush ()
             super ().print_string (file, p, pop)
             print (file = file)
         if self.args.verbose:
-            print (self.individuum.as_dot (), file = file)
+            print (ind.as_dot (), file = file)
+        h = hash (ind)
+        h = ((h >> 32) ^ h) & 0xFFFFFFFF
+        print ("Hash: %x" % h)
         file.flush ()
     # end def print_string
 
@@ -260,6 +269,12 @@ def main ():
         , help    = "Minimum change compared to parent, default=%(default)s"
         , type    = float
         , default = 0
+        )
+    cmd.add_argument \
+        ( '--min-depth'
+        , help    = "Minimum depth for multi-objective, default=%(default)s"
+        , type    = int
+        , default = 5
         )
     cmd.add_argument \
         ( '-M', '--multiobjective'

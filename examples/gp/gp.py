@@ -4,7 +4,6 @@ from functools import reduce
 from operator  import mul
 from copy      import deepcopy
 import numpy as np
-import random
 
 # Example of Genetic Programming (GP)
 # [1] John Koza. Genetic Programming: On the Programming of Computers
@@ -27,13 +26,22 @@ class Offspring:
         for i in range (self.max_tries):
             if depth is not None and depth + self.depth > self.max_depth:
                 self.component = self.node.get_by_maxdepth (depth, random)
+            elif self.depth <= 4:
+                self.idx = random.randrange \
+                    (self.node.n_terminals + self.node.n_funcs)
+                if self.idx >= self.node.n_funcs:
+                    self.component = self.node.get_terminal \
+                        (self.idx - self.node.n_funcs)
+                else:
+                    self.component = self.node.get_function (self.idx)
             else:
+                # Prefer functions over terminals for deeper trees
                 self.use_terminal = random.random () < 0.1
                 if self.use_terminal:
                     self.idx       = random.randrange (self.node.n_terminals)
                     self.component = self.node.get_terminal (self.idx)
                 else:
-                    self.idx       = random.randrange (self.node.n_func)
+                    self.idx       = random.randrange (self.node.n_funcs)
                     self.component = self.node.get_function (self.idx)
             if self.component.depth < self.node.max_depth:
                 break
@@ -76,6 +84,10 @@ class Node:
         self.p_eval  = None # eval of parent
         self.evalue  = None # own eval
     # end def __init__
+
+    def __hash__ (self):
+        return hash (self.format ())
+    # end def __hash__
 
     @property
     def parent (self):
@@ -125,8 +137,6 @@ class Node:
 
     def _get_by_maxdepth (self, depth, idx):
         if idx == 0:
-            if self.d_root + depth > self.max_depth:
-                import pdb; pdb.set_trace ()
             assert self.d_root + depth <= self.max_depth
             return self
         idx -= 1
@@ -150,15 +160,15 @@ class Node:
     # end def get_by_maxdepth
 
     def get_function (self, n):
-        assert n < self.n_func
+        assert n < self.n_funcs
         if n == 0:
             assert isinstance (self, Function)
             return self
         count = 1
         for c in self.children:
-            if n < count + c.n_func:
+            if n < count + c.n_funcs:
                 return c.get_function (n - count)
-            count += c.n_func
+            count += c.n_funcs
         assert None
     # end def get_function
 
@@ -194,7 +204,7 @@ class Node:
             import pdb; pdb.set_trace ()
         if isinstance (self, Terminal):
             return
-        if self.n_func != 1 + sum (c.n_func for c in self.children):
+        if self.n_funcs != 1 + sum (c.n_funcs for c in self.children):
             import pdb; pdb.set_trace ()
         if down:
             for c in self.children:
@@ -233,7 +243,7 @@ class Function (Node):
                 self.fmt = '%s (%s)' % (self.name, param)
         self.children = list (children)
         self.n_terminals = sum (c.n_terminals for c in self.children)
-        self.n_func      = sum (c.n_func      for c in self.children) + 1
+        self.n_funcs     = sum (c.n_funcs     for c in self.children) + 1
         self.depth       = 1
         if self.children:
             self.depth += max (c.depth for c in self.children)
@@ -248,7 +258,7 @@ class Function (Node):
     def add_child (self, child):
         assert len (self.children) < self.arity
         self.children.append (child)
-        self.update_n (child.n_terminals, child.n_func)
+        self.update_n (child.n_terminals, child.n_funcs)
         child.parent = self
     # end def add_child
 
@@ -267,11 +277,11 @@ class Function (Node):
     def replace_child (self, index, child):
         assert index < self.arity
         d_n_terminals = -self.children [index].n_terminals
-        d_n_func      = -self.children [index].n_func
+        d_n_funcs     = -self.children [index].n_funcs
         self.children [index] = child
         d_n_terminals += self.children [index].n_terminals
-        d_n_func      += self.children [index].n_func
-        self.update_n (d_n_terminals, d_n_func)
+        d_n_funcs     += self.children [index].n_funcs
+        self.update_n (d_n_terminals, d_n_funcs)
         child.parent = self
         child.update_d_root ()
     # end def replace_child
@@ -284,13 +294,13 @@ class Function (Node):
                 self.parent.update_depth ()
     # end def update_depth
 
-    def update_n (self, d_n_terminals, d_n_func):
-        if d_n_terminals == 0 and d_n_func == 0:
+    def update_n (self, d_n_terminals, d_n_funcs):
+        if d_n_terminals == 0 and d_n_funcs == 0:
             return
         self.n_terminals += d_n_terminals
-        self.n_func      += d_n_func
+        self.n_funcs     += d_n_funcs
         if self.parent:
-            self.parent.update_n (d_n_terminals, d_n_func)
+            self.parent.update_n (d_n_terminals, d_n_funcs)
     # end def update_n
 
 # end def Function
@@ -300,7 +310,7 @@ class _Terminal (Node):
         Needs to be instantiated with a name and optionally an index.
     """
     n_terminals = 1
-    n_func      = 0
+    n_funcs     = 0
     depth       = 1
     children    = ()
     values      = {}
@@ -531,6 +541,8 @@ class Genetic_Programming:
         self.random.
     """
 
+    random_tree_depth = 6
+
     def __init__ (self, functions, terminals):
         self.functions = functions
         self.terminals = terminals
@@ -632,48 +644,76 @@ class Genetic_Programming:
             else:
                 p2.evalue = r [0]
         c1, c2 = p1.crossover (p2, self.random)
+        if c1.format () == p1.format () or c1.format () == p2.format ():
+            c1 = self.mutate (c1)
+        if c2.format () == p1.format () or c2.format () == p2.format ():
+            c2 = self.mutate (c2)
         self.set_gene (c1_i, cpop, c1)
         self.set_gene (c2_i, cpop, c2)
     # end def crossover
 
     def initstring (self, p, pop):
         if not self.randpop:
-            self.randpop = self.ramped_half_and_half (self.popsize, 6)
+            self.randpop = self.ramped_half_and_half \
+                (self.popsize, self.random_tree_depth)
         self.set_gene (p, pop, self.randpop.pop ())
     # end def initstring
+
+    def mutate (self, tree):
+        """ We mutate by grafting a random tree into the to-be-mutated
+            individual or vice-versa.
+        """
+        random = self.random
+        g = deepcopy (tree)
+        t = self.random_tree (self.random_tree_depth, fulldepth = False)
+        if g.depth + t.depth > g.max_depth:
+            p = g.get_by_maxdepth (g.max_depth - t.depth, random)
+            if p.parent:
+                cidx = p.parent.child_idx (p)
+                p.parent.replace_child (cidx, t)
+                mutated = g
+            else:
+                mutated = t
+        else:
+            # 50/50 chance of grafting t into g or vice-versa
+            if random.random () < 0.5:
+                idx = random.randrange (t.n_funcs + t.n_terminals)
+                if idx >= t.n_funcs:
+                    p = t.get_terminal (idx - t.n_funcs)
+                else:
+                    p = t.get_function (idx)
+                if p.parent:
+                    cidx = p.parent.child_idx (p)
+                    p.parent.replace_child (cidx, g)
+                    mutated = t
+                else:
+                    mutated = t
+            else:
+                idx = random.randrange (g.n_funcs + g.n_terminals)
+                if idx >= g.n_funcs:
+                    p = g.get_terminal (idx - g.n_funcs)
+                else:
+                    p = g.get_function (idx)
+                if p.parent:
+                    cidx = p.parent.child_idx (p)
+                    p.parent.replace_child (cidx, t)
+                    mutated = g
+                else:
+                    mutated = t
+        return mutated
+    # end def mutate
 
     def mutation (self, p, pop, pm):
         """ If we want no duplicates, the GA will repeatedly call
             mutation until a string is found that is not in the
             population.
-            We simply create a completely new individual for now.
         """
-        if random.random () < pm:
-            t = self.random_tree (6, fulldepth = False)
+        if self.random.random () < pm:
+            g = self.get_gene (p, pop)
+            t = self.mutate (g)
             self.set_gene (p, pop, t)
             return 1
         return 0
     # end def mutation
 
 # end class Genetic_Programming
-
-if __name__ == '__main__':
-    random.seed (23)
-    class GP (Genetic_Programming):
-        random = random
-    # end class GP
-
-    gp = GP ((F_mul, F_div, F_add, F_sub, F_sin), (Terminal ('x'),))
-    print (gp.random_tree (4))
-    print (gp.random_tree (4, fulldepth = True))
-    t = gp.random_tree (5)
-    print (t)
-    print ( "depth: %s n_term: %s n_fun: %s"
-          % (t.depth, t.n_terminals, t.n_func)
-          )
-    pop = gp.ramped_half_and_half (10, 4)
-    for k in pop:
-        print (k)
-    c1, c2 = pop [-2].crossover (pop [-1], random)
-    print (c1)
-    print (c2)
