@@ -242,7 +242,7 @@ class Find_Integral (pga.PGA, Genetic_Programming):
 # end class Find_Integral
 
 def main ():
-    cmd = ArgumentParser () 
+    cmd = ArgumentParser ()
     cmd.add_argument \
         ( '-r', '--random-seed'
         , help    = "Seed for random number generator, default=%(default)s"
@@ -315,7 +315,7 @@ def main ():
             ( "Max number of terminals for fitting = 10, got %s"
             % args.n_terminals
             )
-        
+
     ga = Find_Integral (args)
     #ga.eval_solution ()
     #print (ga.mpi_rank, sys.getrefcount (ga))

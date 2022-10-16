@@ -635,11 +635,11 @@ errout:
 }
 
 /*
- * Used if the calling object has a gene_difference method.
+ * Used if the calling object has a gene_distance method.
  * Otherwise use built-in default for the datatype.
  * Insert code to compute genetic difference of two individuals.
  */
-static double gene_difference
+static double gene_distance
     (PGAContext *ctx, int p1, int pop1, int p2, int pop2)
 {
     PyObject *self = NULL, *r = NULL;
@@ -649,7 +649,7 @@ static double gene_difference
     self = get_self (ctx);
     ERR_CHECK_X (self);
     r = PyObject_CallMethod
-        (self, "gene_difference", "iiii", p1, pop1, p2, pop2);
+        (self, "gene_distance", "iiii", p1, pop1, p2, pop2);
     ERR_CHECK_X (r);
     rr = PyArg_Parse (r, "d", &retval);
     ERR_CHECK_X (rr);
@@ -1390,12 +1390,12 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     if (PyObject_HasAttrString (self, "endofgen")) {
         PGASetUserFunction (ctx, PGA_USERFUNCTION_ENDOFGEN, (void *)endofgen);
     }
-    if (  PyObject_HasAttrString (self, "gene_difference")
+    if (  PyObject_HasAttrString (self, "gene_distance")
        || ctx->ga.datatype == PGA_DATATYPE_USER
        )
     {
         PGASetUserFunction
-            (ctx, PGA_USERFUNCTION_GEN_DISTANCE, (void *)gene_difference);
+            (ctx, PGA_USERFUNCTION_GEN_DISTANCE, (void *)gene_distance);
     }
     if (  PyObject_HasAttrString (self, "initstring")
        || ctx->ga.datatype == PGA_DATATYPE_USER

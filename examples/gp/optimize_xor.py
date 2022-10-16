@@ -78,7 +78,7 @@ class Find_XOR (pga.PGA, Genetic_Programming):
 # end class Find_XOR
 
 if __name__ == '__main__':
-    cmd = ArgumentParser () 
+    cmd = ArgumentParser ()
     cmd.add_argument \
         ( '-r', '--random-seed'
         , help    = "Seed for random number generator, default=%(default)s"

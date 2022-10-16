@@ -40,11 +40,11 @@ types.
    Mydlowec, Jessen Yu, and Guido Lanza. *Genetic Programming: Routine
    Human-Competitive Machine Intelligence,* volume IV of Genetic
    Programming. Springer, 2003.
-.. _optimize_xor.py: 
+.. _optimize_xor.py:
     https://github.com/schlatterbeck/pgapy/blob/master/examples/gp/optimize_xor.py
-.. _optimize_.py: 
+.. _optimize_.py:
     https://github.com/schlatterbeck/pgapy/blob/master/examples/gp/optimize_xor.py
-.. _optimize_parity3.py: 
+.. _optimize_parity3.py:
     https://github.com/schlatterbeck/pgapy/blob/master/examples/gp/optimize_parity3.py
 .. _opt_integral.py:
     https://github.com/schlatterbeck/pgapy/blob/master/examples/gp/opt_integral.py
