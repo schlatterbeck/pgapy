@@ -445,6 +445,34 @@ errout:
 }
 
 /*
+ * Hash function for duplicate checking
+ * This is used if we have user-defined datatypes
+ * The user datatype must be hashable (e.g. define a __hash__ method)
+ */
+static PGAHash build_hash (PGAContext *ctx, int p, int pop)
+{
+    Py_hash_t hash = 0;
+    PyObject *self = NULL;
+    PGAIndividual *ind = NULL;
+    ERR_CHECK_X (!error_occurred);
+    self = get_self (ctx);
+    ERR_CHECK_X (self);
+    ind = PGAGetIndividual (ctx, p, pop);
+    if (ind->chrom == NULL) {
+        PyErr_SetString (PyExc_ValueError, "This gene is not set");
+        goto errout;
+    }
+    hash = PyObject_Hash ((PyObject *)ind->chrom);
+    ERR_CHECK_X (hash != -1);
+    Py_CLEAR (self);
+    hash = ((hash >> 32) ^ hash) & 0xFFFFFFFF;
+    return (PGAHash)hash;
+errout:
+    Py_CLEAR (self);
+    return 0;
+}
+
+/*
  * Used if the calling object has a check_duplicate method.
  * Otherwise use built-in default for the datatype.
  * Perform duplicate checking, compare strings p1 and p2 to see if they
@@ -1336,6 +1364,9 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     {
         PGASetUserFunction
             (ctx, PGA_USERFUNCTION_DUPLICATE, (void *)check_duplicate);
+    }
+    if (ctx->ga.datatype == PGA_DATATYPE_USER) {
+        PGASetUserFunction (ctx, PGA_USERFUNCTION_HASH, (void *)build_hash);
     }
     PGASetUserFunction (ctx, PGA_USERFUNCTION_STOPCOND, (void *)check_stop);
     if (ctx->ga.datatype == PGA_DATATYPE_USER) {
