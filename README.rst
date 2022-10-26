@@ -2,8 +2,21 @@ PGAPy: Python Wrapper for PGAPack Parallel Genetic Algorithm Library
 ====================================================================
 
 .. |--| unicode:: U+2013   .. en dash
+.. |epsilon| unicode:: U+03B5 .. epsilon
 
 :Author: Ralf Schlatterbeck <rsc@runtux.com>
+
+News
+----
+
+News 10-2022: Add user defined datatypes. Example in ``examples/gp`` use
+user defined data types to implement genetic programming (we represent
+expressions by a tree data structure). This uses the new serialization
+API in pgapack to transfer a Python pickle representation to peer MPI
+processes. Also incorporate the latest changes in pgapack which
+optimizes duplicate checking. This is of interest for large population
+sizes in the genetic programming examples. Note that the
+``gene_difference`` method has been renamed to ``gene_distance``.
 
 News 08-2022: Epsilon-constrained optimization and a crossover variant
 that preserves permutations (so with integer genes the gene can represent
@@ -25,6 +38,9 @@ multi-objective optimization and constraints.
 
 News: This version wraps the Differential Evolution method (that's quite
 an old method but is newly implemented in pgapack).
+
+Introduction
+------------
 
 PGAPy is a wrapper for PGAPack, the parallel genetic algorithm library
 (see `PGAPack Readme`_), a powerfull genetic algorithm library by
@@ -53,14 +69,18 @@ Python installer decides to place this in the final installation
 (usually ``/usr/local/share`` on Linux).
 
 The original PGAPack library can still be downloaded from the PGAPack_
-ftp site, it is written in ANSI C and therefore *should* run on most
-platforms. Note that this version is not very actively maintained. I've
-started a `PGAPack fork on github`_ where I've ported the library to the
-latest version of the MPI_ standard and have fixed some minor
-inconsistencies in the documentation. I've also implemented some new
-features (notably enhancements in selection schemes and a new replacement
-strategy called *restricted tournament replacement* and, more recently,
-the differential evolution strategy.)
+ftp site, it is written in ANSI C but will probably not compile against
+a recent version of MPI_. It will also not work with recent versions of
+PGAPy. Note that this version is not actively maintained. I've started a
+`PGAPack fork on github`_ where I've ported the library to the latest
+version of the MPI_ standard and have fixed some minor inconsistencies
+in the documentation. I've also implemented some new features, notably
+enhancements in selection schemes, a new replacement strategy called
+*restricted tournament replacement* [1]_, [2]_, [4]_ and, more recently,
+the differential evolution strategy [5]_, [6]_. In addition this version
+now supports multi objective optimization with NSGA-II [7]_ and
+many-objective optimization with NSGA-III [8]_, [9]_. It also supports
+the Epsilon Constraint method [10]_.
 
 Note: When using NSGA_III replacement for multi (or many-) objective
 optimization you need to either
@@ -68,8 +88,8 @@ optimization you need to either
 - set reference points on the hyperplane intersecting all axes at
   offset 1. These reference points can be obtained with the convenience
   function ``pga.das_dennis``, it creates a regular set of reference points
-  using an algorithm originally publised by I. Das and J. E. Dennis.
-  These points are then passed as the paramter ``reference_points`` to
+  using an algorithm originally publised by I. Das and J. E. Dennis [12]_.
+  These points are then passed as the parameter ``reference_points`` to
   the ``PGA`` constructor.
 
   See ``examples/dtlz2.py`` for a usage example and the user guide for
@@ -84,12 +104,16 @@ optimization you need to either
 
 You can set both, these parameters are not mutually exclusive.
 
-I have tested pgapy on Linux only and I'll currently not provide Windows
-versions.  You also can find my `PGAPack fork on github`_ this
+I'm mainly testing pgapy on Linux. But I've recently made it run on
+Windows, too but I'm not very actively testing on Windows. Let me know
+if you run it on Windows, sucessfully or not sucessfully.
+
+As mentioned above, you can find my `PGAPack fork on github`_, this
 repository has the three upstream releases as versions in git and
 contains some updates concerning support of newer MPI_ versions and
 documentation updates.  I've also included patches in the git repository
 of the Debian maintainer of the package, Dirk Eddelbuettel.
+I'm actively maintaining that branch, adding new features and bug-fixes.
 
 .. _`PGAPack Readme`:
    https://github.com/schlatterbeck/pgapack/blob/master/README.rst
@@ -207,8 +231,12 @@ has a symbolic constant in PGApy doesn't make much sense.
 The properties have the same name as the constructor parameter.
 There are Properties that don't have a corresponding constructor
 parameter, namely the ``eval_count`` property (returning the count of
-function evaluations) and the
-``GA_iter`` property that returns the current GA generation. In the type
+function evaluations), the
+``GA_iter`` property that returns the current GA generation, and the
+``mpi_rank`` property that returns the MPI rank of the current process
+(this is sorted under PGAGetRank).
+
+In the type
 column I'm listing the Python type. If the type is followed by a number,
 more than one item of that type is specified (a sequence in Python). Some
 entries contain "sym", these are integer values with a symbolic constant,
@@ -300,6 +328,7 @@ PGApack name                         Constructor parameter             Type   Pr
 ``PGASetPTournamentProb``            ``p_tournament_prob``             float  yes
 ``PGASetRandomizeSelect``            ``randomize_select``              int    yes
 ``PGASetRandomSeed``                 ``random_seed``                   int    yes
+``PGAGetRank``                       ``mpi_rank``                      int    yes
 ``PGASetRealInitRange``              ``init``                                 no
 ``PGASetRealInitPercent``            ``init_percent``                         no
 ``PGASetReferenceDirections``        ``refdir_partitions``             int    no
@@ -363,6 +392,7 @@ Method                        Parameters         Return
 ``get_evaluation``            *p, pop*           evaluation of *p*
 ``get_evaluation_up_to_date`` *p, pop*           True if up-to-date
 ``get_fitness``               *p, pop*           fitness of *p* (float)
+``get_gene``                  *p, pop*           get gene (user data types)
 ``get_int_from_binary``       *p, pop, frm, to*  int
 ``get_int_from_gray_code``    *p, pop, frm, to*  int
 ``get_iteration``                                deprecated, use ``GA_iter``
@@ -380,6 +410,7 @@ Method                        Parameters         Return
 ``set_allele``                *p, pop, i, value* None
 ``set_evaluation``            *p, pop, value*    None
 ``set_evaluation_up_to_date`` *p, pop, status*   None
+``set_gene``                  *p, pop, gen*      set gene (user data types)
 ``set_random_seed``           *seed*             None (use constructor!)
 ============================= ================== ===========================
 
@@ -421,7 +452,8 @@ Method              Call Signature                 Return Value      Up-Call
 ``crossover``       *p1, p2, p_pop, c1, c2, c_pop* None              no
 ``endofgen``                                       None              no
 ``evaluate``        *p, pop*                       sequence of float no
-``gene_difference`` *p1, pop1, p2, pop2*           float             no
+``gene_distance``   *p1, pop1, p2, pop2*           float             no
+``hash``            *p, pop*                       int               no
 ``initstring``      *p, pop*                       None              no
 ``mutation``        *p, pop, propability*          #mutations        no
 ``pre_eval``        *pop*                          None              no
@@ -478,6 +510,71 @@ PGA_STOP_NOCHANGE          Stop on max number of generations no change
 PGA_STOP_TOOSIMILAR        Stop when individuals too similar
 ========================== ===========================================
 
+User Defined Data Types
+-----------------------
+
+The latest version of PGAPy features user defined data types. Just
+define your data type and pass it as the second parameter to the
+``PGA`` constructor. The framework will take care of serializing the
+data when transmitting via ``MPI`` (if you're running a parallel
+version).
+
+If duplicate checking is enabled via the ``no_duplicates`` constructor
+parameter, your data type needs to define a ``__hash__`` method (unless
+the python default hash method fulfills your requirements).
+
+User defined data types do not use alleles, so the normal ``get_allele``
+(and ``set_allele``) methods are not available. Instead the full
+individual can be retrieved with the ``get_gene`` method and set with
+the ``set_gene`` method.
+
+With user data types you need to define the following methods:
+
+- ``check_duplicate (self, p1, pop1, p2, pop2)`` if you enable duplicate
+  checking with the crossover parameter ``no_duplicates``. This should
+  return True when the two individuals are duplicates. Use ``get_gene``
+  to retrieve the genes for the individuals ``p1`` and ``p2`` in
+  populations ``pop1`` and ``pop2``.
+- ``crossover (self, p1, p2, ppop, c1, c2, cpop)`` for crossover
+  operation, use ``get_gene`` for getting the parent genes for the
+  parents ``p1`` and ``p2`` in generation ``ppop`` and use ``set_gene``
+  for setting the child genes ``c1`` and ``c2`` in generation ``cpop``.
+- ``initstring (self, p, pop)`` for initializing the given string, use
+  ``set_gene`` in that method for setting your object as a gene.
+- ``mutation (self, p, pop, pm)`` for the mutation operation. This
+  should return the number of mutations performed. If duplicate checking
+  is enabled, the framework will repeatedly call the mutation operator
+  for mutating a duplicate individual into another individual that is no
+  duplicate. This uses the return value of your mutation method. You
+  will enter an endless loop if your mutation operator does not
+  occasionally return an non-zero number of mutatations performed when
+  duplicate checking is enabled. The ``pm`` parameter gives the mutation
+  probability. Use ``get_gene`` for retrieving the individual to be
+  mutated and use ``set_gene`` to update this individual after mutation.
+- ``print_string (self, file, p, pop)`` to print a gene object, use
+  ``get_gene`` for retrieving the individual to be printed.
+
+For these methods it is generally a good idea to never modify an
+individual in-place: This individual may be repeatedly used in genetic
+operations (e.g. mutation and crossover), so when modifying it you will
+produce erroneous results for later genetic operations. To copy a data
+structure, python's ``deepcopy`` function in the module ``copy`` is
+usually used.
+
+In addition to the methods above you may want to define a stopping rule
+with a ``stop_cond`` method or override the way a hash is computed using
+a ``hash`` method. The default for computing a hash is to call
+``hash (gene)`` where gene is an object of the user defined data type.
+Other methods that may be used is an ``endofgen`` method, a
+``gene_distance`` method (e.g., when using Restricted Tournament
+Replacement, with ``PGA_POPREPL_RTR``), or a ``pre_eval`` method.
+
+An example with user defined data types is in ``examples/gp``: This
+implements Genetic Programming with a tree data structure. Note that the
+``Node`` class in ``gp.py`` has a ``__hash__`` method that builds a hash
+over the serialization of the tree (which is the same for individuals
+with the same tree structure).
+
 
 Missing Features
 ----------------
@@ -486,12 +583,6 @@ As already mentioned, not all functions and constants of PGAPack are
 wrapped yet |--| still for many applications the given set should be
 enough. If you need additional functions, you may want to wrap these and
 send_ me a patch.
-
-Another feature of PGAPack is currently not implemented in the wrapper,
-the usage of custom datatypes. With PGAPack you can define your own
-datatypes complete with their custom implementations of the genetic
-algorithm functionality like crossover, mutation, etc. I don't expect
-problems implementing these, though.
 
 Reporting Bugs
 --------------
@@ -539,7 +630,7 @@ have unpacked or checked out from sources you can install with::
 If you want a parallel version using an MPI_ (Message-Passing Interface)
 library you will have to install a parallel version of PGApack first.
 The easiest way to do this is to use `my pgapack debian package builder`_
-from github. Clone this repository, check out the branch ``debian/sid``,
+from github. Clone this repository, check out the branch ``master``,
 install the build dependencies, they're listed in the file
 ``debian/control`` and build the debian packages using::
 
@@ -568,8 +659,64 @@ Extension definition that fits your installation. If your installation
 is interesting to more people, feel free to submit a patch that adds
 your Extension-configuration to the standard ``setup.py``.
 
+References
+----------
+
+.. [1]  Georges Harik. Finding multiple solutions in problems of bounded
+        difficulty. IlliGAL Report 94002, Illinois Genetic Algorithm Lab,
+        May 1994.
+.. [2]  Georges R. Harik. Finding multimodal solutions using restricted
+        tournament selection. In Eshelman [3]_, pages 24–31.
+.. [3]  Larry J. Eshelman, editor. *Proceedings of the 6th International
+        Conference on Genetic Algorithms (ICGA)*. Morgan Kaufmann, July 1995.
+.. [4]  Martin Pelikan. *Hierarchical Bayesian Optimization Algorithm:
+        Toward a New Generation of Evolutionary Algorithms*, volume 170 of
+        Studies in Fuzziness and Soft Computing.  Springer, 2005.
+.. [5]  Rainer Storn and Kenneth Price. Differential evolution |--| a simple
+        and efficient heuristic for global optimization over continuous
+        spaces. *Journal of Global Optimization*, 11(4):341–359, December
+        1997.
+.. [6]  Kenneth V. Price, Rainer M. Storn, and Jouni A. Lampinen.
+        *Differential Evolution: A Practical Approach to Global
+        Optimization.*  Springer, Berlin, Heidelberg, 2005.
+.. [7]  Kalyanmoy Deb, Amrit Pratap, Sameer Agarwal, and T. Meyarivan. A
+        fast and elitist multiobjective genetic algorithm: NSGA-II. *IEEE
+        Transactions on Evolutionary Computation*, 6(2):182–197, April 2002.
+.. [8]  Kalyanmoy Deb and Himanshu Jain. An evolutionary many-objective
+        optimization algorithm using reference-point-based nondominated
+        sorting approach, part I: Solving problems with box constraints.
+        *IEEE Transactions on Evolutionary Computation*, 18(4):577–601,
+        August 2014.
+.. [9]  Himanshu Jain and Kalyanmoy Deb. An evolutionary many-objective
+        optimization algorithm using reference-point-based nondominated
+        sorting approach, part II: Handling constraints and extending to
+        an adaptive approach. *IEEE Transactions on Evolutionary
+        Computation*, 18(4):602–622, August 2014.
+.. [10] Tetsuyuki Takahama and Setsuko Sakai. Constrained optimization
+        by the |epsilon| constrained differential evolution with an
+        archive and gradient-based mutation. In [11]_.
+.. [11] *IEEE Congress on Evolutionary Computation (CEC)*. Barcelona,
+        Spain, July 2010.
+.. [12] Indraneel Das and J. E. Dennis. Normal-boundary intersection: A new
+        method for generating the pareto surface in nonlinear multicriteria
+        optimization problems. SIAM Journal on Optimization, 8(3):631–657,
+        August 1998.
+
 Changes
 -------
+
+Version 2.0: User defined data types
+
+- Implement user defined data types, note that your data type can be
+  variable-size, e.g., a tree data structure. The framework takes care
+  of serializing the data type and transmitting it to a remote MPI
+  process if using a parallel version.
+- When duplicate checking is enabled with the constructor parameter
+  ``no_duplicates``, the underlying pgapack code now uses a hash table.
+  This means the effort is no longer quadratic in the population size
+  but linear.
+- Example of Genetic Programming (GP) in the ``examples/gp`` directory
+- Rename the gene_difference method to gene_distance
 
 Version 1.8: Epsilon-constrained optimization
 
@@ -611,7 +758,7 @@ Version 1.0: Add constraint handling
 - Wrap latest pgapack version 1.3
 - This adds auxiliary evaluations. Now your evaluation function can
   return *multiple* floating-point values as a sequence if you set the
-  num_eval paramter >1 in the constructor. Currently additional
+  num_eval parameter >1 in the constructor. Currently additional
   evaluation values are used for constraint handling. Constraint values
   are minimized.  Once they reach zero or a negative value they no
   longer count: The sum of all positive constraints is the overall
