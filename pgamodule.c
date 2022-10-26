@@ -457,6 +457,22 @@ static PGAHash build_hash (PGAContext *ctx, int p, int pop)
     ERR_CHECK_X (!error_occurred);
     self = get_self (ctx);
     ERR_CHECK_X (self);
+    if (PyObject_HasAttrString (self, "hash")) {
+        int retval, rr;
+        PyObject *r = PyObject_CallMethod (self, "hash", "ii", p, pop);
+        ERR_CHECK_X (r);
+        rr = PyArg_Parse (r, "i", &hash);
+        ERR_CHECK_X (rr);
+        hash = ((hash >> 32) ^ hash) & 0xFFFFFFFF;
+        return hash;
+    }
+    /* No custom hash method */
+
+    /* We checked before installing the user function if either a custom
+     * method is defined or we have user datatypes, so this assert
+     * should not trigger here.
+     */
+    assert (ctx->ga.datatype == PGA_DATATYPE_USER);
     ind = PGAGetIndividual (ctx, p, pop);
     if (ind->chrom == NULL) {
         PyErr_SetString (PyExc_ValueError, "This gene is not set");
@@ -1365,7 +1381,10 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         PGASetUserFunction
             (ctx, PGA_USERFUNCTION_DUPLICATE, (void *)check_duplicate);
     }
-    if (ctx->ga.datatype == PGA_DATATYPE_USER) {
+    if (  PyObject_HasAttrString (self, "hash")
+       || ctx->ga.datatype == PGA_DATATYPE_USER
+       )
+    {
         PGASetUserFunction (ctx, PGA_USERFUNCTION_HASH, (void *)build_hash);
     }
     PGASetUserFunction (ctx, PGA_USERFUNCTION_STOPCOND, (void *)check_stop);
