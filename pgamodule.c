@@ -458,7 +458,7 @@ static PGAHash build_hash (PGAContext *ctx, int p, int pop)
     self = get_self (ctx);
     ERR_CHECK_X (self);
     if (PyObject_HasAttrString (self, "hash")) {
-        int retval, rr;
+        int rr;
         PyObject *r = PyObject_CallMethod (self, "hash", "ii", p, pop);
         ERR_CHECK_X (r);
         rr = PyArg_Parse (r, "i", &hash);
