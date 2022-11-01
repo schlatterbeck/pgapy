@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 from rsclib.autosuper import autosuper
+from argparse         import ArgumentParser
 import pga
 import sys
 
@@ -22,12 +23,12 @@ class Constrained (pga.PGA, autosuper) :
         function.
     """
 
-    def __init__ (self) :
+    def __init__ (self, args) :
+        self.args = args
         minmax = ((-5, 5), (-5, 5))
-        self.__super.__init__ \
-            ( float, 2
-            , maximize          = False
-            , random_seed       = 1
+        d = dict \
+            ( maximize          = False
+            , random_seed       = self.args.random_seed
             , pop_size          = 60
             , num_replace       = 60
             , select_type       = pga.PGA_SELECT_LINEAR
@@ -43,6 +44,9 @@ class Constrained (pga.PGA, autosuper) :
             , num_eval          = 3
             , print_options     = [pga.PGA_REPORT_STRING]
             )
+        if self.args.output_file:
+            d ['output_file'] = args.output_file
+        self.__super.__init__ (float, 2, **d)
     # end def __init__
 
     def evaluate (self, p, pop) :
@@ -64,7 +68,25 @@ class Constrained (pga.PGA, autosuper) :
 
 # end class Constrained
 
-if __name__ == '__main__' :
-    pg = Constrained ()
+def main (argv = None):
+    if argv is None:
+        argv = sys.argv [1:]
+    cmd = ArgumentParser ()
+    cmd.add_argument \
+        ( "-O", "--output-file"
+        , help    = "Output file for progress information"
+        )
+    cmd.add_argument \
+        ( "-R", "--random-seed"
+        , help    = "Seed random number generator, default=%(default)s"
+        , type    = int
+        , default = 42
+        )
+    args = cmd.parse_args (argv)
+    pg = Constrained (args)
     pg.run ()
+# end def main
+
+if __name__ == '__main__' :
+    main ()
 

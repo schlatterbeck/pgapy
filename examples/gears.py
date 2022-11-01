@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 
-from __future__ import print_function, division
+from __future__       import print_function, division
 from rsclib.autosuper import autosuper
-from argparse import ArgumentParser
-from math import gcd
+from argparse         import ArgumentParser
+from math             import gcd
 import pga
 import sys
 
@@ -36,6 +36,8 @@ class Gears (pga.PGA, autosuper) :
             )
         if args.random_seed :
             d ['random_seed'] = args.random_seed
+        if self.args.output_file:
+            d ['output_file'] = args.output_file
         self.__super.__init__ (float, 4, **d)
     # end def __init__
 
@@ -58,14 +60,14 @@ class Gears (pga.PGA, autosuper) :
         for i in range (4) :
             x.append (round (self.get_allele (p, pop, i)))
         print (x, file = file)
-        print ("Gear Error: %12.9f%%" % self.err (*x))
-        print ("Random seed: %d" % self.random_seed)
+        print ("Gear Error: %12.9f%%" % self.err (*x), file = file)
+        print ("Random seed: %d" % self.random_seed, file = file)
         self.__super.print_string (file, p, pop)
     # end def print_string
 
 # end class Gears
 
-if __name__ == '__main__' :
+def main (argv = None):
     """ A nice problem is
         -l 17 -u 90 -n 950 -d 150
         With a solution with GCD violation but perfect match:
@@ -88,6 +90,8 @@ if __name__ == '__main__' :
         >>> Fraction (x).limit_denominator (50)
         Fraction(78, 31)
     """
+    if argv is None:
+        argv = sys.argv [1:]
     cmd = ArgumentParser ()
     cmd.add_argument \
         ( '-c', '--check'
@@ -114,10 +118,14 @@ if __name__ == '__main__' :
         , default = 6.931
         )
     cmd.add_argument \
-        ( '-r', '--random-seed'
+        ( "-O", "--output-file"
+        , help    = "Output file for progress information"
+        )
+    cmd.add_argument \
+        ( '-r', '-R', '--random-seed'
         , type    = int
         )
-    args = cmd.parse_args ()
+    args = cmd.parse_args (argv)
     pg = Gears (args)
     if args.check :
         x = [int (i) for i in args.check.split (',')]
@@ -125,4 +133,7 @@ if __name__ == '__main__' :
         print ("Gear Error: %12.9f%%" % pg.err (*x))
     else :
         pg.run ()
+# end def main
 
+if __name__ == '__main__' :
+    main ()

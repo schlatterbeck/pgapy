@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 
-from __future__ import print_function, division
+from __future__       import print_function, division
 from rsclib.autosuper import autosuper
-from argparse import ArgumentParser
-from math import sqrt
+from argparse         import ArgumentParser
+from math             import sqrt
 import pga
 import sys
 
@@ -44,6 +44,8 @@ class Four_Bar (pga.PGA, autosuper) :
             )
         if args.random_seed :
             d ['random_seed'] = args.random_seed
+        if self.args.output_file:
+            d ['output_file'] = args.output_file
         self.__super.__init__ (float, 4, **d)
     # end def __init__
 
@@ -60,14 +62,22 @@ class Four_Bar (pga.PGA, autosuper) :
 
 # end class Four_Bar
 
-if __name__ == '__main__' :
+def main (argv = None):
+    if argv is None:
+        argv = sys.argv [1:]
     cmd = ArgumentParser ()
     cmd.add_argument \
-        ( '-r', '--random-seed'
+        ( "-O", "--output-file"
+        , help    = "Output file for progress information"
+        )
+    cmd.add_argument \
+        ( '-r', '-R', '--random-seed'
         , type    = int
         )
-    args = cmd.parse_args ()
-    print ("Example: FourBar")
+    args = cmd.parse_args (argv)
     pg = Four_Bar (args)
     pg.run ()
+# end def main
 
+if __name__ == '__main__' :
+    main ()

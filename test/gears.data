@@ -1,0 +1,707 @@
+Iter #     Field      Value           Constraints
+10         Best       1.361010e-06    0.000000e+00
+#   0: [   15.16816], [   15.52737], [   42.58156], [   38.90788]
+[15, 16, 43, 39]
+Gear Error:  0.815178185%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+20         Best       2.726451e-08    0.000000e+00
+#   0: [   12.51871], [   15.69544], [    45.3187], [   32.34108]
+[13, 16, 45, 32]
+Gear Error:  0.114313619%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+30         Best       9.939876e-11    0.000000e+00
+#   0: [   31.41033], [    13.4078], [   57.14781], [   48.55408]
+[31, 13, 57, 49]
+Gear Error:  0.006909655%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+40         Best       9.939876e-11    0.000000e+00
+#   0: [   31.41033], [    13.4078], [   57.14781], [   48.55408]
+[31, 13, 57, 49]
+Gear Error:  0.006909655%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+50         Best       9.939876e-11    0.000000e+00
+#   0: [   31.41033], [    13.4078], [   57.14781], [   48.55408]
+[31, 13, 57, 49]
+Gear Error:  0.006909655%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+60         Best       9.939876e-11    0.000000e+00
+#   0: [   31.41033], [    12.8974], [   57.14781], [   48.58513]
+[31, 13, 57, 49]
+Gear Error:  0.006909655%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+70         Best       9.939876e-11    0.000000e+00
+#   0: [   31.41033], [    12.8974], [   57.14781], [   48.58513]
+[31, 13, 57, 49]
+Gear Error:  0.006909655%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+80         Best       9.939876e-11    0.000000e+00
+#   0: [   31.41033], [    12.8974], [   57.14781], [   48.58513]
+[31, 13, 57, 49]
+Gear Error:  0.006909655%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+90         Best       9.939876e-11    0.000000e+00
+#   0: [   31.41033], [    12.8974], [   57.14781], [   48.58513]
+[31, 13, 57, 49]
+Gear Error:  0.006909655%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+100        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+110        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+120        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+130        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+140        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+150        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+160        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+170        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+180        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+190        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+200        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+210        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+220        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+230        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+240        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+250        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+260        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+270        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+280        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+290        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+300        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+310        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+320        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+330        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+340        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+350        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+360        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+370        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+380        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+390        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+400        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+410        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+420        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+430        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+440        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+450        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+460        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+470        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+480        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+490        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+500        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+510        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+520        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+530        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+540        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+550        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+560        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+570        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+580        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+590        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+600        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+610        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+620        Best       2.700857e-12    0.000000e+00
+#   0: [   19.40927], [   15.90714], [   42.78338], [   48.99353]
+[19, 16, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+630        Best       2.700857e-12    0.000000e+00
+#   0: [   16.47913], [   18.84343], [   42.52109], [   49.35386]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+640        Best       2.700857e-12    0.000000e+00
+#   0: [   16.47913], [   18.84343], [   42.52109], [   49.35386]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+650        Best       2.700857e-12    0.000000e+00
+#   0: [   16.47913], [   18.84343], [   42.52109], [   49.35386]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+660        Best       2.700857e-12    0.000000e+00
+#   0: [   16.47913], [   18.84343], [   42.52109], [   49.35386]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+670        Best       2.700857e-12    0.000000e+00
+#   0: [   16.47913], [   18.84343], [   42.52109], [   49.35386]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+680        Best       2.700857e-12    0.000000e+00
+#   0: [   16.47913], [   18.84343], [   42.52109], [   49.35386]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+690        Best       2.700857e-12    0.000000e+00
+#   0: [   16.47913], [   18.84343], [   42.52109], [   49.35386]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+700        Best       2.700857e-12    0.000000e+00
+#   0: [   16.47913], [   18.84343], [   42.52109], [   49.35386]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+710        Best       2.700857e-12    0.000000e+00
+#   0: [   16.47913], [   18.84343], [   42.52109], [   49.35386]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+720        Best       2.700857e-12    0.000000e+00
+#   0: [   16.47913], [   18.84343], [   42.52109], [   49.35386]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+730        Best       2.700857e-12    0.000000e+00
+#   0: [   16.47913], [   18.84343], [   42.52109], [   49.35386]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+740        Best       2.700857e-12    0.000000e+00
+#   0: [   16.47913], [   18.84343], [   42.52109], [   49.35386]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+750        Best       2.700857e-12    0.000000e+00
+#   0: [   16.47913], [   18.84343], [   42.52109], [   49.35386]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+760        Best       2.700857e-12    0.000000e+00
+#   0: [   16.47913], [   18.84343], [   42.52109], [   49.35386]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+770        Best       2.700857e-12    0.000000e+00
+#   0: [   16.47913], [   18.84343], [   42.52109], [   49.35386]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+780        Best       2.700857e-12    0.000000e+00
+#   0: [   16.47913], [   18.84343], [   42.52109], [   49.35386]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+790        Best       2.700857e-12    0.000000e+00
+#   0: [   16.47913], [   18.84343], [   42.52109], [   49.35386]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+800        Best       2.700857e-12    0.000000e+00
+#   0: [   16.47913], [   18.84343], [   42.52109], [   49.35386]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+810        Best       2.700857e-12    0.000000e+00
+#   0: [   16.47913], [   18.84343], [   42.52109], [   49.35386]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+820        Best       2.700857e-12    0.000000e+00
+#   0: [   16.47913], [   18.84343], [   42.52109], [   49.35386]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+830        Best       2.700857e-12    0.000000e+00
+#   0: [   16.47913], [   18.84343], [   42.52109], [   49.35386]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+840        Best       2.700857e-12    0.000000e+00
+#   0: [   16.47913], [   18.84343], [   42.52109], [   49.35386]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+850        Best       2.700857e-12    0.000000e+00
+#   0: [   16.47913], [   18.84343], [   42.52109], [   49.35386]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+860        Best       2.700857e-12    0.000000e+00
+#   0: [    16.4976], [   18.55863], [   42.81716], [   48.64067]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+870        Best       2.700857e-12    0.000000e+00
+#   0: [    16.4976], [   18.55863], [   42.81716], [   48.64067]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+880        Best       2.700857e-12    0.000000e+00
+#   0: [    16.4976], [   18.55863], [   42.81716], [   48.64067]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+890        Best       2.700857e-12    0.000000e+00
+#   0: [    16.4976], [   18.55863], [   42.81716], [   48.64067]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+900        Best       2.700857e-12    0.000000e+00
+#   0: [    16.4976], [   18.55863], [   42.81716], [   48.64067]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+910        Best       2.700857e-12    0.000000e+00
+#   0: [    16.4976], [   18.55863], [   42.81716], [   48.64067]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+920        Best       2.700857e-12    0.000000e+00
+#   0: [    16.4976], [   18.55863], [   42.81716], [   48.64067]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+930        Best       2.700857e-12    0.000000e+00
+#   0: [    16.4976], [   18.55863], [   42.81716], [   48.64067]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+940        Best       2.700857e-12    0.000000e+00
+#   0: [    16.4976], [   18.55863], [   42.81716], [   48.64067]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+950        Best       2.700857e-12    0.000000e+00
+#   0: [    16.4976], [   18.55863], [   42.81716], [   48.64067]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+960        Best       2.700857e-12    0.000000e+00
+#   0: [    16.4976], [   18.55863], [   42.81716], [   48.64067]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+970        Best       2.700857e-12    0.000000e+00
+#   0: [    16.4976], [   18.55863], [   42.81716], [   48.64067]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+980        Best       2.700857e-12    0.000000e+00
+#   0: [    16.4976], [   18.55863], [   42.81716], [   48.64067]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+990        Best       2.700857e-12    0.000000e+00
+#   0: [    16.4976], [   18.55863], [   42.81716], [   48.64067]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+Iter #     Field      Value           Constraints
+1000       Best       2.700857e-12    0.000000e+00
+#   0: [    16.4976], [   18.55863], [   42.81716], [   48.64067]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+
+The Best Evaluation: 2.700857e-12 Constraints: 0.000000e+00.
+The Best String:
+#   0: [    16.4976], [   18.55863], [   42.81716], [   48.64067]
+[16, 19, 43, 49]
+Gear Error:  0.001139047%
+Random seed: 42
+

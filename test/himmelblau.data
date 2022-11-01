@@ -1,0 +1,306 @@
+Iter #     Field      Value           Constraints
+10         Best       9.847940e+01    0.000000e+00
+#   0: [  0.0136067], [   1.804248]
+f:9.847940e+01 g:-2.119431e+00
+Evaluations: 66
+
+Iter #     Field      Value           Constraints
+20         Best       6.756975e+01    0.000000e+00
+#   0: [  0.2030098], [   2.821593]
+f:6.756975e+01 g:-4.972502e+00
+Evaluations: 126
+
+Iter #     Field      Value           Constraints
+30         Best       6.399329e+01    0.000000e+00
+#   0: [  0.5842172], [    2.71905]
+f:6.399329e+01 g:-8.923735e-01
+Evaluations: 186
+
+Iter #     Field      Value           Constraints
+40         Best       6.170034e+01    0.000000e+00
+#   0: [  0.7068419], [   2.805585]
+f:6.170034e+01 g:-3.025105e-01
+Evaluations: 246
+
+Iter #     Field      Value           Constraints
+50         Best       6.103002e+01    0.000000e+00
+#   0: [  0.7423622], [   2.807607]
+f:6.103002e+01 g:-1.013687e-02
+Evaluations: 306
+
+Iter #     Field      Value           Constraints
+60         Best       6.062185e+01    0.000000e+00
+#   0: [  0.7801118], [   2.867716]
+f:6.062185e+01 g:-3.125194e-02
+Evaluations: 366
+
+Iter #     Field      Value           Constraints
+70         Best       6.056185e+01    0.000000e+00
+#   0: [  0.7842031], [    2.87017]
+f:6.056185e+01 g:-1.081718e-02
+Evaluations: 426
+
+Iter #     Field      Value           Constraints
+80         Best       6.054056e+01    0.000000e+00
+#   0: [  0.7866729], [   2.873406]
+f:6.054056e+01 g:-8.589490e-03
+Evaluations: 486
+
+Iter #     Field      Value           Constraints
+90         Best       6.052953e+01    0.000000e+00
+#   0: [  0.7864915], [   2.871671]
+f:6.052953e+01 g:-1.462643e-04
+Evaluations: 546
+
+Iter #     Field      Value           Constraints
+100        Best       6.052757e+01    0.000000e+00
+#   0: [  0.7867707], [   2.872091]
+f:6.052757e+01 g:-2.058273e-04
+Evaluations: 606
+
+Iter #     Field      Value           Constraints
+110        Best       6.052744e+01    0.000000e+00
+#   0: [  0.7868388], [   2.872234]
+f:6.052744e+01 g:-4.545160e-04
+Evaluations: 666
+
+Iter #     Field      Value           Constraints
+120        Best       6.052706e+01    0.000000e+00
+#   0: [  0.7868396], [    2.87219]
+f:6.052706e+01 g:-1.974231e-04
+Evaluations: 726
+
+Iter #     Field      Value           Constraints
+130        Best       6.052676e+01    0.000000e+00
+#   0: [  0.7872207], [   2.873041]
+f:6.052676e+01 g:-1.872863e-03
+Evaluations: 786
+
+Iter #     Field      Value           Constraints
+140        Best       6.052323e+01    0.000000e+00
+#   0: [  0.7873469], [   2.872916]
+f:6.052323e+01 g:-9.018950e-05
+Evaluations: 846
+
+Iter #     Field      Value           Constraints
+150        Best       6.052156e+01    0.000000e+00
+#   0: [   0.787601], [   2.873306]
+f:6.052156e+01 g:-1.909446e-04
+Evaluations: 906
+
+Iter #     Field      Value           Constraints
+160        Best       6.052016e+01    0.000000e+00
+#   0: [  0.7878032], [   2.873607]
+f:6.052016e+01 g:-2.184822e-04
+Evaluations: 966
+
+Iter #     Field      Value           Constraints
+170        Best       6.051705e+01    0.000000e+00
+#   0: [  0.7882103], [   2.874176]
+f:6.051705e+01 g:-6.222593e-05
+Evaluations: 1026
+
+Iter #     Field      Value           Constraints
+180        Best       6.051196e+01    0.000000e+00
+#   0: [   0.788963], [   2.875297]
+f:6.051196e+01 g:-1.659663e-04
+Evaluations: 1086
+
+Iter #     Field      Value           Constraints
+190        Best       6.050545e+01    0.000000e+00
+#   0: [  0.7899629], [   2.876795]
+f:6.050545e+01 g:-3.625106e-04
+Evaluations: 1146
+
+Iter #     Field      Value           Constraints
+200        Best       6.048694e+01    0.000000e+00
+#   0: [  0.7927814], [   2.880888]
+f:6.048694e+01 g:-2.036585e-04
+Evaluations: 1206
+
+Iter #     Field      Value           Constraints
+210        Best       6.045696e+01    0.000000e+00
+#   0: [  0.7983124], [   2.889138]
+f:6.045696e+01 g:-1.298206e-03
+Evaluations: 1266
+
+Iter #     Field      Value           Constraints
+220        Best       6.040467e+01    0.000000e+00
+#   0: [  0.8129343], [   2.910807]
+f:6.040467e+01 g:-4.318193e-03
+Evaluations: 1326
+
+Iter #     Field      Value           Constraints
+230        Best       6.039631e+01    0.000000e+00
+#   0: [  0.8206784], [   2.922479]
+f:6.039631e+01 g:-7.612495e-03
+Evaluations: 1386
+
+Iter #     Field      Value           Constraints
+240        Best       6.038820e+01    0.000000e+00
+#   0: [  0.8233465], [   2.925887]
+f:6.038820e+01 g:-5.250345e-03
+Evaluations: 1446
+
+Iter #     Field      Value           Constraints
+250        Best       6.037628e+01    0.000000e+00
+#   0: [  0.8268306], [   2.930123]
+f:6.037628e+01 g:-9.618764e-04
+Evaluations: 1506
+
+Iter #     Field      Value           Constraints
+260        Best       6.037532e+01    0.000000e+00
+#   0: [  0.8274276], [   2.930916]
+f:6.037532e+01 g:-6.270572e-04
+Evaluations: 1566
+
+Iter #     Field      Value           Constraints
+270        Best       6.037416e+01    0.000000e+00
+#   0: [  0.8276995], [   2.931222]
+f:6.037416e+01 g:-1.567718e-04
+Evaluations: 1626
+
+Iter #     Field      Value           Constraints
+280        Best       6.037372e+01    0.000000e+00
+#   0: [   0.828656], [   2.932563]
+f:6.037372e+01 g:-3.579553e-05
+Evaluations: 1686
+
+Iter #     Field      Value           Constraints
+290        Best       6.037363e+01    0.000000e+00
+#   0: [  0.8294339], [   2.933664]
+f:6.037363e+01 g:-4.401786e-06
+Evaluations: 1746
+
+Iter #     Field      Value           Constraints
+300        Best       6.037362e+01    0.000000e+00
+#   0: [  0.8291017], [   2.933191]
+f:6.037362e+01 g:-2.164759e-06
+Evaluations: 1806
+
+Iter #     Field      Value           Constraints
+310        Best       6.037361e+01    0.000000e+00
+#   0: [    0.82923], [   2.933373]
+f:6.037361e+01 g:-3.701676e-07
+Evaluations: 1866
+
+Iter #     Field      Value           Constraints
+320        Best       6.037361e+01    0.000000e+00
+#   0: [  0.8291777], [   2.933299]
+f:6.037361e+01 g:-2.989850e-08
+Evaluations: 1926
+
+Iter #     Field      Value           Constraints
+330        Best       6.037361e+01    0.000000e+00
+#   0: [  0.8291645], [    2.93328]
+f:6.037361e+01 g:-2.187040e-09
+Evaluations: 1986
+
+Iter #     Field      Value           Constraints
+340        Best       6.037361e+01    0.000000e+00
+#   0: [  0.8291524], [   2.933263]
+f:6.037361e+01 g:-2.168381e-10
+Evaluations: 2046
+
+Iter #     Field      Value           Constraints
+350        Best       6.037361e+01    0.000000e+00
+#   0: [  0.8291484], [   2.933257]
+f:6.037361e+01 g:-3.166285e-10
+Evaluations: 2106
+
+Iter #     Field      Value           Constraints
+360        Best       6.037361e+01    0.000000e+00
+#   0: [  0.8291493], [   2.933258]
+f:6.037361e+01 g:-1.139533e-11
+Evaluations: 2166
+
+Iter #     Field      Value           Constraints
+370        Best       6.037361e+01    0.000000e+00
+#   0: [  0.8291492], [   2.933258]
+f:6.037361e+01 g:-8.171241e-13
+Evaluations: 2226
+
+Iter #     Field      Value           Constraints
+380        Best       6.037361e+01    0.000000e+00
+#   0: [  0.8291492], [   2.933258]
+f:6.037361e+01 g:-3.375078e-14
+Evaluations: 2286
+
+Iter #     Field      Value           Constraints
+390        Best       6.037361e+01    0.000000e+00
+#   0: [  0.8291492], [   2.933258]
+f:6.037361e+01 g:-1.776357e-15
+Evaluations: 2346
+
+Iter #     Field      Value           Constraints
+400        Best       6.037361e+01    0.000000e+00
+#   0: [  0.8291492], [   2.933258]
+f:6.037361e+01 g:-1.776357e-15
+Evaluations: 2406
+
+Iter #     Field      Value           Constraints
+410        Best       6.037361e+01    0.000000e+00
+#   0: [  0.8291492], [   2.933258]
+f:6.037361e+01 g:-1.776357e-15
+Evaluations: 2466
+
+Iter #     Field      Value           Constraints
+420        Best       6.037361e+01    0.000000e+00
+#   0: [  0.8291492], [   2.933258]
+f:6.037361e+01 g:-1.776357e-15
+Evaluations: 2526
+
+Iter #     Field      Value           Constraints
+430        Best       6.037361e+01    0.000000e+00
+#   0: [  0.8291492], [   2.933258]
+f:6.037361e+01 g:-1.776357e-15
+Evaluations: 2586
+
+Iter #     Field      Value           Constraints
+440        Best       6.037361e+01    0.000000e+00
+#   0: [  0.8291492], [   2.933258]
+f:6.037361e+01 g:-1.776357e-15
+Evaluations: 2646
+
+Iter #     Field      Value           Constraints
+450        Best       6.037361e+01    0.000000e+00
+#   0: [  0.8291492], [   2.933258]
+f:6.037361e+01 g:-1.776357e-15
+Evaluations: 2706
+
+Iter #     Field      Value           Constraints
+460        Best       6.037361e+01    0.000000e+00
+#   0: [  0.8291492], [   2.933258]
+f:6.037361e+01 g:-1.776357e-15
+Evaluations: 2766
+
+Iter #     Field      Value           Constraints
+470        Best       6.037361e+01    0.000000e+00
+#   0: [  0.8291492], [   2.933258]
+f:6.037361e+01 g:-1.776357e-15
+Evaluations: 2826
+
+Iter #     Field      Value           Constraints
+480        Best       6.037361e+01    0.000000e+00
+#   0: [  0.8291492], [   2.933258]
+f:6.037361e+01 g:-1.776357e-15
+Evaluations: 2886
+
+Iter #     Field      Value           Constraints
+490        Best       6.037361e+01    0.000000e+00
+#   0: [  0.8291492], [   2.933258]
+f:6.037361e+01 g:0.000000e+00
+Evaluations: 2946
+
+Iter #     Field      Value           Constraints
+500        Best       6.037361e+01    0.000000e+00
+#   0: [  0.8291492], [   2.933258]
+f:6.037361e+01 g:0.000000e+00
+Evaluations: 3006
+
+The Best Evaluation: 6.037361e+01 Constraints: 0.000000e+00.
+The Best String:
+#   0: [  0.8291492], [   2.933258]
+f:6.037361e+01 g:0.000000e+00
+Evaluations: 3006
+

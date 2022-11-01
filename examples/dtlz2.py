@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 
-from __future__ import print_function, division
+from __future__       import print_function, division
 from rsclib.autosuper import autosuper
-from argparse import ArgumentParser
-from math import gcd
+from argparse         import ArgumentParser
+from math             import gcd
 import numpy as np
 import pga
 import sys
@@ -42,6 +42,8 @@ class DTLZ2 (pga.PGA, autosuper) :
             )
         if args.random_seed :
             d ['random_seed'] = args.random_seed
+        if self.args.output_file:
+            d ['output_file'] = args.output_file
         self.__super.__init__ (float, self.dim, **d)
         assert l == self.pop_size
     # end def __init__
@@ -65,12 +67,10 @@ class DTLZ2 (pga.PGA, autosuper) :
 
 # end class DTLZ2
 
-if __name__ == '__main__' :
+def main (argv = None):
+    if argv is None:
+        argv = sys.argv [1:]
     cmd = ArgumentParser ()
-    cmd.add_argument \
-        ( '-r', '--random-seed'
-        , type    = int
-        )
     cmd.add_argument \
         ( '-d', '--dimension'
         , type    = int
@@ -82,11 +82,21 @@ if __name__ == '__main__' :
         , default = 3
         )
     cmd.add_argument \
+        ( "-O", "--output-file"
+        , help    = "Output file for progress information"
+        )
+    cmd.add_argument \
         ( '-p', '--das-dennis-partitions'
         , type    = int
         , default = 12
         )
-    args = cmd.parse_args ()
+    cmd.add_argument \
+        ( '-r', '-R', '--random-seed'
+        , type    = int
+        )
+    args = cmd.parse_args (argv)
     pg = DTLZ2 (args)
     pg.run ()
 
+if __name__ == '__main__' :
+    main ()

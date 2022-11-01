@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 
 from __future__ import print_function
-from operator import mul
+from operator   import mul
+from argparse   import ArgumentParser
 import pga
 import sys
 try :
@@ -11,18 +12,21 @@ except ImportError:
 
 class Cards (pga.PGA) :
 
-    def __init__ (self) :
-        super (self.__class__, self).__init__ \
-            ( int, 10
-            , maximize      = False
+    def __init__ (self, args) :
+        self.args = args
+        d = dict \
+            ( maximize      = False
             , pop_size      = 20
             , num_replace   = 19
             , mutation_only = True
             , mutation_prob = 0.2
             , max_GA_iter   = 1000
-            #, random_seed   = 1
             , print_options = [pga.PGA_REPORT_STRING]
+            , random_seed   = self.args.random_seed
             )
+        if self.args.output_file:
+            d ['output_file'] = self.args.output_file
+        super (self.__class__, self).__init__ (int, 10, **d)
     # end def __init__
 
     def build_pheno (self, p, pop) :
@@ -48,7 +52,7 @@ class Cards (pga.PGA) :
             s1 = ', '.join (str (x) for x in g [5*n: 5*(n+1)])
             s.append ('%s: %s' % (s1, r [n]))
         print (' -- '.join (s), file = file)
-        print ("%d iterations" % self.GA_iter)
+        print ("%d iterations" % self.GA_iter, file = file)
     # end def print_string
 
     def stop_cond (self) :
@@ -61,7 +65,24 @@ class Cards (pga.PGA) :
 
 # end class Cards
 
-if __name__ == '__main__' :
-    pg = Cards ()
+def main (argv = None):
+    if argv is None:
+        argv = sys.argv [1:]
+    cmd = ArgumentParser ()
+    cmd.add_argument \
+        ( "-O", "--output-file"
+        , help    = "Output file for progress information"
+        )
+    cmd.add_argument \
+        ( "-R", "--random-seed"
+        , help    = "Seed random number generator, default=%(default)s"
+        , type    = int
+        , default = 42
+        )
+    args = cmd.parse_args (argv)
+    pg = Cards (args)
     pg.run ()
+# end def main
 
+if __name__ == '__main__' :
+    main ()
