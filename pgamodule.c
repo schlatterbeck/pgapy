@@ -1433,6 +1433,11 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         );
     /* handle context pointer */
     PGA_ctx = Py_BuildValue ("L", (long long) ctx);
+    if (PGA_ctx == NULL) {
+        return INIT_FAIL;
+    }
+    assert (contexts);
+    assert (self);
     PyObject_SetItem        (contexts, PGA_ctx, self);
     if (PyObject_SetAttrString (self, "context", PGA_ctx) < 0) {
         Py_CLEAR (PGA_ctx);
