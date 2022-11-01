@@ -51,6 +51,9 @@
 # define PyInt_Type_Compat PyInt_Type
 # endif /* Python 2 */
 
+/* Necessary forward declarations */
+static char **parse_argv (PyObject *argv, int *argcp);
+
 /*
  * Global data
  */
@@ -175,9 +178,50 @@ errout:
     return NULL;
 }
 
+/***********************
+ * Wrapped MPI functions
+ ***********************/
+
+/* These are needed whenever we want to perform *several* PGA
+ * optimization runs: In that case we need to do MPI_Init first (and
+ * finally an MPI_finit) because MPI_Init may be called only once.
+ * These are *module* methods (not PGA object methods)
+ */
+
+static PyObject *PGA_MPI_Init (PyObject *self, PyObject *args, PyObject *kw)
+{
+    int argc;
+    char **c_argv = NULL;
+    PyObject *pyargv;
+    static char *kwlist [] = {"argv", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords (args, kw, "O", kwlist, &pyargv)) {
+        return NULL;
+    }
+    c_argv = parse_argv (pyargv, &argc);
+    Py_DECREF (pyargv);
+    MPI_Init (&argc, &c_argv);
+    Py_INCREF (Py_None);
+    return Py_None;
+}
+
+/* We don't care if someone calls this with arguments */
+static PyObject *PGA_MPI_Finalize (PyObject *self, PyObject *args, PyObject *kw)
+{
+    MPI_Finalize ();
+    Py_INCREF (Py_None);
+    return Py_None;
+}
+
 static PyMethodDef Module_Methods [] =
 { { "das_dennis", (PyCFunction)das_dennis, METH_VARARGS | METH_KEYWORDS
   , "Return Das/Dennis points"
+  }
+, { "MPI_Finalize", (PyCFunction)PGA_MPI_Finalize, METH_VARARGS | METH_KEYWORDS
+  , "Finalize MPI"
+  }
+, { "MPI_Init", (PyCFunction)PGA_MPI_Init, METH_VARARGS | METH_KEYWORDS
+  , "Initialize MPI"
   }
 , { NULL } /* EMPTY VALUE AS END-MARKER */
 };
@@ -837,7 +881,6 @@ errout:
     Py_CLEAR (serialized);
 }
 
-
 /******************
  * Helper functions
  ******************/
@@ -1026,6 +1069,40 @@ errout:
     return 0;
 }
 
+/* Parse an array of strings into a C argv vector, return argc in argcp */
+static char **parse_argv (PyObject *argv, int *argcp)
+{
+    int i;
+    char **c_argv;
+    Py_ssize_t argc_py = PySequence_Length (argv);
+    /* Avoid warnings on size of int vs Py_ssize_t */
+    if (argc_py < 0) {
+        return NULL;
+    }
+    assert (argc_py < INT_MAX);
+    *argcp = (int)argc_py;
+    c_argv = malloc ((*argcp + 1) * sizeof (char *));
+    c_argv [*argcp] = NULL;
+    for (i = 0; i < *argcp; i++) {
+        Py_ssize_t len = 0;
+        PyObject *b = NULL;
+        PyObject *s = PySequence_GetItem (argv, i);
+        if (!s) {
+            return NULL;
+        }
+        b = PyUnicode_AsEncodedString (s, "utf-8", "strict");
+        Py_DECREF (s);
+        if (!b) {
+            return NULL;
+        }
+        len = PyBytes_Size (b);
+        c_argv [i] = malloc (len + 1);
+        strcpy (c_argv [i], PyBytes_AsString (b));
+        Py_DECREF (b);
+    }
+    return c_argv;
+}
+
 /*************
  * Constructor
  *************/
@@ -1111,6 +1188,8 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     int epsilon_theta = -1;
     int multi_obj_precision = -1;
     int retval = -1;
+    int mpi_initialized = 0;
+    PyObject *Py_MPI_Initialized = NULL;
     static char *kwlist[] =
         { "type"
         , "length"
@@ -1316,37 +1395,29 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             return INIT_FAIL;
         }
     }
-    {
-        int i;
-        Py_ssize_t argc_py = PySequence_Length (argv);
-        /* Avoid warnings on size of int vs Py_ssize_t */
-        assert (argc_py < INT_MAX);
-        argc = (int)argc_py;
-        c_argv = malloc ((argc + 1) * sizeof (char *));
-        c_argv [argc] = NULL;
-        for (i = 0; i < argc; i++) {
-            Py_ssize_t len = 0;
-            PyObject *b = NULL;
-            PyObject *s = PySequence_GetItem (argv, i);
-            if (!s) {
-                return INIT_FAIL;
-            }
-            b = PyUnicode_AsEncodedString (s, "utf-8", "strict");
-            Py_DECREF (s);
-            if (!b) {
-                return INIT_FAIL;
-            }
-            len = PyBytes_Size (b);
-            c_argv [i] = malloc (len + 1);
-            strcpy (c_argv [i], PyBytes_AsString (b));
-            Py_DECREF (b);
-        }
+    c_argv = parse_argv (argv, &argc);
+    if (c_argv == NULL) {
+        return INIT_FAIL;
     }
 
-    MPI_Init (&argc, &c_argv);
-    retval = atexit (exitfunc);
-    if (retval != 0) {
-        PyErr_SetString (PyExc_RuntimeError, "Cannot register exit function");
+    /* Only initialize MPI if not already done. Install atexit handler
+     * only if MPI is not yet initialized.
+     */
+    MPI_Initialized (&mpi_initialized);
+    if (!mpi_initialized) {
+        MPI_Init (&argc, &c_argv);
+        retval = atexit (exitfunc);
+        if (retval != 0) {
+            PyErr_SetString
+                (PyExc_RuntimeError, "Cannot register exit function");
+            return INIT_FAIL;
+        }
+    }
+    Py_MPI_Initialized = Py_BuildValue ("i", mpi_initialized);
+    if (PyObject_SetAttrString
+           (self, "mpi_initialized", Py_MPI_Initialized) < 0
+       )
+    {
         return INIT_FAIL;
     }
 
@@ -3296,6 +3367,8 @@ typedef struct {
 static void PGA_dealloc (PyObject *self)
 {
     PGAContext *ctx;
+    PyObject *Py_MPI_i = NULL;
+    int mpi_initialized = 0;
 
     ctx = get_context (self);
     #if 0
@@ -3305,8 +3378,21 @@ static void PGA_dealloc (PyObject *self)
     if (ctx != NULL) {
         PGADestroy (ctx);
     }
+
+    Py_MPI_i = PyObject_GetAttrString (self, "mpi_initialized");
+    if (!Py_MPI_i) {
+        return;
+    }
+    if (!PyArg_Parse (Py_MPI_i, "i", &mpi_initialized)) {
+        Py_DECREF   (Py_MPI_i);
+        return;
+    }
+    Py_DECREF   (Py_MPI_i);
+    /* Only call exitfunc if MPI wasn't initialized externally */
+    if (!mpi_initialized) {
+        exitfunc ();
+    }
     self->ob_type->tp_free (self);
-    exitfunc ();
 }
 
 static PyObject *PGA_new (PyTypeObject *type, PyObject *args, PyObject *kwds)
