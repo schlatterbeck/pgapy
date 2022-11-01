@@ -68,9 +68,7 @@ class Constrained (pga.PGA, autosuper) :
 
 # end class Constrained
 
-def main (argv = None):
-    if argv is None:
-        argv = sys.argv [1:]
+def main (argv):
     cmd = ArgumentParser ()
     cmd.add_argument \
         ( "-O", "--output-file"
@@ -88,5 +86,5 @@ def main (argv = None):
 # end def main
 
 if __name__ == '__main__' :
-    main ()
+    main (sys.argv [1:])
 

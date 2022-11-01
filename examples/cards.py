@@ -1,14 +1,10 @@
 #!/usr/bin/python3
 
-from __future__ import print_function
 from argparse   import ArgumentParser
 from operator   import mul
+from functools  import reduce
 import pga
 import sys
-try :
-    from functools import reduce
-except ImportError:
-    pass
 
 class Cards (pga.PGA) :
 
@@ -60,9 +56,7 @@ class Cards (pga.PGA) :
     # end def stop_cond
 # end class Cards
 
-def main (argv = None):
-    if argv is None:
-        argv = sys.argv [1:]
+def main (argv):
     cmd = ArgumentParser ()
     cmd.add_argument \
         ( "-O", "--output-file"
@@ -81,5 +75,5 @@ def main (argv = None):
 
 
 if __name__ == '__main__' :
-    main ()
+    main (sys.argv [1:])
 

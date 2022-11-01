@@ -67,9 +67,7 @@ class DTLZ2 (pga.PGA, autosuper) :
 
 # end class DTLZ2
 
-def main (argv = None):
-    if argv is None:
-        argv = sys.argv [1:]
+def main (argv):
     cmd = ArgumentParser ()
     cmd.add_argument \
         ( '-d', '--dimension'
@@ -99,4 +97,4 @@ def main (argv = None):
     pg.run ()
 
 if __name__ == '__main__' :
-    main ()
+    main (sys.argv [1:])

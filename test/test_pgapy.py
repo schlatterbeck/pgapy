@@ -32,6 +32,7 @@ import pga
 import sys
 import os
 from filecmp import cmp
+from io      import StringIO
 
 # Import from examples
 sys.path.insert (1, "examples")
@@ -120,6 +121,17 @@ class Test_PGA (unittest.TestCase):
         gears_main (self.out_options + ['-R', '42'])
         self.compare ()
     # end def test_gears
+
+    def test_gears_check (self):
+        sio = StringIO ()
+        so  = sys.stdout
+        sys.stdout = sio
+        arglist = '-l 17 -u 90 -n 950 -d 150 -c 23,49,83,86'.split ()
+        gears_main (self.out_options + arglist)
+        sys.stdout = so
+        r = 'Factor: 6.333333\nGear Error:  0.004670060%\n'
+        self.assertEqual (r, sio.getvalue ())
+    # end def test_gears_check
 
     def test_himmelblau (self):
         himmelblau_main (self.out_options + ['-R', '1'])

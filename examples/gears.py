@@ -67,7 +67,7 @@ class Gears (pga.PGA, autosuper) :
 
 # end class Gears
 
-def main (argv = None):
+def main (argv):
     """ A nice problem is
         -l 17 -u 90 -n 950 -d 150
         With a solution with GCD violation but perfect match:
@@ -90,8 +90,6 @@ def main (argv = None):
         >>> Fraction (x).limit_denominator (50)
         Fraction(78, 31)
     """
-    if argv is None:
-        argv = sys.argv [1:]
     cmd = ArgumentParser ()
     cmd.add_argument \
         ( '-c', '--check'
@@ -136,4 +134,4 @@ def main (argv = None):
 # end def main
 
 if __name__ == '__main__' :
-    main ()
+    main (sys.argv [1:])

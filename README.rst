@@ -659,6 +659,59 @@ Extension definition that fits your installation. If your installation
 is interesting to more people, feel free to submit a patch that adds
 your Extension-configuration to the standard ``setup.py``.
 
+Testing
+-------
+
+For testing |--| preferrably before installation you can build locally::
+
+    python3 setup.py build_ext --inplace
+
+After this you have a ``pga.*.so`` file in the local directory. Now you
+can run the tests with::
+
+    python3 -m pytest test
+
+This runs all the tests and can take a while. Note that the tests run
+most of the examples in the ``examples`` directory with different
+command line parameters where available. To perform several optimization
+runs in a single (Python-) process, we must call ``MPI_Init``
+*explicitly* (and not relying on PGAPack to call it implicitly). This is
+because ``MPI_Init`` may be called only once per process. Calling of
+``MPI_Init`` and ``MPI_Finalize`` is handled in a fixture in
+``test/conftest.py``
+
+Coverage
+++++++++
+
+For the python examples, the coverage can be computed with::
+
+  python3 -m pytest --cov examples test
+
+or more verbose including untested lines with::
+
+  python3 -m pytest --cov-report term-missing --cov examples test
+
+Performing a coverage analysis for the C code in ``pgamodule.c`` is
+currently possible only on Linux |--| at least, since I'm developing on
+Linux this is the architecture where I've found out how to perform
+coverage analysis including the C code.
+To compile for coverage analysis::
+
+  export CFLAGS=-coverage
+  python3 setup.py build_ext --inplace
+
+This will create a file ending in ``.gcno`` under the ``build`` directory,
+typically something like ``build/temp.linux-x86_64-3.9`` when using
+``python3.9`` on the ``x86_64`` architecture. These are data files for
+the GNU profiler ``gcov``. Running the tests will create statistics
+data files with ending ``.gcda``. From these, ``.html`` files can be
+generated that can be inspected with a browser::
+
+  lcov --capture --directory . --output-file coverage.info
+  genhtml coverage.info --output-directory coverage_out
+
+Note that the ``lcov`` program is part of the linux distribution.
+
 References
 ----------
 
