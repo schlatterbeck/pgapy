@@ -1,38 +1,38 @@
 #!/usr/bin/python3
 
-from __future__ import print_function
 from rsclib.autosuper import autosuper
+from argparse import ArgumentParser
 from math import cos, atan, pi
 import pga
 import sys
 
-def f1 (x1, x2) :
+def f1 (x1, x2):
     return x1
 # end def f
 
-def f2 (x1, x2) :
+def f2 (x1, x2):
     return x2
 # end def f
 
-def g1 (x1, x2) :
+def g1 (x1, x2):
     return - x1 ** 2 - x2 ** 2 + 1 + 0.1 * cos (16 * atan (x1 / x2))
 # end def g1
 
-def g2 (x1, x2) :
+def g2 (x1, x2):
     return (x1 - 0.5) ** 2 + (x2 - 0.5) ** 2 - 0.5
 # end def g2
 
-class Multi_Objective (pga.PGA, autosuper) :
+class Multi_Objective (pga.PGA, autosuper):
     """ An example of multi-objective optimization, from NSGA-II paper
         "TNK", see also pgapack nsga-ii directory tnk.c
     """
 
-    def __init__ (self) :
+    def __init__ (self, args):
+        self.args = args
         minmax = ((0, pi), (0, pi))
-        self.__super.__init__ \
-            ( float, 2
-            , maximize             = False
-            , random_seed          = 1
+        d = dict \
+            ( maximize             = False
+            , random_seed          = args.random_seed
             , pop_size             = 100
             , num_replace          = 100
             , select_type          = pga.PGA_SELECT_LINEAR
@@ -51,15 +51,18 @@ class Multi_Objective (pga.PGA, autosuper) :
             , mutation_bounce_back = True
             , print_options        = [pga.PGA_REPORT_STRING]
             )
+        if self.args.output_file:
+            d ['output_file'] = args.output_file
+        self.__super.__init__ (float, 2, **d)
     # end def __init__
 
-    def evaluate (self, p, pop) :
+    def evaluate (self, p, pop):
         x1 = self.get_allele (p, pop, 0)
         x2 = self.get_allele (p, pop, 1)
         return (f1 (x1, x2), f2 (x1, x2), g1 (x1, x2), g2 (x1, x2))
     # end def evaluate
 
-    def print_string (self, file, p, pop) :
+    def print_string (self, file, p, pop):
         x1 = self.get_allele (p, pop, 0)
         x2 = self.get_allele (p, pop, 1)
         print \
@@ -72,8 +75,23 @@ class Multi_Objective (pga.PGA, autosuper) :
 
 # end class Multi_Objective
 
-if __name__ == '__main__' :
-    print ("Example: Tanaka et. al. (TNK) in Python")
-    pg = Multi_Objective ()
+def main (argv):
+    cmd = ArgumentParser ()
+    cmd.add_argument \
+        ( "-O", "--output-file"
+        , help    = "Output file for progress information"
+        )
+    cmd.add_argument \
+        ( "-R", "--random-seed"
+        , help    = "Seed random number generator, default=%(default)s"
+        , type    = int
+        , default = 42
+        )
+    args = cmd.parse_args (argv)
+    pg = Multi_Objective (args)
     pg.run ()
+# end def main
+
+if __name__ == '__main__':
+    main (sys.argv [1:])
 

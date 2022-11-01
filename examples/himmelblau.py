@@ -6,7 +6,7 @@ from argparse         import ArgumentParser
 import sys
 import pga
 
-class Himmelblau (pga.PGA, autosuper) :
+class Himmelblau (pga.PGA, autosuper):
     """ Constrained Himmelblau's function
         Example 4.3.1 p.157 from Kalyanmoy Deb. Optimization for
         Engineering Design – Algorithms and Examples. PHI Learning,
@@ -16,7 +16,7 @@ class Himmelblau (pga.PGA, autosuper) :
         get at the optimum point is 60.37361
     """
 
-    def __init__ (self, args) :
+    def __init__ (self, args):
         self.args = args
         minmax = ((0, 30), (0, 30))
         d = dict \
@@ -44,7 +44,7 @@ class Himmelblau (pga.PGA, autosuper) :
         self.__super.__init__ (float, 2, **d)
     # end def __init__
 
-    def evaluate (self, p, pop) :
+    def evaluate (self, p, pop):
         x1 = self.get_allele (p, pop, 0)
         x2 = self.get_allele (p, pop, 1)
         f = (x1 ** 2 + x2 - 11) ** 2 + (x1 + x2 ** 2 - 7) ** 2
@@ -52,7 +52,7 @@ class Himmelblau (pga.PGA, autosuper) :
         return f, g
     # end def evaluate
 
-    def print_string (self, file, p, pop) :
+    def print_string (self, file, p, pop):
         f, g = self.evaluate (p, pop)
         #print (file.fileno ())
         print ("f:%e g:%e" % (f, g), file = file)
@@ -79,5 +79,5 @@ def main (argv):
     pg.run ()
 # end def main
 
-if __name__ == '__main__' :
+if __name__ == '__main__':
     main (sys.argv [1:])

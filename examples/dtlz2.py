@@ -8,9 +8,9 @@ import numpy as np
 import pga
 import sys
 
-class DTLZ2 (pga.PGA, autosuper) :
+class DTLZ2 (pga.PGA, autosuper):
 
-    def __init__ (self, args) :
+    def __init__ (self, args):
         self.args = args
         self.nobj = args.nobjective
         self.dim  = args.dimension
@@ -40,7 +40,7 @@ class DTLZ2 (pga.PGA, autosuper) :
             , no_duplicates        = True
             , reference_points     = refpoints
             )
-        if args.random_seed :
+        if args.random_seed:
             d ['random_seed'] = args.random_seed
         if self.args.output_file:
             d ['output_file'] = args.output_file
@@ -48,18 +48,18 @@ class DTLZ2 (pga.PGA, autosuper) :
         assert l == self.pop_size
     # end def __init__
 
-    def evaluate (self, p, pop) :
+    def evaluate (self, p, pop):
         x = []
         y = []
-        for i in range (self.dim) :
+        for i in range (self.dim):
             x.append (self.get_allele (p, pop, i))
         x = np.array (x)
         g = sum ((x [-self.k:] - 0.5) ** 2)
-        for i in range (self.nobj) :
+        for i in range (self.nobj):
             p = 1.0
-            for j in range (self.nobj - i - 1) :
+            for j in range (self.nobj - i - 1):
                 p *= np.cos (x [j] * np.pi / 2)
-            if i > 0 :
+            if i > 0:
                 p *= np.sin (x [self.nobj - i - 1] * np.pi / 2)
             y.append (p * (1 + g))
         return y
@@ -96,5 +96,5 @@ def main (argv):
     pg = DTLZ2 (args)
     pg.run ()
 
-if __name__ == '__main__' :
+if __name__ == '__main__':
     main (sys.argv [1:])

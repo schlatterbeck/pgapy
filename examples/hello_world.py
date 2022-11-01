@@ -5,13 +5,13 @@ from argparse   import ArgumentParser
 import pga
 import sys
 
-class Hello_World (pga.PGA) :
+class Hello_World (pga.PGA):
 
     alphabet  = "abcdefghijklmnopqrstuvwxyz"
     alphabet += alphabet.upper ()
     alphabet += "0123456789!,. "
 
-    def __init__ (self, args) :
+    def __init__ (self, args):
         self.args   = args
         self.target = target = args.target
         d = dict \
@@ -28,18 +28,18 @@ class Hello_World (pga.PGA) :
         super (self.__class__, self).__init__ (type (2), len (target), **d)
     # end def __init__
 
-    def evaluate (self, p, pop) :
+    def evaluate (self, p, pop):
         r = 0.0
-        for i in range (len (self)) :
+        for i in range (len (self)):
             idx = self.get_allele (p, pop, i)
-            if self.alphabet [idx] == self.target [i] :
+            if self.alphabet [idx] == self.target [i]:
                 r += 1.0
         return r
     # end def evaluate
 
-    def print_string (self, file, p, pop) :
+    def print_string (self, file, p, pop):
         s = []
-        for i in range (len (self)) :
+        for i in range (len (self)):
             idx = self.get_allele (p, pop, i)
             s.append (self.alphabet [idx])
         print (''.join (s), file = file)
@@ -79,5 +79,5 @@ def main (argv):
     pg.run ()
 # end def main
 
-if __name__ == '__main__' :
+if __name__ == '__main__':
     main (sys.argv [1:])

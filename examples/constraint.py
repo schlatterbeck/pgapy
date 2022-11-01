@@ -6,24 +6,24 @@ from argparse         import ArgumentParser
 import pga
 import sys
 
-def f (x1, x2) :
+def f (x1, x2):
     return (x1 - 0.8) ** 2 + (x2 - 0.3) ** 2
 # end def f
 
-def g1 (x1, x2) :
+def g1 (x1, x2):
     return ((x1 - 0.2) ** 2 + (x2 - 0.5) ** 2) / 0.16 - 1
 # end def g1
 
-def g2 (x1, x2) :
+def g2 (x1, x2):
     return 1 - ((x1 + 0.5) ** 2 + (x2 - 0.5) ** 2) / 0.81
 # end def g2
 
-class Constrained (pga.PGA, autosuper) :
+class Constrained (pga.PGA, autosuper):
     """ First example from Deb 2000, two constraints, single objective
         function.
     """
 
-    def __init__ (self, args) :
+    def __init__ (self, args):
         self.args = args
         minmax = ((-5, 5), (-5, 5))
         d = dict \
@@ -49,13 +49,13 @@ class Constrained (pga.PGA, autosuper) :
         self.__super.__init__ (float, 2, **d)
     # end def __init__
 
-    def evaluate (self, p, pop) :
+    def evaluate (self, p, pop):
         x1 = self.get_allele (p, pop, 0)
         x2 = self.get_allele (p, pop, 1)
         return (f (x1, x2), g1 (x1, x2), g2 (x1, x2))
     # end def evaluate
 
-    def print_string (self, file, p, pop) :
+    def print_string (self, file, p, pop):
         x1 = self.get_allele (p, pop, 0)
         x2 = self.get_allele (p, pop, 1)
         print \
@@ -85,6 +85,6 @@ def main (argv):
     pg.run ()
 # end def main
 
-if __name__ == '__main__' :
+if __name__ == '__main__':
     main (sys.argv [1:])
 

@@ -44,6 +44,15 @@ from fourbar      import main as fourbar_main
 from gears        import main as gears_main
 from hello_world  import main as hello_world_main
 from himmelblau   import main as himmelblau_main
+from magic_prio   import main as magic_prio_main
+from magic_square import main as magic_square_main
+from minfloat     import main as minfloat_main
+from multi        import main as multi_main
+from one_max      import main as one_max_main
+from sort_numbers import main as sort_numbers_main
+from twobar       import main as twobar_main
+from vibr         import main as vibr_main
+from xor          import main as xor_main
 
 class Test_PGA (unittest.TestCase):
     out_name    = 'test/output.out'
@@ -137,5 +146,67 @@ class Test_PGA (unittest.TestCase):
         himmelblau_main (self.out_options + ['-R', '1'])
         self.compare ()
     # end def test_himmelblau
+
+    def test_magic_prio (self):
+        # Use length 3, doesn't find a solution otherwise :-)
+        magic_prio_main (self.out_options + '-m 0.111111'.split ())
+        self.compare ()
+    # end def test_magic_prio
+
+    def test_magic_square (self):
+        magic_square_main (self.out_options + '-l 4'.split ())
+        self.compare ()
+    # end def test_magic_square
+
+    def test_magic_square_custom_mutation (self):
+        ca = '-l 3 -m 0.111 --use-custom-mutation'.split ()
+        magic_square_main (self.out_options + ca)
+        self.compare ()
+    # end def test_magic_square_custom_mutation
+
+    def test_minfloat (self):
+        minfloat_main (self.out_options)
+        self.compare ()
+    # end def test_minfloat
+
+    def test_multi (self):
+        multi_main (self.out_options)
+        self.compare ()
+    # end def test_multi
+
+    def test_one_max (self):
+        one_max_main (self.out_options + '-R 23'.split ())
+        self.compare ()
+    # end def test_one_max
+
+    def test_sort_numbers (self):
+        sort_numbers_main (self.out_options + '-R 23'.split ())
+        self.compare ()
+    # end def test_sort_numbers
+
+    def test_twobar (self):
+        twobar_main (self.out_options + '-R 42'.split ())
+        self.compare ()
+    # end def test_twobar
+
+    def test_vibr (self):
+        vibr_main (self.out_options + '-R 42'.split ())
+        self.compare ()
+    # end def test_vibr
+
+    def test_xor (self):
+        xor_main (self.out_options)
+        self.compare ()
+    # end def test_xor
+
+    def test_xor_binary (self):
+        xor_main (self.out_options + '-b -m 100'.split ())
+        self.compare ()
+    # end def test_xor_binary
+
+    def test_xor_gray (self):
+        xor_main (self.out_options + '-g -m 100'.split ())
+        self.compare ()
+    # end def test_xor_gray
 
 # end class Test_PGA

@@ -7,14 +7,14 @@ from math             import sqrt
 import pga
 import sys
 
-class Four_Bar (pga.PGA, autosuper) :
+class Four_Bar (pga.PGA, autosuper):
     """ Example from [1]
     [1] Tapabrata Ray, Kang Tai, and Kin Chye Seow.  Multiobjective
         design optimization by an evolutionary algorithm. Engineering
         Optimization, 33(4):399–424, 2001.
     """
 
-    def __init__ (self, args) :
+    def __init__ (self, args):
         self.args  = args
         self.F     = 10.
         self.E     = 2e5
@@ -42,16 +42,16 @@ class Four_Bar (pga.PGA, autosuper) :
             , print_options        = [pga.PGA_REPORT_STRING]
             , mutation_bounce_back = True
             )
-        if args.random_seed :
+        if args.random_seed:
             d ['random_seed'] = args.random_seed
         if self.args.output_file:
             d ['output_file'] = args.output_file
         self.__super.__init__ (float, 4, **d)
     # end def __init__
 
-    def evaluate (self, p, pop) :
+    def evaluate (self, p, pop):
         x = []
-        for i in range (len (self)) :
+        for i in range (len (self)):
             x.append (self.get_allele (p, pop, i))
         q2  = self.q2
         f1  = self.L * (2 * x [0] + q2 * x [1] + q2 * x [2] + x [3])
@@ -77,5 +77,5 @@ def main (argv):
     pg.run ()
 # end def main
 
-if __name__ == '__main__' :
+if __name__ == '__main__':
     main (sys.argv [1:])

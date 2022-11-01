@@ -7,11 +7,11 @@ from math             import gcd
 import pga
 import sys
 
-class Gears (pga.PGA, autosuper) :
+class Gears (pga.PGA, autosuper):
     """ Example from presentation by Deb 2008
     """
 
-    def __init__ (self, args) :
+    def __init__ (self, args):
         self.args   = args
         self.factor = self.args.numerator / self.args.denominator
         minmax = [(self.args.min_tooth, self.args.max_tooth)] * 4
@@ -34,20 +34,20 @@ class Gears (pga.PGA, autosuper) :
             , print_options        = [pga.PGA_REPORT_STRING]
             , mutation_bounce_back = True
             )
-        if args.random_seed :
+        if args.random_seed:
             d ['random_seed'] = args.random_seed
         if self.args.output_file:
             d ['output_file'] = args.output_file
         self.__super.__init__ (float, 4, **d)
     # end def __init__
 
-    def err (self, x1, x2, x3, x4) :
+    def err (self, x1, x2, x3, x4):
         return abs (self.factor - (x3 * x4) / (x1 * x2)) / self.factor * 100
     # end def err
 
-    def evaluate (self, p, pop) :
+    def evaluate (self, p, pop):
         x = []
-        for i in range (4) :
+        for i in range (4):
             x.append (round (self.get_allele (p, pop, i)))
         gc1 = gcd (x [0], x [2]) + gcd (x [1], x [3])
         gc2 = gcd (x [0], x [3]) + gcd (x [1], x [2])
@@ -55,9 +55,9 @@ class Gears (pga.PGA, autosuper) :
         return f, min (gc1, gc2) - 2
     # end def evaluate
 
-    def print_string (self, file, p, pop) :
+    def print_string (self, file, p, pop):
         x = []
-        for i in range (4) :
+        for i in range (4):
             x.append (round (self.get_allele (p, pop, i)))
         print (x, file = file)
         print ("Gear Error: %12.9f%%" % self.err (*x), file = file)
@@ -125,13 +125,13 @@ def main (argv):
         )
     args = cmd.parse_args (argv)
     pg = Gears (args)
-    if args.check :
+    if args.check:
         x = [int (i) for i in args.check.split (',')]
         print ("Factor: %f" % pg.factor)
         print ("Gear Error: %12.9f%%" % pg.err (*x))
-    else :
+    else:
         pg.run ()
 # end def main
 
-if __name__ == '__main__' :
+if __name__ == '__main__':
     main (sys.argv [1:])
