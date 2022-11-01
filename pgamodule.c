@@ -1190,6 +1190,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     int retval = -1;
     int mpi_initialized = 0;
     PyObject *Py_MPI_Initialized = NULL;
+    PyObject *output_file = NULL;
     static char *kwlist[] =
         { "type"
         , "length"
@@ -1263,6 +1264,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         , "epsilon_exponent"
         , "epsilon_theta"
         , "multi_obj_precision"
+        , "output_file"
         , NULL
         };
 
@@ -1270,7 +1272,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             ( args
             , kw
             , "Oi|OiiOOOiiiidOiiOOOiidOOOddiOiOOiddd"
-              "iiiddddddOOOididdidiidiiiOOidOOiidii"
+              "iiiddddddOOOididdidiidiiiOOidOOiidiiO"
             , kwlist
             , &type
             , &length
@@ -1344,6 +1346,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             , &epsilon_exponent
             , &epsilon_theta
             , &multi_obj_precision
+            , &output_file
             )
         )
     {
@@ -2111,6 +2114,21 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     }
     if (multi_obj_precision > 0) {
         PGASetMultiObjPrecision (ctx, multi_obj_precision);
+    }
+    if (output_file != NULL) {
+        PyObject *b = NULL;
+        char *filename = NULL;
+
+        b = PyUnicode_AsEncodedString (output_file, "utf-8", "strict");
+        if (!b) {
+            return INIT_FAIL;
+        }
+        filename = PyBytes_AsString (b);
+        if (filename == NULL) {
+            return INIT_FAIL;
+        }
+        PGASetOutputFile (ctx, filename);
+        Py_DECREF (b);
     }
 
     PGASetUp (ctx);
