@@ -505,6 +505,8 @@ class TSP (pga.PGA) :
             , print_options    = [pga.PGA_REPORT_STRING]
             #, tournament_with_replacement = False
             )
+        if self.args.output_file:
+            d ['output_file'] = args.output_file
         self.fixed_edges = set ()
         if self.tsp.fixed_edges :
             fe = np.array (self.tsp.fixed_edges) - 1
@@ -668,31 +670,40 @@ class TSP (pga.PGA) :
                 , self.or_op_success, self.or_op_tries
                 , self.normal_fail
                 )
+              , file = file
               )
         print ( "Long edges: %d/%d"
               % (self.long_edge_success, self.long_edge_tries)
+              , file = file
               )
         print ( "LK-Op: %d/%d (%d)"
               % ( self.lk_op_success, self.lk_op_tries, self.lk_op_step)
               , end = ''
+              , file = file
               )
         if self.args.ops_for_gene :
-            print ( " fail: %d co: %d"
-                  % (self.lk_op_fail, len (self.checked_out))
-                  )
+            print \
+                ( " fail: %d co: %d"
+                % (self.lk_op_fail, len (self.checked_out))
+                , file = file
+                )
         else :
-            print ('')
+            print ('', file = file)
         if self.args.optimize_harder :
-            print ( "Hard-tries: %d/%d hardfail: %d"
-                  % (self.hard_success, self.hard_tries, self.try_harder_fail)
+            print \
+                ( "Hard-tries: %d/%d hardfail: %d"
+                % (self.hard_success, self.hard_tries, self.try_harder_fail)
+                , file = file
+                )
+            print \
+                ( "Good edges: %d prune: %d hits: %d"
+                % ( len (self.good_edges)
+                  , len (self.prune_edges)
+                  , self.good_edge_hits
                   )
-            print ( "Good edges: %d prune: %d hits: %d"
-                  % ( len (self.good_edges)
-                    , len (self.prune_edges)
-                    , self.good_edge_hits
-                    )
-                  )
-        print ("")
+                , file = file
+                )
+        print ("", file = file)
         l      = len (self)
         allele = [self.get_allele (p, pop, i) for i in range (l)]
         fe = 0
@@ -703,7 +714,10 @@ class TSP (pga.PGA) :
                 if (allele [i], allele [j]) in self.fixed_edges :
                     fe = j
                     break
-        print (" ".join (str (allele [(i + fe) % l] + 1) for i in range (l)))
+        print \
+            ( " ".join (str (allele [(i + fe) % l] + 1) for i in range (l))
+            , file = file
+            )
         file.flush ()
         #return super (self.__class__, self).print_string (file, p, pop)
     # end def print_string
@@ -1287,7 +1301,7 @@ class TSP (pga.PGA) :
 
 # end class TSP
 
-if __name__ == '__main__' :
+def main (argv):
     cmd = ArgumentParser ()
     cmd.add_argument \
         ( 'tsplibfile'
@@ -1356,10 +1370,14 @@ if __name__ == '__main__' :
         , default = 4
         )
     cmd.add_argument \
-        ( '-O', '--or-op-probability'
+        ( '--or-op-probability'
         , help    = 'Probability Or-op vs Two-op, default=%(default)s'
         , type    = float
         , default = 0.2
+        )
+    cmd.add_argument \
+        ( "-O", "--output-file"
+        , help    = "Output file for progress information"
         )
     cmd.add_argument \
         ( '--plot'
@@ -1383,7 +1401,7 @@ if __name__ == '__main__' :
         , help    = 'Fixed index to mutate'
         , type    = int
         )
-    args    = cmd.parse_args ()
+    args    = cmd.parse_args (argv)
     tsp     = TSP (args)
     if args.lin_kernighan :
         allele = np.array (tsp.lk_optimize ()) + 1
@@ -1392,4 +1410,7 @@ if __name__ == '__main__' :
         tsp.run ()
     if args.plot :
         tsp.plot ()
+# end def main
 
+if __name__ == '__main__' :
+    main (sys.argv [1:])

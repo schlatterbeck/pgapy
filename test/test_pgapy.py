@@ -26,7 +26,6 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ****************************************************************************
 
-import unittest
 import pytest
 import pga
 import sys
@@ -53,8 +52,10 @@ from sort_numbers import main as sort_numbers_main
 from twobar       import main as twobar_main
 from vibr         import main as vibr_main
 from xor          import main as xor_main
+sys.path.insert (1, "examples/sequence")
+from tsp          import main as tsp_main
 
-class Test_PGA (unittest.TestCase):
+class Test_PGA:
     out_name    = 'test/output.out'
 
     @property
@@ -66,6 +67,11 @@ class Test_PGA (unittest.TestCase):
     @property
     def out_name (self):
         return os.path.join ('test', self.basename + '.out')
+    # end def out_name
+
+    @property
+    def data_name (self):
+        return os.path.join ('test', self.basename + '.data')
     # end def out_name
 
     @property
@@ -92,8 +98,7 @@ class Test_PGA (unittest.TestCase):
     # end def cleanup
 
     def compare (self):
-        fn = os.path.join ('test', self.basename + '.data')
-        assert cmp (fn, self.out_name, shallow = False)
+        assert cmp (self.data_name, self.out_name, shallow = False)
     # end def compare
 
     def test_cards (self):
@@ -131,15 +136,12 @@ class Test_PGA (unittest.TestCase):
         self.compare ()
     # end def test_gears
 
-    def test_gears_check (self):
-        sio = StringIO ()
-        so  = sys.stdout
-        sys.stdout = sio
+    def test_gears_check (self, capfd):
         arglist = '-l 17 -u 90 -n 950 -d 150 -c 23,49,83,86'.split ()
         gears_main (self.out_options + arglist)
-        sys.stdout = so
         r = 'Factor: 6.333333\nGear Error:  0.004670060%\n'
-        self.assertEqual (r, sio.getvalue ())
+        captured = capfd.readouterr ()
+        assert r == captured.out
     # end def test_gears_check
 
     def test_himmelblau (self):
@@ -208,5 +210,19 @@ class Test_PGA (unittest.TestCase):
         xor_main (self.out_options + '-g -m 100'.split ())
         self.compare ()
     # end def test_xor_gray
+
+    def test_tsp_croes (self):
+        tsp_main (self.out_options + ['examples/sequence/croes.tsp'])
+        self.compare ()
+    # end def test_tsp_croes
+
+    def test_tsp_croes_lk (self, capfd):
+        a = '--lin-kernighan examples/sequence/croes.tsp'.split ()
+        tsp_main (self.out_options + a)
+        with open (self.data_name, 'r') as f:
+            r = f.read ()
+        captured = capfd.readouterr ()
+        assert r == captured.out
+    # end def test_tsp_croes_lk
 
 # end class Test_PGA
