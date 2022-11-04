@@ -62,6 +62,34 @@ static PyObject *contexts       = NULL;
 /* This is used for terminating the search and raising an error outside */
 static int       error_occurred = 0;
 
+/* Error handling macros */
+#define ERR_CHECK(x,r) do {   \
+    if (!(x)) {               \
+        error_occurred = 1;   \
+        return r;             \
+    }                         \
+} while (0)
+
+#define ERR_CHECK_X(x) do {   \
+    if (!(x)) {               \
+        error_occurred = 1;   \
+        goto errout;          \
+    }                         \
+} while (0)
+
+#define ERR_CHECK_RET(x) do {  \
+    if (!(x)) {                \
+        goto errout;           \
+    }                          \
+} while (0)
+
+#define ERR_CHECK_VALUE_ERROR(x,e) do {          \
+    if (!(x)) {                                  \
+        PyErr_SetString (PyExc_ValueError, (e)); \
+        goto errout;                             \
+    }                                            \
+} while (0)
+
 /*********************************
  * Convenience functions in module
  *********************************/
@@ -100,70 +128,48 @@ static PyObject *das_dennis (PyObject *self, PyObject *args, PyObject *kw)
     {
         return NULL;
     }
-    if (dim <= 1) {
-        PyErr_SetString (PyExc_ValueError, "Dimension must be >= 1");
-        return NULL;
-    }
-    if (npart <= 1) {
-        PyErr_SetString (PyExc_ValueError, "npartitions must be >= 1");
-        return NULL;
-    }
+    ERR_CHECK_VALUE_ERROR (dim >= 1, "Dimension must be >= 1");
+    ERR_CHECK_VALUE_ERROR (npart >= 1, "npartitions must be >= 1");
     if (direction != NULL) {
         Py_ssize_t length;
-        if (!PySequence_Check (direction)) {
-            PyErr_SetString
-                (PyExc_ValueError, "Expected sequence for direction parameter");
-            return NULL;
-        }
+        ERR_CHECK_VALUE_ERROR \
+            ( PySequence_Check (direction)
+            , "Expected sequence for direction parameter"
+            );
         length = PySequence_Length (direction);
-        if (length != dim) {
-            PyErr_SetString
-                ( PyExc_ValueError
-                , "Direction must be sequence with length=dimension"
-                );
-            return NULL;
-        }
+        ERR_CHECK_VALUE_ERROR \
+            ( length == dim
+            , "Direction must be sequence with length=dimension"
+            );
         if ((dir = malloc (sizeof (double) * dim)) == NULL) {
             return PyErr_NoMemory ();
         }
         for (i=0; i<length; i++) {
             res = PySequence_GetItem (direction, i);
-            if (res == NULL) {
-                return NULL;
-            }
+            ERR_CHECK_RET (res != NULL);
             res2 = PyNumber_Float (res);
-            if (res2 == NULL) {
-                goto errout;
-            }
+            ERR_CHECK_RET (res2 != NULL);
             Py_CLEAR (res);
             dir [i] = PyFloat_AsDouble (res2);
-            if (PyErr_Occurred ()) {
-                goto errout;
-            }
+            ERR_CHECK_RET (!PyErr_Occurred ());
             Py_CLEAR (res2);
         }
     }
     npoints = LIN_binom (dim + npart - 1, npart);
     LIN_dasdennis (dim, npart, &result, 0, scale, dir);
     tuple = PyTuple_New (npoints);
-    if (tuple == NULL) {
-        goto errout;
-    }
+    ERR_CHECK_RET (tuple != NULL);
     PyTuple_SetItem (tuple, 0, ele);
     for (i=0; i<npoints; i++) {
         int r;
         double (*points)[3] = (double (*)[3]) result;
         inner_tuple = PyTuple_New (dim);
-        if (inner_tuple == NULL) {
-            goto errout;
-        }
+        ERR_CHECK_RET (inner_tuple != NULL);
         r = PyTuple_SetItem (tuple, i, inner_tuple);
         assert (r == 0);
         for (j=0; j<dim; j++) {
             ele = Py_BuildValue ("d", points [i][j]);
-            if (ele == NULL) {
-                goto errout;
-            }
+            ERR_CHECK_RET (ele != NULL);
             r = PyTuple_SetItem (inner_tuple, j, ele);
             assert (r == 0);
         }
@@ -171,7 +177,9 @@ static PyObject *das_dennis (PyObject *self, PyObject *args, PyObject *kw)
     free (result);
     return tuple;
 errout:
-    free (dir);
+    if (dir != NULL) {
+        free (dir);
+    }
     Py_CLEAR (tuple);
     Py_CLEAR (res);
     Py_CLEAR (res2);
@@ -372,20 +380,6 @@ static PyObject *get_self (PGAContext *ctx)
     Py_DECREF (PGA_ctx);
     return self;
 }
-
-#define ERR_CHECK(x,r) do {   \
-    if (!(x)) {               \
-        error_occurred = 1;   \
-        return r;             \
-    }                         \
-} while (0)
-
-#define ERR_CHECK_X(x) do {   \
-    if (!(x)) {               \
-        error_occurred = 1;   \
-        goto errout;          \
-    }                         \
-} while (0)
 
 /**************************************************
  * PGApack callback functions
@@ -1438,7 +1432,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     }
     assert (contexts);
     assert (self);
-    PyObject_SetItem        (contexts, PGA_ctx, self);
+    PyObject_SetItem (contexts, PGA_ctx, self);
     if (PyObject_SetAttrString (self, "context", PGA_ctx) < 0) {
         Py_CLEAR (PGA_ctx);
         return INIT_FAIL;
@@ -3391,6 +3385,7 @@ static void PGA_dealloc (PyObject *self)
 {
     PGAContext *ctx;
     PyObject *Py_MPI_i = NULL;
+    PyObject *PGA_ctx = NULL;
     int mpi_initialized = 0;
 
     ctx = get_context (self);
@@ -3399,6 +3394,12 @@ static void PGA_dealloc (PyObject *self)
     fflush  (stderr);
     #endif
     if (ctx != NULL) {
+        PGA_ctx = PyObject_GetAttrString (self, "context");
+        if (PGA_ctx != NULL) {
+            /* Ignore return code here, can't do anything if this fails */
+            PyObject_DelItem (contexts, PGA_ctx);
+            Py_DECREF (PGA_ctx);
+        }
         PGADestroy (ctx);
     }
 
@@ -3410,7 +3411,7 @@ static void PGA_dealloc (PyObject *self)
         Py_DECREF   (Py_MPI_i);
         return;
     }
-    Py_DECREF   (Py_MPI_i);
+    Py_DECREF (Py_MPI_i);
     /* Only call exitfunc if MPI wasn't initialized externally */
     if (!mpi_initialized) {
         exitfunc ();
