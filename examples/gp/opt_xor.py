@@ -33,13 +33,12 @@ class Find_XOR (pga.PGA, Genetic_Programming):
     def __init__ (self, args):
         self.args    = args
         self.randpop = []
-        self.popsize = 500
+        self.popsize = 100
         self.random  = PGA_Random (self)
         terms = [Terminal ('a'), Terminal ('b')]
-        Genetic_Programming.__init__ (self, [F_nand], terms)
-        pga.PGA.__init__ \
-            ( self, Function, 10
-            , maximize      = False
+        Genetic_Programming.__init__ (self, [F_nand], terms, debug = args.debug)
+        d = dict \
+            ( maximize      = False
             , pop_size      = self.popsize
             , num_replace   = self.popsize - self.popsize // 10
             , mutation_prob = 0.0
@@ -47,6 +46,9 @@ class Find_XOR (pga.PGA, Genetic_Programming):
             , random_seed   = args.random_seed
             , print_options = [pga.PGA_REPORT_STRING]
             )
+        if self.args.output_file:
+            d ['output_file'] = args.output_file
+        pga.PGA.__init__ (self, Function, 10, **d)
     # end def __init__
 
     def evaluate (self, p, pop):
@@ -64,6 +66,8 @@ class Find_XOR (pga.PGA, Genetic_Programming):
 
     def print_string (self, file, p, pop):
         print ("%d iterations" % self.GA_iter, file = file)
+        if self.args.verbose:
+            print (self.get_gene (p, pop).as_dot (), file = file)
         file.flush ()
         super ().print_string (file, p, pop)
     # end def print_string
@@ -77,15 +81,32 @@ class Find_XOR (pga.PGA, Genetic_Programming):
 
 # end class Find_XOR
 
-if __name__ == '__main__':
+def main (argv):
     cmd = ArgumentParser ()
     cmd.add_argument \
-        ( '-r', '--random-seed'
+        ( "-D", "--debug"
+        , help    = "Turn on debugging assertions"
+        , action  = 'store_true'
+        )
+    cmd.add_argument \
+        ( "-O", "--output-file"
+        , help    = "Output file for progress information"
+        )
+    cmd.add_argument \
+        ( '-r', '-R', '--random-seed'
         , help    = "Seed for random number generator, default=%(default)s"
         , type    = int
         , default = 42
         )
-    args = cmd.parse_args ()
+    cmd.add_argument \
+        ( "-v", "--verbose"
+        , help    = "Print graphviz output"
+        , action  = 'store_true'
+        )
+    args = cmd.parse_args (argv)
     xor = Find_XOR (args)
     xor.run ()
+# end def main
 
+if __name__ == '__main__':
+    main (sys.argv [1:])

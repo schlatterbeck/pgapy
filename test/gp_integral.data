@@ -1,0 +1,21 @@
+Iter #     Field      Value
+1          Best       4.099491e+01
+1 iterations
+evaluation: 40.994912
+terminals: 4, functions: 3, depth: 3
+((x + x) + (x + x))
+
+Iter #     Field      Value
+2          Best       2.609024e-14
+2 iterations
+evaluation: 2.6090241e-14
+terminals: 4, functions: 4, depth: 4
+(sin (x) + ((x * x) + x))
+
+The Best Evaluation: 2.609024e-14.
+The Best String:
+2 iterations
+evaluation: 2.6090241e-14
+terminals: 4, functions: 4, depth: 4
+(sin (x) + ((x * x) + x))
+

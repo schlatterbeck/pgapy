@@ -54,8 +54,12 @@ from vibr         import main as vibr_main
 from xor          import main as xor_main
 sys.path.insert (1, "examples/sequence")
 from tsp          import main as tsp_main
+sys.path.insert (1, "examples/gp")
+from opt_xor      import main as gp_xor_main
+from opt_parity3  import main as gp_parity3_main
+from opt_integral import main as gp_integral_main
 
-class Test_PGA:
+class _Test_PGA:
     out_name    = 'test/output.out'
 
     @property
@@ -100,7 +104,9 @@ class Test_PGA:
     def compare (self):
         assert cmp (self.data_name, self.out_name, shallow = False)
     # end def compare
+# end class _Test_PGA
 
+class Test_PGA_Fast (_Test_PGA):
     def test_cards (self):
         cards_main (self.out_options + ['-R', '2'])
         self.compare ()
@@ -225,4 +231,55 @@ class Test_PGA:
         assert r == captured.out
     # end def test_tsp_croes_lk
 
-# end class Test_PGA
+    def test_gp_xor (self):
+        gp_xor_main (self.out_options + '-R 2 -D'.split ())
+        self.compare ()
+    # end def test_gp_xor
+
+    def test_gp_xor_verbose (self):
+        gp_xor_main (self.out_options + '-R 2 -v'.split ())
+        with open (self.data_name, 'r') as f:
+            dat = f.read ()
+        with open (self.out_name, 'r') as f:
+            out = f.read ()
+        d_seen = False
+        for d, o in zip (dat.split ('\n'), out.split ('\n')):
+            if d_seen:
+                if d == '}':
+                    assert o == '}'
+                    break
+                d_a, d_b = d.split (None, 1)
+                o_a, o_b = o.split (None, 1)
+                if 'label' in d_b:
+                    assert d_b == o_b
+                else:
+                    assert o_b.startswith ('->')
+            else:
+                if d.startswith ('digraph'):
+                    assert o.startswith ('digraph')
+                    d_seen = True
+                continue
+    # end def test_gp_xor_verbose
+
+    def test_gp_integral (self):
+        p = '-T 7 -p 500 -f np.cos(x)+2*x+1'.split ()
+        gp_integral_main (self.out_options + p)
+        self.compare ()
+    # end def test_gp_integral
+
+# end class Test_PGA_Fast
+
+class Test_PGA_Slow (_Test_PGA):
+
+    def test_gp_parity3 (self):
+        gp_parity3_main (self.out_options + '-R 25'.split ())
+        self.compare ()
+    # end def test_gp_parity3
+
+    def test_gp_integral_multi (self):
+        p = '-r 1 -f np.sin(k*x) --multi'.split ()
+        gp_integral_main (self.out_options + p)
+        self.compare ()
+    # end def test_gp_integral_multi
+
+# end class Test_PGA_Slow

@@ -38,9 +38,8 @@ class Find_Parity_3 (pga.PGA, Genetic_Programming):
         self.random  = PGA_Random (self)
         terms = [Terminal ('a'), Terminal ('b'), Terminal ('c')]
         Genetic_Programming.__init__ (self, [F_nand], terms)
-        pga.PGA.__init__ \
-            ( self, Function, 10
-            , maximize        = False
+        d = dict \
+            ( maximize        = False
             , pop_size        = self.popsize
             , num_replace     = self.popsize - self.popsize // 10
             , tournament_size = 7
@@ -49,6 +48,9 @@ class Find_Parity_3 (pga.PGA, Genetic_Programming):
             , random_seed     = args.random_seed
             , print_options   = [pga.PGA_REPORT_STRING]
             )
+        if self.args.output_file:
+            d ['output_file'] = args.output_file
+        pga.PGA.__init__ (self, Function, 10, **d)
     # end def __init__
 
     truthtable = set \
@@ -91,18 +93,25 @@ class Find_Parity_3 (pga.PGA, Genetic_Programming):
 
 # end class Find_Parity_3
 
-if __name__ == '__main__':
+def main (argv):
     cmd = ArgumentParser ()
     cmd.add_argument \
-        ( '-r', '--random-seed'
+        ( "-O", "--output-file"
+        , help    = "Output file for progress information"
+        )
+    cmd.add_argument \
+        ( '-r', '-R', '--random-seed'
         , help    = "Seed for random number generator, default=%(default)s"
         , type    = int
         , default = 42
         )
-    args = cmd.parse_args ()
+    args = cmd.parse_args (argv)
     ga = Find_Parity_3 (args)
     #print (ga.mpi_rank, sys.getrefcount (ga))
     ga.run ()
     #print (ga.mpi_rank, sys.getrefcount (ga))
     #ga = None
+# end def main
 
+if __name__ == '__main__':
+    main (sys.argv [1:])
