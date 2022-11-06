@@ -90,6 +90,23 @@ static int       error_occurred = 0;
     }                                            \
 } while (0)
 
+#define CHECK_VALUE(cond, errmsg) \
+    CHECK_VALUE_EXCEPTION ((cond), (errmsg), PyExc_ValueError, INIT_FAIL)
+#define CHECK_VALUE_EXCEPTION(cond, errmsg, exc, ret) do {  \
+    if (!(cond)) {                                          \
+        PyErr_SetString ((exc), (errmsg));                  \
+        return (ret);                                       \
+    }                                                       \
+} while (0)
+#define CHECK_VALUE_AND_FREE(cond, errmsg, exc, tofree) do { \
+    if (!(cond)) {                                           \
+        free ((tofree));                                     \
+        PyErr_SetString ((exc), (errmsg));                   \
+        return INIT_FAIL;                                    \
+    }                                                        \
+} while (0)
+
+
 /*********************************
  * Convenience functions in module
  *********************************/
@@ -908,11 +925,12 @@ static int check_allele (PGAContext *ctx, int p, int pop, int i)
 
 static int check_probability (double probability)
 {
-    if (probability < 0 || probability > 1) {
-        PyErr_SetString
-            (PyExc_ValueError, "Probability must be 0 <= p <= 1");
-        return 0;
-    }
+    CHECK_VALUE_EXCEPTION
+        ( 0 <= probability && probability <= 1
+        , "Probability must be 0 <= p <= 1"
+        , PyExc_ValueError
+        , 0
+        );
     return 1;
 }
 
@@ -973,10 +991,12 @@ static int init_sequence
                     break;
                 }
             }
-            if (ci == constlen) {
-                PyErr_SetString (PyExc_ValueError, name);
-                return 0;
-            }
+            CHECK_VALUE_EXCEPTION
+                ( ci != constlen
+                , name
+                , PyExc_ValueError
+                , 0
+                );
             if (checkfun && !checkfun (ctx, val, name)) {
                 return 0;
             }
@@ -1010,16 +1030,19 @@ Py_ssize_t parse_points (int dim, PyObject *points, void **result)
     PyObject *res = NULL, *res2 = NULL;
     double *refpoints = NULL;
 
-    if (!PySequence_Check (points)) {
-        PyErr_SetString
-            (PyExc_ValueError, "Expected sequence for points parameter");
-        return 0;
-    }
+    CHECK_VALUE_EXCEPTION
+        ( PySequence_Check (points)
+        , "Expected sequence for points parameter"
+        , PyExc_ValueError
+        , 0
+        );
     length = PySequence_Length (points);
-    if (length < 1) {
-        PyErr_SetString (PyExc_ValueError, "Must at least specify one point");
-        return 0;
-    }
+    CHECK_VALUE_EXCEPTION
+        ( length >= 1
+        , "Must at least specify one point"
+        , PyExc_ValueError
+        , 0
+        );
     refpoints = malloc (sizeof (double) * length * dim);
     if (refpoints == NULL) {
         PyErr_NoMemory ();
@@ -1373,13 +1396,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     if (maximize) {
         max = PyObject_IsTrue (maximize);
     }
-    if (length <= 1) {
-        PyErr_SetString \
-            ( PyExc_ValueError
-            , "Gene length must be at least 2"
-            );
-        return INIT_FAIL;
-    }
+    CHECK_VALUE (length > 1, "Gene length must be at least 2");
     /* If user didn't specify argv we get sys.argv */
     if (!argv) {
         PyObject *sys = PyImport_ImportModule ("sys");
@@ -1404,11 +1421,12 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     if (!mpi_initialized) {
         MPI_Init (&argc, &c_argv);
         retval = atexit (exitfunc);
-        if (retval != 0) {
-            PyErr_SetString
-                (PyExc_RuntimeError, "Cannot register exit function");
-            return INIT_FAIL;
-        }
+        CHECK_VALUE_EXCEPTION
+            ( retval == 0
+            , "Cannot register exit function"
+            , PyExc_RuntimeError
+            , INIT_FAIL
+            );
     }
     Py_MPI_Initialized = Py_BuildValue ("i", mpi_initialized);
     if (PyObject_SetAttrString
@@ -1539,25 +1557,18 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         PGASetCrossoverSBXEta (ctx, crossover_SBX_eta);
     }
     if (crossover_type >= 0) {
-        if (  crossover_type != PGA_CROSSOVER_ONEPT
-           && crossover_type != PGA_CROSSOVER_TWOPT
-           && crossover_type != PGA_CROSSOVER_UNIFORM
-           && crossover_type != PGA_CROSSOVER_EDGE
-           )
-        {
-            PyErr_SetString (PyExc_ValueError, "invalid crossover_type");
-            return INIT_FAIL;
-        }
+        CHECK_VALUE
+            ( (  crossover_type == PGA_CROSSOVER_ONEPT
+              || crossover_type == PGA_CROSSOVER_TWOPT
+              || crossover_type == PGA_CROSSOVER_UNIFORM
+              || crossover_type == PGA_CROSSOVER_EDGE
+              )
+            , "invalid crossover_type"
+            );
         PGASetCrossoverType (ctx, crossover_type);
     }
     if (max_GA_iter) {
-        if (max_GA_iter <= 2) {
-            PyErr_SetString \
-                ( PyExc_ValueError
-                , "Iteration count must be at least 2"
-                );
-            return INIT_FAIL;
-        }
+        CHECK_VALUE (max_GA_iter >= 2, "Iteration count must be at least 2");
         PGASetMaxGAIterValue (ctx, max_GA_iter);
     }
     if (max_no_change) {
@@ -1570,10 +1581,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         PGASetMutationProb (ctx, mutation_prob);
     }
     if (DE_num_diffs > 0) {
-        if (DE_num_diffs > 2) {
-            PyErr_SetString (PyExc_ValueError, "invalid DE_num_diffs");
-            return INIT_FAIL;
-        }
+        CHECK_VALUE (DE_num_diffs <= 2, "invalid DE_num_diffs");
         PGASetDENumDiffs (ctx, DE_num_diffs);
     }
     if  (  DE_dither_per_individual
@@ -1583,55 +1591,36 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         PGASetDEDitherPerIndividual (ctx, PGA_TRUE);
     }
     if (DE_crossover_type > 0) {
-        if (  DE_crossover_type != PGA_DE_CROSSOVER_BIN
-           && DE_crossover_type != PGA_DE_CROSSOVER_EXP
-           )
-        {
-            PyErr_SetString (PyExc_ValueError, "invalid DE crossover_type");
-            return INIT_FAIL;
-        }
+        CHECK_VALUE
+            ( ( DE_crossover_type == PGA_DE_CROSSOVER_BIN
+              || DE_crossover_type == PGA_DE_CROSSOVER_EXP
+              )
+            , "invalid DE crossover_type"
+            );
         PGASetDECrossoverType (ctx, DE_crossover_type);
     }
     if (DE_scale_factor > 0) {
-        if (DE_scale_factor > 2) {
-            PyErr_SetString (PyExc_ValueError, "invalid DE_scale_factor");
-            return INIT_FAIL;
-        }
+        CHECK_VALUE (DE_scale_factor <= 2, "invalid DE_scale_factor");
         PGASetDEScaleFactor (ctx, DE_scale_factor);
     }
     if (DE_aux_factor > 0) {
-        if (DE_aux_factor > 2) {
-            PyErr_SetString (PyExc_ValueError, "invalid DE_aux_factor");
-            return INIT_FAIL;
-        }
+        CHECK_VALUE (DE_aux_factor <= 2, "invalid DE_aux_factor");
         PGASetDEAuxFactor (ctx, DE_aux_factor);
     }
     if (DE_crossover_prob > 0) {
-        if (DE_crossover_prob > 1) {
-            PyErr_SetString (PyExc_ValueError, "invalid DE_crossover_prob");
-            return INIT_FAIL;
-        }
+        CHECK_VALUE (DE_crossover_prob <= 1, "invalid DE_crossover_prob");
         PGASetDECrossoverProb (ctx, DE_crossover_prob);
     }
     if (DE_jitter > 0) {
-        if (DE_jitter > 1) {
-            PyErr_SetString (PyExc_ValueError, "invalid DE_jitter");
-            return INIT_FAIL;
-        }
+        CHECK_VALUE (DE_jitter <= 1, "invalid DE_jitter");
         PGASetDEJitter (ctx, DE_jitter);
     }
     if (DE_dither > 0) {
-        if (DE_dither > 1) {
-            PyErr_SetString (PyExc_ValueError, "invalid DE_dither");
-            return INIT_FAIL;
-        }
+        CHECK_VALUE (DE_dither <= 1, "invalid DE_dither");
         PGASetDEDither (ctx, DE_dither);
     }
     if (DE_probability_EO > 0) {
-        if (DE_probability_EO > 1) {
-            PyErr_SetString (PyExc_ValueError, "invalid DE_probability_EO");
-            return INIT_FAIL;
-        }
+        CHECK_VALUE (DE_probability_EO <= 1, "invalid DE_probability_EO");
         PGASetDEProbabilityEO (ctx, DE_probability_EO);
     }
     if (no_duplicates && PyObject_IsTrue (no_duplicates)) {
@@ -1641,45 +1630,26 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         PGASetNumReplaceValue (ctx, num_replace);
     }
     if (pop_replace_type >= 0) {
-        if (  pop_replace_type != PGA_POPREPL_BEST
-           && pop_replace_type != PGA_POPREPL_RANDOM_NOREP
-           && pop_replace_type != PGA_POPREPL_RANDOM_REP
-           && pop_replace_type != PGA_POPREPL_RTR
-           && pop_replace_type != PGA_POPREPL_PAIRWISE_BEST
-           && pop_replace_type != PGA_POPREPL_NSGA_II
-           && pop_replace_type != PGA_POPREPL_NSGA_III
-           )
-        {
-            PyErr_SetString (PyExc_ValueError, "invalid pop_replace_type");
-            return INIT_FAIL;
-        }
+        CHECK_VALUE
+            ( (  pop_replace_type == PGA_POPREPL_BEST
+              || pop_replace_type == PGA_POPREPL_RANDOM_NOREP
+              || pop_replace_type == PGA_POPREPL_RANDOM_REP
+              || pop_replace_type == PGA_POPREPL_RTR
+              || pop_replace_type == PGA_POPREPL_PAIRWISE_BEST
+              || pop_replace_type == PGA_POPREPL_NSGA_II
+              || pop_replace_type == PGA_POPREPL_NSGA_III
+              )
+            , "invalid pop_replace_type"
+            );
         PGASetPopReplaceType (ctx, pop_replace_type);
     }
     if (pop_size) {
-        if (pop_size <= 1) {
-            PyErr_SetString \
-                ( PyExc_ValueError
-                , "Population size must be at least 2"
-                );
-            return INIT_FAIL;
-        }
-        if (pop_size & 1) {
-            PyErr_SetString \
-                ( PyExc_ValueError
-                , "Population size must be an even number"
-                );
-            return INIT_FAIL;
-        }
+        CHECK_VALUE (pop_size > 1, "Population size must be at least 2");
+        CHECK_VALUE (!(pop_size & 1), "Population size must be an even number");
         PGASetPopSize (ctx, pop_size);
     }
     if (num_eval != 1) {
-        if (num_eval < 1) {
-            PyErr_SetString \
-                ( PyExc_ValueError
-                , "Number of evaluations must be at least 1"
-                );
-            return INIT_FAIL;
-        }
+        CHECK_VALUE (num_eval >= 1, "Number of evaluations must be at least 1");
         PGASetNumAuxEval (ctx, num_eval - 1);
     }
     if (print_frequency) {
@@ -1689,17 +1659,16 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         PGASetRandomSeed   (ctx, random_seed);
     }
     if (select_type >= 0) {
-        if (  select_type != PGA_SELECT_PROPORTIONAL
-           && select_type != PGA_SELECT_SUS
-           && select_type != PGA_SELECT_TOURNAMENT
-           && select_type != PGA_SELECT_PTOURNAMENT
-           && select_type != PGA_SELECT_TRUNCATION
-           && select_type != PGA_SELECT_LINEAR
-           )
-        {
-            PyErr_SetString (PyExc_ValueError, "invalid select_type");
-            return INIT_FAIL;
-        }
+        CHECK_VALUE
+            ( (  select_type == PGA_SELECT_PROPORTIONAL
+              || select_type == PGA_SELECT_SUS
+              || select_type == PGA_SELECT_TOURNAMENT
+              || select_type == PGA_SELECT_PTOURNAMENT
+              || select_type == PGA_SELECT_TRUNCATION
+              || select_type == PGA_SELECT_LINEAR
+              )
+            , "invalid select_type"
+            );
         PGASetSelectType (ctx, select_type);
     }
     if (uniform_crossover_prob >= 0) {
@@ -1748,13 +1717,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         if (len < 0) {
             return INIT_FAIL;
         }
-        if (len != 2) {
-            PyErr_SetString
-                ( PyExc_ValueError
-                , "Need lower, upper for integer_init_permute"
-                );
-            return INIT_FAIL;
-        }
+        CHECK_VALUE (len == 2, "Need lower, upper for integer_init_permute");
         for (i = 0; i < 2; i++) {
             PyObject *x = PySequence_GetItem (integer_init_permute, i);
             PyObject *l = NULL;
@@ -1772,13 +1735,10 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             }
             Py_CLEAR (l);
         }
-        if (permute_lh [1] - permute_lh [0] != length - 1) {
-            PyErr_SetString
-                ( PyExc_ValueError
-                , "integer_init_permute: upper - lower must be gene length"
-                );
-            return INIT_FAIL;
-        }
+        CHECK_VALUE
+            ( permute_lh [1] - permute_lh [0] == length - 1
+            , "integer_init_permute: upper - lower must be gene length"
+            );
         PGASetIntegerInitPermute (ctx, permute_lh [0], permute_lh [1]);
     }
     if (init || init_percent) {
@@ -1789,29 +1749,27 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         void *i_low, *i_high;
         PyObject *initvals = (init ? init : init_percent);
 
-        if (datatype != PGA_DATATYPE_INTEGER && datatype != PGA_DATATYPE_REAL) {
-            PyErr_SetString (PyExc_ValueError, "Init only for int/real");
-            return INIT_FAIL;
-        }
-        if (init && init_percent) {
-            PyErr_SetString (PyExc_ValueError, "Only one of init/init_percent");
-            return INIT_FAIL;
-        }
-        if (init_percent && !is_real) {
-            PyErr_SetString (PyExc_ValueError, "init_percent only for float");
-            return INIT_FAIL;
-        }
+        CHECK_VALUE
+            ( (  datatype == PGA_DATATYPE_INTEGER
+              || datatype == PGA_DATATYPE_REAL
+              )
+            , "Init only for int/real"
+            );
+        CHECK_VALUE (!(init && init_percent), "Only one of init/init_percent");
+        CHECK_VALUE
+            (!(init_percent && !is_real), "init_percent only for float");
         len = PySequence_Length (initvals);
         if (len < 0) {
             return INIT_FAIL;
         }
-        if (len != PGAGetStringLength (ctx)) {
-            PyErr_SetString (PyExc_ValueError, "Init length != string length");
-            return INIT_FAIL;
-        }
+        CHECK_VALUE
+            (len == PGAGetStringLength (ctx), "Init length != string length");
         i_low  = malloc (len * (is_real ? sizeof (double) : sizeof (int)));
         i_high = malloc (len * (is_real ? sizeof (double) : sizeof (int)));
-        assert (i_low && i_high);
+        if (i_low == NULL || i_high == NULL) {
+            PyErr_NoMemory ();
+            return INIT_FAIL;
+        }
         for (i = 0; i < len; i++) {
             PyObject *x = PySequence_GetItem (initvals, i);
             PyObject *low = NULL, *high = NULL;
@@ -1857,10 +1815,9 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
                     return INIT_FAIL;
                 }
                 hi = ((double *)i_high) [i];
-                if (init_percent && (hi <= 0 || hi > 1)) {
-                    PyErr_SetString
-                        (PyExc_ValueError, "Percentage must be 0 < p <= 1");
-                    return INIT_FAIL;
+                if (init_percent) {
+                    CHECK_VALUE
+                        (0 <= hi && hi <= 1, "Percentage must be 0 < p <= 1");
                 }
             } else {
                 PyObject *l = NULL, *h = NULL;
@@ -1923,47 +1880,43 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         PGASetMutationOnlyFlag (ctx, PGA_TRUE);
     }
     if (mixing_type != 0) {
-        if (  mixing_type != PGA_MIX_TRADITIONAL
-           && mixing_type != PGA_MIX_MUTATE_OR_CROSS
-           && mixing_type != PGA_MIX_MUTATE_AND_CROSS
-           && mixing_type != PGA_MIX_MUTATE_ONLY
-           )
-        {
-            PyErr_SetString
-                (PyExc_ValueError, "invalid mixing_type");
-            return INIT_FAIL;
-        }
+        CHECK_VALUE
+            ( (  mixing_type == PGA_MIX_TRADITIONAL
+              || mixing_type == PGA_MIX_MUTATE_OR_CROSS
+              || mixing_type == PGA_MIX_MUTATE_AND_CROSS
+              || mixing_type == PGA_MIX_MUTATE_ONLY
+              )
+            , "invalid mixing_type"
+            );
         PGASetMixingType (ctx, mixing_type);
     }
     if (mutation_type) {
         int data_type = PGAGetDataType (ctx);
-        if (data_type != PGA_DATATYPE_REAL && data_type != PGA_DATATYPE_INTEGER)
-        {
-            PyErr_SetString
-                (PyExc_ValueError, "mutation_type only for int and float");
-            return INIT_FAIL;
+        CHECK_VALUE
+            ( (  data_type == PGA_DATATYPE_REAL
+              || data_type == PGA_DATATYPE_INTEGER
+              )
+            , "mutation_type only for int and float"
+            );
+        if (PGAGetDataType (ctx) == PGA_DATATYPE_REAL) {
+            CHECK_VALUE
+                ( (  mutation_type == PGA_MUTATION_CONSTANT
+                  || mutation_type == PGA_MUTATION_GAUSSIAN
+                  || mutation_type == PGA_MUTATION_RANGE
+                  || mutation_type == PGA_MUTATION_UNIFORM
+                  || mutation_type == PGA_MUTATION_DE
+                  )
+                , "invalid mutation_type for float"
+                );
         }
-        if (PGAGetDataType (ctx) == PGA_DATATYPE_REAL
-           && mutation_type != PGA_MUTATION_CONSTANT
-           && mutation_type != PGA_MUTATION_GAUSSIAN
-           && mutation_type != PGA_MUTATION_RANGE
-           && mutation_type != PGA_MUTATION_UNIFORM
-           && mutation_type != PGA_MUTATION_DE
-           )
-        {
-            PyErr_SetString
-                (PyExc_ValueError, "invalid mutation_type for float");
-            return INIT_FAIL;
-        }
-        if (PGAGetDataType (ctx) == PGA_DATATYPE_INTEGER
-           && mutation_type != PGA_MUTATION_CONSTANT
-           && mutation_type != PGA_MUTATION_PERMUTE
-           && mutation_type != PGA_MUTATION_RANGE
-           )
-        {
-            PyErr_SetString
-                (PyExc_ValueError, "invalid mutation_type for int");
-            return INIT_FAIL;
+        if (PGAGetDataType (ctx) == PGA_DATATYPE_INTEGER) {
+            CHECK_VALUE
+                ( (  mutation_type == PGA_MUTATION_CONSTANT
+                  || mutation_type == PGA_MUTATION_PERMUTE
+                  || mutation_type == PGA_MUTATION_RANGE
+                  )
+                , "invalid mutation_type for int"
+                );
         }
         PGASetMutationType (ctx, mutation_type);
     }
@@ -1981,37 +1934,32 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         PGASetMutationPolyValue (ctx, mutation_poly_value);
     }
     if (DE_variant) {
-        switch (DE_variant) {
-            case PGA_DE_VARIANT_RAND:
-            case PGA_DE_VARIANT_BEST:
-            case PGA_DE_VARIANT_EITHER_OR:
-                PGASetDEVariant (ctx, DE_variant);
-                break;
-            default:
-                PyErr_SetString (PyExc_ValueError, "invalid DE_variant");
-                return INIT_FAIL;
-                break;
-        }
+        CHECK_VALUE
+            ( (  DE_variant == PGA_DE_VARIANT_RAND
+              || DE_variant == PGA_DE_VARIANT_BEST
+              || DE_variant == PGA_DE_VARIANT_EITHER_OR
+              )
+            , "invalid DE_variant"
+            );
+        PGASetDEVariant (ctx, DE_variant);
     }
     if (fitness_type) {
-        if (  fitness_type != PGA_FITNESS_RANKING
-           && fitness_type != PGA_FITNESS_RAW
-           && fitness_type != PGA_FITNESS_NORMAL
-           )
-        {
-            PyErr_SetString (PyExc_ValueError, "invalid fitness_type");
-            return INIT_FAIL;
-        }
+        CHECK_VALUE
+            ( (  fitness_type == PGA_FITNESS_RANKING
+              || fitness_type == PGA_FITNESS_RAW
+              || fitness_type == PGA_FITNESS_NORMAL
+              )
+            , "invalid fitness_type"
+            );
         PGASetFitnessType (ctx, fitness_type);
     }
     if (fitness_min_type) {
-        if (  fitness_min_type != PGA_FITNESSMIN_CMAX
-           && fitness_min_type != PGA_FITNESSMIN_RECIPROCAL
-           )
-        {
-            PyErr_SetString (PyExc_ValueError, "invalid fitness_min_type");
-            return INIT_FAIL;
-        }
+        CHECK_VALUE
+            ( (  fitness_min_type == PGA_FITNESSMIN_CMAX
+              || fitness_min_type == PGA_FITNESSMIN_RECIPROCAL
+              )
+            , "invalid fitness_min_type"
+            );
         PGASetFitnessMinType (ctx, fitness_min_type);
     }
     if (tournament_size) {
@@ -2049,14 +1997,11 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     if (refdirs != NULL) {
         Py_ssize_t ndirs = 0;
         void *ref = NULL;
-        if (refdir_scale <= 0 || refdir_scale > 1) {
-            PyErr_SetString (PyExc_ValueError, "Need 0 < refdir_scale <= 1");
-            return INIT_FAIL;
-        }
-        if (refdir_partitions <= 0) {
-            PyErr_SetString (PyExc_ValueError, "Need refdir_partitions > 0");
-            return INIT_FAIL;
-        }
+        CHECK_VALUE
+            ( 0 < refdir_scale && refdir_scale <= 1
+            , "Need 0 < refdir_scale <= 1"
+            );
+        CHECK_VALUE (refdir_partitions > 0, "Need refdir_partitions > 0");
         ndirs = parse_points (num_eval - num_constraint, refdirs, &ref);
         if (ndirs == 0) {
             return INIT_FAIL;
@@ -2067,12 +2012,10 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     if (fixed_edges) {
         Py_ssize_t i, j, len = PySequence_Length (fixed_edges);
         PGAInteger (*fix)[2];
-        if (len < 0) {
-            PyErr_SetString \
-                ( PyExc_ValueError
-                , "Fixed edges must be a sequence of sequences of length 2"
-                );
-        }
+        CHECK_VALUE
+            ( len > 0
+            , "Fixed edges must be a sequence of sequences of length 2"
+            );
         fix = malloc (len * 2 * sizeof (PGAInteger));
         if (fix == NULL) {
             PyErr_NoMemory ();
@@ -2080,21 +2023,16 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         }
         for (i=0; i<len; i++) {
             PyObject *s = PySequence_GetItem (fixed_edges, i);
-            if (PySequence_Length (s) != 2) {
-                free (fix);
-                PyErr_SetString \
-                    ( PyExc_ValueError
-                    , "Fixed edges must be a sequence of sequences of length 2"
-                    );
-                return INIT_FAIL;
-            }
+            CHECK_VALUE_AND_FREE
+                ( PySequence_Length (s) == 2
+                , "Fixed edges must be a sequence of sequences of length 2"
+                , PyExc_ValueError
+                , fix
+                );
             for (j=0; j<2; j++) {
                 PyObject *v = PySequence_GetItem (s, j);
-                if (!PyArg_Parse (v, "l", fix [i] + j)) {
-                    PyErr_SetString \
-                        (PyExc_ValueError , "Failed to parse fixed edge value");
-                    return INIT_FAIL;
-                }
+                int ret = PyArg_Parse (v, "l", fix [i] + j);
+                CHECK_VALUE (ret != 0, "Failed to parse fixed edge value");
                 Py_DECREF (v);
             }
             Py_DECREF (s);
@@ -2182,12 +2120,12 @@ static PyObject *PGA_encode_int_as_binary (PyObject *self, PyObject *args)
     if (!check_allele (ctx, p, pop, to)) {
         return NULL;
     }
-    if (PGAGetDataType (ctx) != PGA_DATATYPE_BINARY) {
-        char x [50];
-        sprintf (x, "Only valid for binary allele");
-        PyErr_SetString (PyExc_ValueError, x);
-        return NULL;
-    }
+    CHECK_VALUE_EXCEPTION
+        ( PGAGetDataType (ctx) == PGA_DATATYPE_BINARY
+        , "Only valid for binary allele"
+        , PyExc_ValueError
+        , NULL
+        );
     PGAEncodeIntegerAsBinary (ctx, p, pop, frm, to, val);
     Py_INCREF   (Py_None);
     return Py_None;
@@ -2210,12 +2148,12 @@ static PyObject *PGA_encode_int_as_gray_code (PyObject *self, PyObject *args)
     if (!check_allele (ctx, p, pop, to)) {
         return NULL;
     }
-    if (PGAGetDataType (ctx) != PGA_DATATYPE_BINARY) {
-        char x [50];
-        sprintf (x, "Only valid for binary allele");
-        PyErr_SetString (PyExc_ValueError, x);
-        return NULL;
-    }
+    CHECK_VALUE_EXCEPTION
+        ( PGAGetDataType (ctx) == PGA_DATATYPE_BINARY
+        , "Only valid for binary allele"
+        , PyExc_ValueError
+        , NULL
+        );
     PGAEncodeIntegerAsGrayCode (ctx, p, pop, frm, to, val);
     Py_INCREF   (Py_None);
     return Py_None;
@@ -2240,12 +2178,12 @@ static PyObject *PGA_encode_real_as_binary (PyObject *self, PyObject *args)
     if (!check_allele (ctx, p, pop, to)) {
         return NULL;
     }
-    if (PGAGetDataType (ctx) != PGA_DATATYPE_BINARY) {
-        char x [50];
-        sprintf (x, "Only valid for binary allele");
-        PyErr_SetString (PyExc_ValueError, x);
-        return NULL;
-    }
+    CHECK_VALUE_EXCEPTION
+        ( PGAGetDataType (ctx) == PGA_DATATYPE_BINARY
+        , "Only valid for binary allele"
+        , PyExc_ValueError
+        , NULL
+        );
     PGAEncodeRealAsBinary (ctx, p, pop, frm, to, l, u, val);
     Py_INCREF   (Py_None);
     return Py_None;
@@ -2270,12 +2208,12 @@ static PyObject *PGA_encode_real_as_gray_code (PyObject *self, PyObject *args)
     if (!check_allele (ctx, p, pop, to)) {
         return NULL;
     }
-    if (PGAGetDataType (ctx) != PGA_DATATYPE_BINARY) {
-        char x [50];
-        sprintf (x, "Only valid for binary allele");
-        PyErr_SetString (PyExc_ValueError, x);
-        return NULL;
-    }
+    CHECK_VALUE_EXCEPTION
+        ( PGAGetDataType (ctx) == PGA_DATATYPE_BINARY
+        , "Only valid for binary allele"
+        , PyExc_ValueError
+        , NULL
+        );
     PGAEncodeRealAsGrayCode (ctx, p, pop, frm, to, l, u, val);
     Py_INCREF   (Py_None);
     return Py_None;
@@ -2355,13 +2293,12 @@ static PyObject *PGA_set_gene (PyObject *self, PyObject *args)
     if (!(ctx = get_context (self))) {
         return NULL;
     }
-    if (ctx->ga.datatype != PGA_DATATYPE_USER) {
-        PyErr_SetString
-            ( PyExc_ValueError
-            , "This method is used only for user-defined datatypes"
-            );
-        return NULL;
-    }
+    CHECK_VALUE_EXCEPTION
+        ( ctx->ga.datatype == PGA_DATATYPE_USER
+        , "This method is used only for user-defined datatypes"
+        , PyExc_ValueError
+        , NULL
+        );
     ind = PGAGetIndividual (ctx, p, pop);
     /* Decrement refcount of stored user data object if existing */
     if (ind->chrom != NULL) {
@@ -2390,18 +2327,19 @@ static PyObject *PGA_get_gene (PyObject *self, PyObject *args)
     if (!(ctx = get_context (self))) {
         return NULL;
     }
-    if (ctx->ga.datatype != PGA_DATATYPE_USER) {
-        PyErr_SetString
-            ( PyExc_ValueError
-            , "This method is used only for user-defined datatypes"
-            );
-        return NULL;
-    }
+    CHECK_VALUE_EXCEPTION
+        ( ctx->ga.datatype == PGA_DATATYPE_USER
+        , "This method is used only for user-defined datatypes"
+        , PyExc_ValueError
+        , NULL
+        );
     ind = PGAGetIndividual (ctx, p, pop);
-    if (ind->chrom == NULL) {
-        PyErr_SetString (PyExc_ValueError, "This gene is not set");
-        return NULL;
-    }
+    CHECK_VALUE_EXCEPTION
+        ( ind->chrom != NULL
+        , "This gene is not set"
+        , PyExc_ValueError
+        , NULL
+        );
     Py_INCREF (ind->chrom);
     return ind->chrom;
 }
@@ -2537,10 +2475,12 @@ static PyObject *PGA_get_evaluation (PyObject *self, PyObject *args)
     if (!(ctx = get_context (self))) {
         return NULL;
     }
-    if (!PGAGetEvaluationUpToDateFlag (ctx, p, pop)) {
-        PyErr_SetString (PyExc_ValueError, "Evaluation not up to date");
-        return NULL;
-    }
+    CHECK_VALUE_EXCEPTION
+        ( PGAGetEvaluationUpToDateFlag (ctx, p, pop)
+        , "Evaluation not up to date"
+        , PyExc_ValueError
+        , NULL
+        );
     if (ctx->ga.NumAuxEval == 0) {
         return Py_BuildValue ("d", _PGAGetEvaluation (ctx, p, pop, NULL));
     }
@@ -2610,12 +2550,12 @@ static PyObject *PGA_get_int_from_binary (PyObject *self, PyObject *args)
     if (!check_allele (ctx, p, pop, to)) {
         return NULL;
     }
-    if (PGAGetDataType (ctx) != PGA_DATATYPE_BINARY) {
-        char x [50];
-        sprintf (x, "Only valid for binary allele");
-        PyErr_SetString (PyExc_ValueError, x);
-        return NULL;
-    }
+    CHECK_VALUE_EXCEPTION
+        ( PGAGetDataType (ctx) == PGA_DATATYPE_BINARY
+        , "Only valid for binary allele"
+        , PyExc_ValueError
+        , NULL
+        );
     return Py_BuildValue ("i", PGAGetIntegerFromBinary (ctx, p, pop, frm, to));
 }
 
@@ -2636,12 +2576,12 @@ static PyObject *PGA_get_int_from_gray_code (PyObject *self, PyObject *args)
     if (!check_allele (ctx, p, pop, to)) {
         return NULL;
     }
-    if (PGAGetDataType (ctx) != PGA_DATATYPE_BINARY) {
-        char x [50];
-        sprintf (x, "Only valid for binary allele");
-        PyErr_SetString (PyExc_ValueError, x);
-        return NULL;
-    }
+    CHECK_VALUE_EXCEPTION
+        ( PGAGetDataType (ctx) == PGA_DATATYPE_BINARY
+        , "Only valid for binary allele"
+        , PyExc_ValueError
+        , NULL
+        );
     return Py_BuildValue
         ("i", PGAGetIntegerFromGrayCode (ctx, p, pop, frm, to));
 }
@@ -2675,12 +2615,12 @@ static PyObject *PGA_get_real_from_binary (PyObject *self, PyObject *args)
     if (!check_allele (ctx, p, pop, to)) {
         return NULL;
     }
-    if (PGAGetDataType (ctx) != PGA_DATATYPE_BINARY) {
-        char x [50];
-        sprintf (x, "Only valid for binary allele");
-        PyErr_SetString (PyExc_ValueError, x);
-        return NULL;
-    }
+    CHECK_VALUE_EXCEPTION
+        ( PGAGetDataType (ctx) == PGA_DATATYPE_BINARY
+        , "Only valid for binary allele"
+        , PyExc_ValueError
+        , NULL
+        );
     return Py_BuildValue
         ("d", PGAGetRealFromBinary (ctx, p, pop, frm, to, l, u));
 }
@@ -2704,12 +2644,12 @@ static PyObject *PGA_get_real_from_gray_code (PyObject *self, PyObject *args)
     if (!check_allele (ctx, p, pop, to)) {
         return NULL;
     }
-    if (PGAGetDataType (ctx) != PGA_DATATYPE_BINARY) {
-        char x [50];
-        sprintf (x, "Only valid for binary allele");
-        PyErr_SetString (PyExc_ValueError, x);
-        return NULL;
-    }
+    CHECK_VALUE_EXCEPTION
+        ( PGAGetDataType (ctx) == PGA_DATATYPE_BINARY
+        , "Only valid for binary allele"
+        , PyExc_ValueError
+        , NULL
+        );
     return Py_BuildValue
         ("d", PGAGetRealFromGrayCode (ctx, p, pop, frm, to, l, u));
 }
@@ -2763,10 +2703,12 @@ static PyObject *PGA_print_string (PyObject *self, PyObject *args)
     case PGA_DATATYPE_USER:
     {
         PGAIndividual *ind = PGAGetIndividual (ctx, p, pop);
-        if (ind->chrom == NULL) {
-            PyErr_SetString (PyExc_ValueError, "This gene is not set");
-            return NULL;
-        }
+        CHECK_VALUE_EXCEPTION
+            ( ind->chrom != NULL
+            , "This gene is not set"
+            , PyExc_ValueError
+            , NULL
+            );
         PyObject_Print (ind->chrom, fp, 0);
         break;
     }
@@ -2980,13 +2922,12 @@ static PyObject *PGA_set_evaluation (PyObject *self, PyObject *args)
         return NULL;
     }
     nargs = PGAGetNumAuxEval (ctx);
-    if (PySequence_Length (args) != nargs + 3) {
-        PyErr_SetString
-            ( PyExc_ValueError
-            , "set_evaluation needs p, pop and the values"
-            );
-        return NULL;
-    }
+    CHECK_VALUE_EXCEPTION
+        ( PySequence_Length (args) == nargs + 3
+        , "set_evaluation needs p, pop and the values"
+        , PyExc_ValueError
+        , NULL
+        );
     if ((values = malloc (sizeof (double) * nargs)) == NULL) {
         return PyErr_NoMemory ();
     }
@@ -3190,10 +3131,12 @@ static PyMethodDef PGA_methods [] =
 	if (PyErr_Occurred ()) {                                           \
 	    return -1;                                                     \
 	}                                                                  \
-        if (maxval && tmp > maxval) {                                      \
-            PyErr_SetString (PyExc_ValueError, "Too large");               \
-            return -1;                                                     \
-        }                                                                  \
+        CHECK_VALUE_EXCEPTION                                              \
+            ( !maxval || tmp <= maxval                                     \
+            , "Too large"                                                  \
+            , PyExc_ValueError                                             \
+            , -1                                                           \
+            );                                                             \
         pganame (ctx, tmp);                                                \
         return 0;                                                          \
     }
