@@ -27,3 +27,4 @@ dist
 coverage.info
 coverage_out
 .coverage
+.nfs*

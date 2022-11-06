@@ -3046,22 +3046,6 @@ static PyObject *PGA_set_evaluation_up_to_date (PyObject *self, PyObject *args)
     return Py_None;
 }
 
-static PyObject *PGA_set_random_seed (PyObject *self, PyObject *args)
-{
-    PGAContext *ctx = NULL;
-    int seed;
-
-    if (!PyArg_ParseTuple (args, "i", &seed)) {
-        return NULL;
-    }
-    if (!(ctx = get_context (self))) {
-        return NULL;
-    }
-    PGASetRandomSeed (ctx, seed);
-    Py_INCREF   (Py_None);
-    return Py_None;
-}
-
 static PyMethodDef PGA_methods [] =
 { { "check_stopping_conditions", PGA_check_stopping_conditions, METH_VARARGS
   , "Return original stop condition check"
@@ -3167,9 +3151,6 @@ static PyMethodDef PGA_methods [] =
   }
 , { "set_gene",                  PGA_set_gene,                  METH_VARARGS
   , "Set gene for user defined datatype"
-  }
-, { "set_random_seed",           PGA_set_random_seed,           METH_VARARGS
-  , "Set random seed to integer value"
   }
 , { NULL } /* EMPTY VALUE AS END-MARKER */
 };

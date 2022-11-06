@@ -267,6 +267,87 @@ class Test_PGA_Fast (_Test_PGA):
         self.compare ()
     # end def test_gp_integral
 
+    def test_getter_setter (self):
+        class T (pga.PGA):
+            def __init__ (self):
+                super ().__init__ (float, 10)
+        # end class T
+        t = T ()
+        assert t.crossover_prob == 0.85
+        assert t.crossover_bounce_back == 0
+        assert t.crossover_bounded == 0
+        assert t.crossover_SBX_eta == 2.0
+        assert t.crossover_SBX_once_per_string == 0
+        assert t.DE_variant == pga.PGA_DE_VARIANT_RAND
+        assert t.DE_num_diffs == 1
+        assert t.DE_scale_factor == 0.9
+        assert t.DE_aux_factor == 0.95
+        assert t.DE_crossover_prob == 0.9
+        assert t.DE_jitter == 0
+        assert t.DE_dither == 0
+        assert t.DE_probability_EO == 0.5
+        assert t.epsilon_exponent == 0
+        assert t.epsilon_generation == 0
+        assert t.epsilon_theta == 0
+        assert t.eval_count == 0
+        assert t.fitness_cmax == 1.01
+        assert t.GA_iter == 0
+        assert t.max_fitness_rank == 1.2
+        assert t.max_GA_iter == 1000
+        assert t.multi_obj_precision == 14
+        assert t.mutation_and_crossover == 0
+        assert t.mutation_bounce_back == 0
+        assert t.mutation_bounded == 0
+        assert t.mutation_poly_eta == 100.0
+        assert t.mutation_or_crossover == 1
+        assert t.mutation_only == 0
+        assert t.mutation_poly_value == -1.0
+        assert t.mutation_prob == 0.1
+        assert t.num_constraint == 0
+        assert t.num_replace == 10
+        assert t.pop_size == 100
+        assert t.print_frequency == 10
+        assert t.p_tournament_prob == 0.6
+        assert t.randomize_select == 0
+        assert t.restart == 0
+        assert t.restart_frequency == 50
+        assert t.rtr_window_size == 5
+        assert t.string_length == 10
+        assert t.sum_constraints == 0
+        assert t.tournament_size == 2
+        assert t.tournament_with_replacement == 1
+        assert t.truncation_proportion == 0.5
+        assert t.uniform_crossover_prob == 0.6
+        assert t.mutation_value == 0.1
+        assert t.num_eval == 1
+        assert t.mpi_rank == 0
+        t.crossover_prob = 0.85
+        t.epsilon_exponent = 7.5
+        t.multi_obj_precision = 13
+        t.p_tournament_prob = 0.9
+        t.uniform_crossover_prob = 0.9
+        class T (pga.PGA):
+            def __init__ (self):
+                super ().__init__ (int, 10)
+        # end class T
+        t = T ()
+        assert t.mutation_value == 1
+        class T (pga.PGA):
+            def __init__ (self):
+                d = dict \
+                    ( crossover_bounce_back = True
+                    , crossover_bounded     = True
+                    )
+                super ().__init__ (bool, 10, num_eval = 2, **d)
+        # end class T
+        t = T ()
+        assert t.mutation_value is None
+        t.set_evaluation (0, pga.PGA_OLDPOP, 0, 1)
+        t.set_evaluation_up_to_date (0, pga.PGA_OLDPOP, 1)
+        assert 0.5 <= t.random_uniform (0.5, 0.7) <= 0.7
+        assert -1000 <= t.random_gaussian (0, 0.01) <= 1000
+    # end def test_getter_setter
+
 # end class Test_PGA_Fast
 
 class Test_PGA_Slow (_Test_PGA):
