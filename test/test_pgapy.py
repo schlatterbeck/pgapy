@@ -95,14 +95,16 @@ class _Test_PGA:
     # end def run_clean_test
 
     def cleanup (self):
-        try:
-            os.unlink (self.out_name)
-        except OSError:
-            pass
+        if pytest.mpi_rank == 0:
+            try:
+                os.unlink (self.out_name)
+            except OSError:
+                pass
     # end def cleanup
 
     def compare (self):
-        assert cmp (self.data_name, self.out_name, shallow = False)
+        if pytest.mpi_rank == 0:
+            assert cmp (self.data_name, self.out_name, shallow = False)
     # end def compare
 # end class _Test_PGA
 
@@ -143,6 +145,8 @@ class Test_PGA_Fast (_Test_PGA):
     # end def test_gears
 
     def test_gears_check (self, capfd):
+        if pytest.mpi_rank != 0:
+            return
         arglist = '-l 17 -u 90 -n 950 -d 150 -c 23,49,83,86'.split ()
         gears_main (self.out_options + arglist)
         r = 'Factor: 6.333333\nGear Error:  0.004670060%\n'
@@ -223,6 +227,8 @@ class Test_PGA_Fast (_Test_PGA):
     # end def test_tsp_croes
 
     def test_tsp_croes_lk (self, capfd):
+        if pytest.mpi_rank != 0:
+            return
         a = '--lin-kernighan examples/sequence/croes.tsp'.split ()
         tsp_main (self.out_options + a)
         with open (self.data_name, 'r') as f:
@@ -238,6 +244,8 @@ class Test_PGA_Fast (_Test_PGA):
 
     def test_gp_xor_verbose (self):
         gp_xor_main (self.out_options + '-R 2 -v'.split ())
+        if pytest.mpi_rank != 0:
+            return
         with open (self.data_name, 'r') as f:
             dat = f.read ()
         with open (self.out_name, 'r') as f:
@@ -268,6 +276,8 @@ class Test_PGA_Fast (_Test_PGA):
     # end def test_gp_integral
 
     def test_getter_setter (self):
+        if pytest.mpi_rank != 0:
+            return
         class T (pga.PGA):
             def __init__ (self):
                 super ().__init__ (float, 10)

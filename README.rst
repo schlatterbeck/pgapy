@@ -712,6 +712,52 @@ generated that can be inspected with a browser::
 
 Note that the ``lcov`` program is part of the linux distribution.
 
+Running under MPI
++++++++++++++++++
+
+The tests can be directly run under MPI. Note that currently the
+``--with-mpi`` option of ``pytest`` is *not* supported. This option
+asumes that the package ``mpi4py`` is used. But ``pgapy`` uses only
+calls from pgapack, which in turn calls MPI.
+
+Running under MPI is done using::
+
+ mpirun $MPI_OPTIONS python3 -m pytest test
+
+The ``MPI_OPTIONS`` can be, e.g.::
+
+    MPI_OPTIONS=--machinefile ~/.mpi-openmpi --np 8
+
+which would use a machine definition file for openmpi in your home
+directory and eight processes.
+
+Running under MPI is especially useful for determining C code coverage.
+Asuming a parallel version of ``openmpi`` is installed, the code can be
+compiled with::
+
+ PGA_PARALLEL_VARIANT=openmpi
+ PGA_MODULE=module_from_parallel_install
+ export CFLAGS=-coverage
+ python3 setup.py build_ext --inplace
+
+Note that the coverage analysis uses files in the build directory which
+need to be present before a parallel version can be started. Otherwise
+each parallel instance would try to create the coverage files resulting
+in race conditions. Once the coverage files are in place, the coverage
+framework ensures proper locking so that no two processes write
+concurrently to the same coverage files.
+
+Creating the coverage files is best achieved by running the tests
+without MPI first and then running the same version with a number of
+processes under MPI. Running under MPI shows that the serialization and
+deserialization code in ``pgamodule.c`` is called.
+
+As of this writing we get::
+
+              Hit   Total
+ Lines:      1080    1459    74.0 %
+ Functions:   110     125    88.0 %
+
 References
 ----------
 

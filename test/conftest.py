@@ -39,6 +39,12 @@ def pga_setup_test (request):
     """
     pga.MPI_Init ([])
     request.addfinalizer (pga.MPI_Finalize)
+    class T (pga.PGA):
+        def __init__ (self):
+            super ().__init__ (float, 10)
+    # end class T
+    t = T ()
+    pytest.mpi_rank = t.mpi_rank
 # end def pga_setup_test
 
 @pytest.hookimpl (tryfirst=True, hookwrapper=True)

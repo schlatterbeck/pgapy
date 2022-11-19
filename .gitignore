@@ -12,6 +12,7 @@
 *.pyo
 *.rej
 *.hacked
+.coverage*
 *~
 .#*
 .*.swp

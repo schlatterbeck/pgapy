@@ -46,30 +46,25 @@ class Minfloat (pga.PGA, autosuper):
         if self.args.output_file:
             d ['output_file'] = args.output_file
         super (self.__class__, self).__init__ (float, 9, **d)
-        self.from_stop_cond = False
-        self.num_evals = 0
     # end def __init__
 
     def evaluate (self, p, pop):
-        assert self.from_stop_cond or not self.get_evaluation_up_to_date (p, pop)
-        self.num_evals += 1
+        assert not self.get_evaluation_up_to_date (p, pop)
         return sum (self.get_allele (p, pop, k) for k in range (len (self)))
     # end def evaluate
 
     def stop_cond (self):
         """ Stop when the evaluation has reached 0.99 * 10 * len (self)
         """
-        best = self.get_best_index (pga.PGA_OLDPOP)
-        self.from_stop_cond = True
-        eval = self.evaluate (best, pga.PGA_OLDPOP)
-        self.from_stop_cond = False
+        best = self.get_best_report_index (pga.PGA_OLDPOP, 0)
+        eval = self.get_evaluation (best, pga.PGA_OLDPOP)
         if eval <= -0.99999 * 10 * len (self):
             return True
         return self.check_stopping_conditions ()
     # end def stop_cond
 
     def print_string (self, file, p, pop):
-        print ("evals: %s" % self.num_evals, file = file)
+        print ("evals: %s" % self.eval_count, file = file)
         print ("best index: %d" % self.get_best_index (pop), file = file);
         file.flush ()
         self.__super.print_string (file, p, pop)
