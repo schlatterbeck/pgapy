@@ -1,12 +1,11 @@
 #!/usr/bin/python3
 
 from __future__ import print_function
-from rsclib.autosuper import autosuper
 from argparse         import ArgumentParser
 import sys
 import pga
 
-class Himmelblau (pga.PGA, autosuper):
+class Himmelblau (pga.PGA):
     """ Constrained Himmelblau's function
         Example 4.3.1 p.157 from Kalyanmoy Deb. Optimization for
         Engineering Design – Algorithms and Examples. PHI Learning,
@@ -41,7 +40,7 @@ class Himmelblau (pga.PGA, autosuper):
             )
         if self.args.output_file:
             d ['output_file'] = args.output_file
-        self.__super.__init__ (float, 2, **d)
+        super ().__init__ (float, 2, **d)
     # end def __init__
 
     def evaluate (self, p, pop):
@@ -57,7 +56,7 @@ class Himmelblau (pga.PGA, autosuper):
         #print (file.fileno ())
         print ("f:%e g:%e" % (f, g), file = file)
         print ("Evaluations: %d" % self.eval_count, file = file)
-        self.__super.print_string (file, p, pop)
+        super ().print_string (file, p, pop)
     # end def print_string
 
 # end class Himmelblau

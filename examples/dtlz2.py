@@ -1,14 +1,13 @@
 #!/usr/bin/python3
 
 from __future__       import print_function, division
-from rsclib.autosuper import autosuper
 from argparse         import ArgumentParser
 from math             import gcd
 import numpy as np
 import pga
 import sys
 
-class DTLZ2 (pga.PGA, autosuper):
+class DTLZ2 (pga.PGA):
 
     def __init__ (self, args):
         self.args = args
@@ -44,7 +43,7 @@ class DTLZ2 (pga.PGA, autosuper):
             d ['random_seed'] = args.random_seed
         if self.args.output_file:
             d ['output_file'] = args.output_file
-        self.__super.__init__ (float, self.dim, **d)
+        super ().__init__ (float, self.dim, **d)
         assert l == self.pop_size
     # end def __init__
 

@@ -1,11 +1,10 @@
 #!/usr/bin/python3
 
-from rsclib.autosuper import autosuper
 from argparse import ArgumentParser
 import pga
 import sys
 
-class Minfloat (pga.PGA, autosuper):
+class Minfloat (pga.PGA):
     """ This demonstrates the use of the new Differential Evolution
         strategy. Note that there is no selection pressure in the linear
         selection method. Instead selection pressure is employed with
@@ -45,7 +44,7 @@ class Minfloat (pga.PGA, autosuper):
             )
         if self.args.output_file:
             d ['output_file'] = args.output_file
-        super (self.__class__, self).__init__ (float, 9, **d)
+        super ().__init__ (float, 9, **d)
     # end def __init__
 
     def evaluate (self, p, pop):
@@ -67,7 +66,7 @@ class Minfloat (pga.PGA, autosuper):
         print ("evals: %s" % self.eval_count, file = file)
         print ("best index: %d" % self.get_best_index (pop), file = file);
         file.flush ()
-        self.__super.print_string (file, p, pop)
+        super ().print_string (file, p, pop)
     # end def print_string
 
 # end class Minfloat

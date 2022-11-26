@@ -1,12 +1,11 @@
 #!/usr/bin/python3
 
-from rsclib.autosuper import autosuper
 from argparse import ArgumentParser
 from math import sqrt
 import pga
 import sys
 
-class Two_Bar (pga.PGA, autosuper):
+class Two_Bar (pga.PGA):
     """ Example from [1]
     [1] Tapabrata Ray, Kang Tai, and Kin Chye Seow.  Multiobjective
         design optimization by an evolutionary algorithm. Engineering
@@ -39,7 +38,7 @@ class Two_Bar (pga.PGA, autosuper):
             d ['random_seed'] = args.random_seed
         if self.args.output_file:
             d ['output_file'] = args.output_file
-        self.__super.__init__ (float, 2, **d)
+        super ().__init__ (float, 2, **d)
     # end def __init__
 
     def evaluate (self, p, pop):

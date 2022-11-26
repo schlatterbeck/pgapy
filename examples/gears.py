@@ -1,13 +1,12 @@
 #!/usr/bin/python3
 
 from __future__       import print_function, division
-from rsclib.autosuper import autosuper
 from argparse         import ArgumentParser
 from math             import gcd
 import pga
 import sys
 
-class Gears (pga.PGA, autosuper):
+class Gears (pga.PGA):
     """ Example from presentation by Deb 2008
     """
 
@@ -38,7 +37,7 @@ class Gears (pga.PGA, autosuper):
             d ['random_seed'] = args.random_seed
         if self.args.output_file:
             d ['output_file'] = args.output_file
-        self.__super.__init__ (float, 4, **d)
+        super ().__init__ (float, 4, **d)
     # end def __init__
 
     def err (self, x1, x2, x3, x4):
@@ -62,7 +61,7 @@ class Gears (pga.PGA, autosuper):
         print (x, file = file)
         print ("Gear Error: %12.9f%%" % self.err (*x), file = file)
         print ("Random seed: %d" % self.random_seed, file = file)
-        self.__super.print_string (file, p, pop)
+        super ().print_string (file, p, pop)
     # end def print_string
 
 # end class Gears

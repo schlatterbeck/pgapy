@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-from rsclib.autosuper import autosuper
 from argparse import ArgumentParser
 from math import cos, atan, pi
 import pga
@@ -22,7 +21,7 @@ def g2 (x1, x2):
     return (x1 - 0.5) ** 2 + (x2 - 0.5) ** 2 - 0.5
 # end def g2
 
-class Multi_Objective (pga.PGA, autosuper):
+class Multi_Objective (pga.PGA):
     """ An example of multi-objective optimization, from NSGA-II paper
         "TNK", see also pgapack nsga-ii directory tnk.c
     """
@@ -53,7 +52,7 @@ class Multi_Objective (pga.PGA, autosuper):
             )
         if self.args.output_file:
             d ['output_file'] = args.output_file
-        self.__super.__init__ (float, 2, **d)
+        super ().__init__ (float, 2, **d)
     # end def __init__
 
     def evaluate (self, p, pop):
@@ -70,7 +69,7 @@ class Multi_Objective (pga.PGA, autosuper):
             % (f1 (x1, x2), f2 (x1, x2), g1 (x1, x2), g2 (x1, x2))
             , file = file
             )
-        self.__super.print_string (file, p, pop)
+        super ().print_string (file, p, pop)
     # end def print_string
 
 # end class Multi_Objective

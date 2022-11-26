@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 from __future__ import print_function
-from rsclib.autosuper import autosuper
 from argparse         import ArgumentParser
 import pga
 import sys
@@ -18,7 +17,7 @@ def g2 (x1, x2):
     return 1 - ((x1 + 0.5) ** 2 + (x2 - 0.5) ** 2) / 0.81
 # end def g2
 
-class Constrained (pga.PGA, autosuper):
+class Constrained (pga.PGA):
     """ First example from Deb 2000, two constraints, single objective
         function.
     """
@@ -46,7 +45,7 @@ class Constrained (pga.PGA, autosuper):
             )
         if self.args.output_file:
             d ['output_file'] = args.output_file
-        self.__super.__init__ (float, 2, **d)
+        super ().__init__ (float, 2, **d)
     # end def __init__
 
     def evaluate (self, p, pop):
@@ -63,7 +62,7 @@ class Constrained (pga.PGA, autosuper):
             % (f (x1, x2), g1 (x1, x2), g2 (x1, x2))
             , file = file
             )
-        self.__super.print_string (file, p, pop)
+        super ().print_string (file, p, pop)
     # end def print_string
 
 # end class Constrained

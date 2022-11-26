@@ -51,9 +51,20 @@ from one_max      import main as one_max_main
 from sort_numbers import main as sort_numbers_main
 from twobar       import main as twobar_main
 from vibr         import main as vibr_main
-from xor          import main as xor_main
+
+skip_tsplib = skip_fann = lambda fun, *args, **kw: fun
+
+try:
+    from xor      import main as xor_main
+except ImportError as err:
+    skip_fann = pytest.mark.skip (reason = str (err))
+
 sys.path.insert (1, "examples/sequence")
-from tsp          import main as tsp_main
+try:
+    from tsp      import main as tsp_main
+except ImportError as err:
+    skip_tsplib = pytest.mark.skip (reason = str (err))
+
 sys.path.insert (1, "examples/gp")
 from opt_xor      import main as gp_xor_main
 from opt_parity3  import main as gp_parity3_main
@@ -206,26 +217,31 @@ class Test_PGA_Fast (_Test_PGA):
         self.compare ()
     # end def test_vibr
 
+    @skip_fann
     def test_xor (self):
         xor_main (self.out_options)
         self.compare ()
     # end def test_xor
 
+    @skip_fann
     def test_xor_binary (self):
         xor_main (self.out_options + '-b -m 100'.split ())
         self.compare ()
     # end def test_xor_binary
 
+    @skip_fann
     def test_xor_gray (self):
         xor_main (self.out_options + '-g -m 100'.split ())
         self.compare ()
     # end def test_xor_gray
 
+    @skip_tsplib
     def test_tsp_croes (self):
         tsp_main (self.out_options + ['examples/sequence/croes.tsp'])
         self.compare ()
     # end def test_tsp_croes
 
+    @skip_tsplib
     def test_tsp_croes_lk (self, capfd):
         if pytest.mpi_rank != 0:
             return
