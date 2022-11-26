@@ -702,9 +702,9 @@ To compile for coverage analysis::
 
 This will create a file ending in ``.gcno`` under the ``build`` directory,
 typically something like ``build/temp.linux-x86_64-3.9`` when using
-``python3.9`` on the ``x86_64`` architecture. These are data files for
-the GNU profiler ``gcov``. Running the tests will create statistics
-data files with ending ``.gcda``. From these, ``.html`` files can be
+``python3.9`` on the ``x86_64`` architecture. Running the tests will
+create statistics data files with ending ``.gcda``. These are data files
+for the GNU profiler ``gcov``. From these, ``.html`` files can be
 generated that can be inspected with a browser::
 
   lcov --capture --directory . --output-file coverage.info
