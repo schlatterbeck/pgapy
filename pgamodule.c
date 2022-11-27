@@ -1378,16 +1378,9 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             )
     {
         pga_type = PGA_DATATYPE_INTEGER;
-    }
-    else if (PyObject_IsSubclass (type, (PyObject *)&PyFloat_Type))
-    {
+    } else if (PyObject_IsSubclass (type, (PyObject *)&PyFloat_Type)) {
         pga_type = PGA_DATATYPE_REAL;
-    }
-    else if (  PyBytes_Check (type)
-            || PyUnicode_Check (type)
-            || PyString_Check_Compat (type)
-            )
-    {
+    } else if (PyObject_IsSubclass (type, (PyObject *)&PyBytes_Type)) {
         pga_type = PGA_DATATYPE_CHARACTER;
     } else {
         pga_type = PGA_DATATYPE_USER;
@@ -2865,8 +2858,9 @@ static PyObject *PGA_set_allele (PyObject *self, PyObject *args)
     case PGA_DATATYPE_BINARY:
     {
         int allele;
-        if (!PyArg_Parse (val, "i", &allele))
+        if (!PyArg_Parse (val, "i", &allele)) {
             return NULL;
+        }
         PGASetBinaryAllele (ctx, p, pop, i, allele);
         break;
     }
