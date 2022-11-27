@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (C) 2005-21 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2005-22 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # ****************************************************************************
@@ -131,7 +131,8 @@ setup \
                              , 'examples/dtlz2.py'
                              , 'examples/fourbar.py'
                              , 'examples/gears.py'
-                             , 'examples/hello_world.py'
+                             , 'examples/hello_world_char.py'
+                             , 'examples/hello_world_int.py'
                              , 'examples/himmelblau.py'
                              , 'examples/magic_prio.py'
                              , 'examples/magic_square.py'

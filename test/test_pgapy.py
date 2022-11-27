@@ -35,22 +35,23 @@ from io      import StringIO
 
 # Import from examples
 sys.path.insert (1, "examples")
-from cards        import main as cards_main
-from cards_mutate import main as cards_mutate_main
-from constraint   import main as constraint_main
-from dtlz2        import main as dtlz2_main
-from fourbar      import main as fourbar_main
-from gears        import main as gears_main
-from hello_world  import main as hello_world_main
-from himmelblau   import main as himmelblau_main
-from magic_prio   import main as magic_prio_main
-from magic_square import main as magic_square_main
-from minfloat     import main as minfloat_main
-from multi        import main as multi_main
-from one_max      import main as one_max_main
-from sort_numbers import main as sort_numbers_main
-from twobar       import main as twobar_main
-from vibr         import main as vibr_main
+from cards            import main as cards_main
+from cards_mutate     import main as cards_mutate_main
+from constraint       import main as constraint_main
+from dtlz2            import main as dtlz2_main
+from fourbar          import main as fourbar_main
+from gears            import main as gears_main
+from hello_world_char import main as hello_world_char_main
+from hello_world_int  import main as hello_world_int_main
+from himmelblau       import main as himmelblau_main
+from magic_prio       import main as magic_prio_main
+from magic_square     import main as magic_square_main
+from minfloat         import main as minfloat_main
+from multi            import main as multi_main
+from one_max          import main as one_max_main
+from sort_numbers     import main as sort_numbers_main
+from twobar           import main as twobar_main
+from vibr             import main as vibr_main
 
 skip_tsplib = skip_fann = lambda fun, *args, **kw: fun
 
@@ -145,10 +146,15 @@ class Test_PGA_Fast (_Test_PGA):
         self.compare ()
     # end def test_fourbar
 
-    def test_hello_world (self):
-        hello_world_main (self.out_options + ['-R', '42'])
+    def test_hello_world_char (self):
+        hello_world_char_main (self.out_options + ['-R', '42', '-i'])
         self.compare ()
-    # end def test_hello_world
+    # end def test_hello_world_char
+
+    def test_hello_world_int (self):
+        hello_world_int_main (self.out_options + ['-R', '42'])
+        self.compare ()
+    # end def test_hello_world_int
 
     def test_gears (self):
         gears_main (self.out_options + ['-R', '42'])
@@ -490,8 +496,6 @@ class Test_PGA_Fast (_Test_PGA):
 
         # CHAR
         class T (pga.PGA):
-            def initstring (self, p, pop):
-                pass
             def __init__ (self):
                 super ().__init__ (bytes, 10)
         t = T ()

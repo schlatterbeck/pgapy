@@ -43,6 +43,7 @@ class Hello_World (pga.PGA):
             idx = self.get_allele (p, pop, i)
             s.append (self.alphabet [idx])
         print (''.join (s), file = file)
+        super ().print_string (file, p, pop)
         print ("Evaluations: %d" % self.eval_count, file = file)
     # end def print_string
 

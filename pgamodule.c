@@ -277,7 +277,10 @@ typedef struct
 
 /* These need to be kept sorted */
 static constdef_t constdef [] =
-    { {"PGA_CROSSOVER_EDGE",        PGA_CROSSOVER_EDGE        }
+    { {"PGA_CINIT_LOWER",           PGA_CINIT_LOWER           }
+    , {"PGA_CINIT_MIXED",           PGA_CINIT_MIXED           }
+    , {"PGA_CINIT_UPPER",           PGA_CINIT_UPPER           }
+    , {"PGA_CROSSOVER_EDGE",        PGA_CROSSOVER_EDGE        }
     , {"PGA_CROSSOVER_ONEPT",       PGA_CROSSOVER_ONEPT       }
     , {"PGA_CROSSOVER_SBX",         PGA_CROSSOVER_SBX         }
     , {"PGA_CROSSOVER_TWOPT",       PGA_CROSSOVER_TWOPT       }
@@ -924,14 +927,14 @@ static int check_allele (PGAContext *ctx, int p, int pop, int i)
         PyErr_SetString (PyExc_ValueError, x);
         return 0;
     }
-    if ((p < 0 || p >= PGAGetPopSize (ctx)) && p != PGA_TEMP1 && p != PGA_TEMP2)
+    if ((p < 0 || p >= ctx->ga.PopSize) && p != PGA_TEMP1 && p != PGA_TEMP2)
     {
         char x [50];
         sprintf (x, "%d: invalid population index", p);
         PyErr_SetString (PyExc_ValueError, x);
         return 0;
     }
-    if (i < 0 || i >= PGAGetStringLength (ctx)) {
+    if (i < 0 || i >= ctx->ga.StringLen) {
         char x [50];
         sprintf (x, "%d: allele index out of range", i);
         PyErr_SetString (PyExc_ValueError, x);
@@ -1223,6 +1226,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     int multi_obj_precision = -1;
     int retval = -1;
     int mpi_initialized = 0;
+    int char_init_type = -1;
     PyObject *Py_MPI_Initialized = NULL;
     PyObject *output_file = NULL;
     static char *kwlist[] =
@@ -1299,6 +1303,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         , "epsilon_theta"
         , "multi_obj_precision"
         , "output_file"
+        , "char_init_type"
         , NULL
         };
 
@@ -1306,7 +1311,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             ( args
             , kw
             , "Oi|OiiOOOiiiidOiiOOOiidOOOddiOiOOiddd"
-              "iiiddddddOOOididdidiidiiiOOidOOiidiiO"
+              "iiiddddddOOOididdidiidiiiOOidOOiidiiOi"
             , kwlist
             , &type
             , &length
@@ -1381,6 +1386,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             , &epsilon_theta
             , &multi_obj_precision
             , &output_file
+            , &char_init_type
             )
         )
     {
@@ -2088,6 +2094,16 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         }
         PGASetOutputFile (ctx, filename);
         Py_DECREF (b);
+    }
+    if (char_init_type >= 0) {
+        CHECK_VALUE
+            ( (  char_init_type == PGA_CINIT_UPPER
+              || char_init_type == PGA_CINIT_LOWER
+              || char_init_type == PGA_CINIT_MIXED
+              )
+            , "invalid char_init_type"
+            );
+        PGASetCharacterInitType (ctx, char_init_type);
     }
 
     PGASetUp (ctx);

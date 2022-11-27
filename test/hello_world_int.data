@@ -1,0 +1,35 @@
+Iter #     Field      Value
+10         Best       7.000000e+00
+#    0: [      33], [       4], [      11], [      36], [       3], [      65]
+#    6: [      48], [      24], [      13], [      11], [      30], [      62]
+HelKd WynlE!
+Evaluations: 962
+
+Iter #     Field      Value
+20         Best       8.000000e+00
+#    0: [      33], [       4], [      11], [      36], [       3], [      65]
+#    6: [      48], [      13], [       4], [      11], [       3], [      62]
+HelKd Wneld!
+Evaluations: 1810
+
+Iter #     Field      Value
+30         Best       9.000000e+00
+#    0: [      33], [       4], [      11], [      11], [       3], [      65]
+#    6: [      48], [      24], [      13], [      11], [       3], [      62]
+Helld Wynld!
+Evaluations: 2670
+
+Iter #     Field      Value
+40         Best       1.000000e+01
+#    0: [      33], [       4], [      11], [      11], [       3], [      65]
+#    6: [      48], [      14], [       4], [      11], [       3], [      62]
+Helld Woeld!
+Evaluations: 3521
+
+The Best Evaluation: 1.200000e+01.
+The Best String:
+#    0: [      33], [       4], [      11], [      11], [      14], [      65]
+#    6: [      48], [      14], [      17], [      11], [       3], [      62]
+Hello World!
+Evaluations: 4303
+
