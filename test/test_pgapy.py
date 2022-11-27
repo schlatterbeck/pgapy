@@ -204,7 +204,7 @@ class Test_PGA_Fast (_Test_PGA):
     # end def test_multi
 
     def test_one_max (self):
-        one_max_main (self.out_options + '-R 23'.split ())
+        one_max_main (self.out_options + '-R 23 -v'.split ())
         self.compare ()
     # end def test_one_max
 

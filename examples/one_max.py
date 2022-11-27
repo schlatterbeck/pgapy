@@ -36,6 +36,8 @@ class One_Max (pga.PGA):
         for k in range (90, 100):
             r.append (str (int (self.get_allele (p, pop, k))))
         print (''.join (r), file = file)
+        if self.args.verbose:
+            super ().print_string (file, p, pop)
     # end def print_string
 
     def stop_cond (self):
@@ -65,6 +67,11 @@ def main (argv):
         , help    = "Seed random number generator, default=%(default)s"
         , type    = int
         , default = 42
+        )
+    cmd.add_argument \
+        ( "-v", "--verbose"
+        , help    = "Verbose output"
+        , action  = 'store_true'
         )
     args = cmd.parse_args (argv)
     pg = One_Max (args)
