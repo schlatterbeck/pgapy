@@ -187,6 +187,12 @@ class Test_PGA_Fast (_Test_PGA):
         self.compare ()
     # end def test_magic_square
 
+    def test_magic_square_ed (self):
+        opt = '-l 4 --use-euclidian-gene-distance'.split ()
+        magic_square_main (self.out_options + opt)
+        self.compare ()
+    # end def test_magic_square_ed
+
     def test_magic_square_custom_mutation (self):
         ca = '-l 3 -m 0.111 --use-custom-mutation'.split ()
         magic_square_main (self.out_options + ca)

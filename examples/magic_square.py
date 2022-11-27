@@ -17,6 +17,8 @@ class Magic_Square (pga.PGA):
         self.r    = range (nsq)
         if args.use_custom_mutation:
             self.mutation = self.mutation_
+        if args.use_euclidian_gene_distance:
+            self.gene_distance = self.euclidian_distance
         # Default initialisation for integer is permutation
         # But we need to explicitly specify the init range
         # Mutation will also be a permutation but we need a special
@@ -240,6 +242,11 @@ def main (argv):
         ( '-m', '--mutation-rate'
         , type    = float
         , help    = "Mutation rate, default is 1/l**2"
+        )
+    cmd.add_argument \
+        ( '--use-euclidian-gene-distance'
+        , help    = "Use euclidian gene distance function"
+        , action  = 'store_true'
         )
     cmd.add_argument \
         ( '--use-custom-mutation'
