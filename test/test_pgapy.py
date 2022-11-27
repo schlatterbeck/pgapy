@@ -542,6 +542,32 @@ class Test_PGA_Fast (_Test_PGA):
         assert abs (f - 50) <= (1 / 1023) * (u - l)
     # end def test_bin_gray
 
+    def test_int_params (self, capfd):
+        if pytest.mpi_rank != 0:
+            return
+        d = dict (mutation_value = 2, random_seed = 23)
+        class T (pga.PGA):
+            def __init__ (self):
+                super ().__init__ (int, 10, **d)
+        t = T ()
+        assert t.mutation_value == 2
+        t.print_context ()
+        with open (self.data_name, 'r') as f:
+            r = f.read ()
+        captured = capfd.readouterr ().err
+        lines = []
+        for line in captured.split ('\n'):
+            if line.strip ().startswith ('PrintString'):
+                continue
+            if line.strip ().startswith ('Stopping'):
+                continue
+            if line.strip ().startswith ('Gene distance'):
+                continue
+            lines.append (line)
+        captured = '\n'.join (lines)
+        assert r == captured
+    # end def test_int_params
+
 # end class Test_PGA_Fast
 
 class Test_PGA_Slow (_Test_PGA):
