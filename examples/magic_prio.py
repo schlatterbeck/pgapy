@@ -25,7 +25,7 @@ class Magic_Square (pga.PGA):
             , init                  = [[0, nsq * 100]] * nsq
             , pop_size              = args.population_size
             , num_replace           = int (args.population_size * 0.9)
-            , max_GA_iter           = 1000
+            , max_GA_iter           = 500
             , max_no_change         = 400
             , print_options         = [pga.PGA_REPORT_STRING]
             , random_seed           = args.random_seed
@@ -35,11 +35,13 @@ class Magic_Square (pga.PGA):
             , stopping_rule_types   =
                 [pga.PGA_STOP_NOCHANGE, pga.PGA_STOP_MAXITER]
             )
+        if args.use_euclidian_gene_distance:
+            self.gene_distance = self.euclidian_distance
         if args.mutation_rate:
             p ['mutation_prob'] = args.mutation_rate
         if self.args.output_file:
             p ['output_file'] = args.output_file
-        super (self.__class__, self).__init__ (int, nsq, **p)
+        super (self.__class__, self).__init__ (float, nsq, **p)
     # end def __init__
 
     def circle_iter (self):
@@ -178,6 +180,7 @@ class Magic_Square (pga.PGA):
         fitness = self.get_fitness (p, pop)
         print (f % d2sum, csum, f % d1sum, file = file)
         print ("Best idx:", self.get_best_index (pop), file = file)
+        print ("%d iterations" % self.GA_iter, file = file)
     # end def print_string
 
     def stop_cond (self):
@@ -220,6 +223,11 @@ def main (argv):
         ( '-m', '--mutation-rate'
         , type    = float
         , help    = "Mutation rate, default is 1/l**2"
+        )
+    cmd.add_argument \
+        ( '--use-euclidian-gene-distance'
+        , help    = "Use euclidian gene distance function"
+        , action  = 'store_true'
         )
     args = cmd.parse_args (argv)
     pg = Magic_Square (args)

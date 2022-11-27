@@ -182,6 +182,13 @@ class Test_PGA_Fast (_Test_PGA):
         self.compare ()
     # end def test_magic_prio
 
+    def test_magic_prio_ed (self):
+        # Use length 3, doesn't find a solution otherwise :-)
+        opt = '-m 0.111111 --use-euclidian-gene-distance'.split ()
+        magic_prio_main (self.out_options + opt)
+        self.compare ()
+    # end def test_magic_prio_ed
+
     def test_magic_square (self):
         magic_square_main (self.out_options + '-l 4'.split ())
         self.compare ()
