@@ -3236,6 +3236,16 @@ static PyObject *PGA_mpi_rank (PyObject *self, void *closure)
     return Py_BuildValue ("i", PGAGetRank (ctx, MPI_COMM_WORLD));
 }
 
+/* Yet another explicit getter which uses the default mpi communicator */
+static PyObject *PGA_mpi_n_proc (PyObject *self, void *closure)
+{
+    PGAContext *ctx;
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    return Py_BuildValue ("i", PGAGetNumProcs (ctx, MPI_COMM_WORLD));
+}
+
 
 #define GETTER_ENTRY(name) \
     { XSTR(name), PGA_ ## name }
@@ -3269,6 +3279,7 @@ static PyGetSetDef PGA_getset [] =
 , GETTER_ENTRY (max_fitness_rank)
 , GETTER_ENTRY (max_GA_iter)
 , GETTER_ENTRY (max_similarity)
+, GETTER_ENTRY (mpi_n_proc)
 , GETTER_ENTRY (mpi_rank)
 , GETSET_ENTRY (multi_obj_precision)
 , GETTER_ENTRY (mutation_and_crossover)

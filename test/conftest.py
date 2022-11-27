@@ -44,7 +44,8 @@ def pga_setup_test (request):
             super ().__init__ (float, 10)
     # end class T
     t = T ()
-    pytest.mpi_rank = t.mpi_rank
+    pytest.mpi_rank   = t.mpi_rank
+    pytest.mpi_n_proc = t.mpi_n_proc
     del t
     del T
 # end def pga_setup_test

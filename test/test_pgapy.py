@@ -442,13 +442,24 @@ class Test_PGA_Fast (_Test_PGA):
         assert t.multi_obj_precision == 10
         assert t.get_iteration () == 0
         assert t.randomize_select == 1
-        # This doesn't work for mpi: the rank-0 process will not raise
-        # the exception because it never calls evaluate.
-        # no evaluate function:
-        # Note that run has to be called for *all* mpi processes
-#        with pytest.raises (NotImplementedError):
-#            t.run ()
     # end def test_init_param
+
+    def test_missing_eval (self):
+        """ This needs special care with mpi: the rank-0 process will
+            not raise the exception because it never calls evaluate.
+            But for a single process and two processes the rank-0
+            process *will* call evaluate.
+        """
+        class T (pga.PGA):
+            def __init__ (self):
+                super ().__init__ (float, 10)
+        t = T ()
+        if pytest.mpi_n_proc > 2 and pytest.mpi_rank == 0:
+            t.run ()
+            return
+        with pytest.raises (NotImplementedError):
+            t.run ()
+    # end def test_missing_eval
 
     def test_set_allele (self):
         if pytest.mpi_rank != 0:
