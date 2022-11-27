@@ -442,10 +442,63 @@ class Test_PGA_Fast (_Test_PGA):
         assert t.multi_obj_precision == 10
         assert t.get_iteration () == 0
         assert t.randomize_select == 1
+        # This doesn't work for mpi: the rank-0 process will not raise
+        # the exception because it never calls evaluate.
         # no evaluate function:
-        with pytest.raises (NotImplementedError):
-            t.run ()
+        # Note that run has to be called for *all* mpi processes
+#        with pytest.raises (NotImplementedError):
+#            t.run ()
     # end def test_init_param
+
+    def test_set_allele (self):
+        if pytest.mpi_rank != 0:
+            return
+        # BIN
+        class T (pga.PGA):
+            def __init__ (self):
+                super ().__init__ (bool, 10)
+        t = T ()
+        t.set_allele (0, pga.PGA_OLDPOP, 0, True)
+        assert t.get_allele (0, pga.PGA_OLDPOP, 0)
+
+        # FLOAT
+        class T (pga.PGA):
+            def __init__ (self):
+                super ().__init__ (float, 10)
+        t = T ()
+        t.set_allele (0, pga.PGA_OLDPOP, 0, 4711.0815)
+        assert t.get_allele (0, pga.PGA_OLDPOP, 0) == 4711.0815
+
+        # INT
+        class T (pga.PGA):
+            def __init__ (self):
+                super ().__init__ (int, 10)
+        t = T ()
+        t.set_allele (0, pga.PGA_OLDPOP, 0, 4711)
+        assert t.get_allele (0, pga.PGA_OLDPOP, 0) == 4711
+
+        # CHAR
+        class T (pga.PGA):
+            def initstring (self, p, pop):
+                pass
+            def __init__ (self):
+                super ().__init__ (bytes, 10)
+        t = T ()
+        t.set_allele (0, pga.PGA_OLDPOP, 0, b'A')
+        assert t.get_allele (0, pga.PGA_OLDPOP, 0) == b'A'
+
+        # USER
+        class T (pga.PGA):
+            def initstring (self, p, pop):
+                pass
+            def __init__ (self):
+                super ().__init__ (tuple, 10)
+        t = T ()
+        with pytest.raises (ValueError):
+            t.set_allele (0, pga.PGA_OLDPOP, 0, 'A')
+        with pytest.raises (ValueError):
+            t.get_allele (0, pga.PGA_OLDPOP, 0)
+    # def test_set_allele
 
 # end class Test_PGA_Fast
 

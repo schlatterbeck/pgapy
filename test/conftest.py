@@ -45,6 +45,8 @@ def pga_setup_test (request):
     # end class T
     t = T ()
     pytest.mpi_rank = t.mpi_rank
+    del t
+    del T
 # end def pga_setup_test
 
 @pytest.hookimpl (tryfirst=True, hookwrapper=True)
