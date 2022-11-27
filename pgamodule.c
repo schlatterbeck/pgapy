@@ -762,6 +762,26 @@ errout:
     return;
 }
 
+static int set_file (PGAContext *ctx, PyObject *self, FILE *fp)
+{
+    int retval = -1;
+    PyObject *file = NULL;
+    PyObject *pyfp = NULL;
+#if IS_PY3
+    file = PyFile_FromFd (fileno (fp), "", "w", -1, "utf-8", NULL, NULL, 0);
+#else
+    file = PyFile_FromFile (fp, "<PGA_file>", "w", NULL);
+#endif
+    ERR_CHECK (ctx, file, -1);
+    retval = PyObject_SetAttrString (self, "_file", file);
+    ERR_CHECK (ctx, retval >= 0, -1);
+    pyfp = Py_BuildValue ("L", (long long) fp);
+    ERR_CHECK (ctx, pyfp, -1);
+    retval = PyObject_SetAttrString (self, "_fp", pyfp);
+    ERR_CHECK (ctx, retval >= 0, -1);
+    return 0;
+}
+
 /*
  * Low-level gene print function
  * Note: We do a hack here and store both, the original FILE *fp and the
@@ -783,27 +803,11 @@ static void print_gene (PGAContext *ctx, FILE *fp, int p, int pop)
     ERR_CHECK_X (ctx, self);
     fflush (fp);
     if (!PyObject_HasAttrString (self, "_file")) {
-        PyObject *pyfp = NULL;
-#if IS_PY3
-        file = PyFile_FromFd (fileno (fp), "", "w", -1, "utf-8", NULL, NULL, 0);
-#else
-        file = PyFile_FromFile (fp, "<PGA_file>", "w", NULL);
-#endif
-        ERR_CHECK_X (ctx, file);
-        if (PyObject_SetAttrString (self, "_file", file) < 0) {
-            SET_ERR (ctx);
-            goto errout;
-        }
-        pyfp = Py_BuildValue ("L", (long long) fp);
-        ERR_CHECK_X (ctx, pyfp);
-        if (PyObject_SetAttrString (self, "_fp", pyfp) < 0) {
-            SET_ERR (ctx);
-            goto errout;
-        }
-    } else {
-        file = PyObject_GetAttrString (self, "_file");
-        ERR_CHECK_X (ctx, file);
+        int res = set_file (ctx, self, fp);
+        ERR_CHECK_X (ctx, res == 0);
     }
+    file = PyObject_GetAttrString (self, "_file");
+    ERR_CHECK_X (ctx, file);
     r    = PyObject_CallMethod (self, "print_string", "Oii", file, p, pop);
     ERR_CHECK_X (ctx, r);
     Py_CLEAR (r);
