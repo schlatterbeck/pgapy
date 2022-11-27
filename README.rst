@@ -283,7 +283,7 @@ PGApack name                         Constructor parameter             Type   Pr
 ``PGASetDECrossoverProb``            ``DE_crossover_prob``             double yes
 ``PGASetDECrossoverType``            ``DE_crossover_type``             sym    no
 ``PGASetDEDither``                   ``DE_dither``                     double yes
-``PGASetDEDitherPerIndividual``      ``DE_dither_per_individual``      bool   no
+``PGASetDEDitherPerIndividual``      ``DE_dither_per_individual``      bool   yes
 ``PGASetDEJitter``                   ``DE_jitter``                     double yes
 ``PGASetDENumDiffs``                 ``DE_num_diffs``                  int    yes
 ``PGASetDEProbabilityEO``            ``DE_probability_EO``             double yes
@@ -294,8 +294,8 @@ PGApack name                         Constructor parameter             Type   Pr
 ``PGASetEpsilonTheta``               ``epsilon_theta``                 int    yes
 ``PGAGetEvalCount``                  ``eval_count``                    int    yes
 ``PGASetFitnessCmaxValue``           ``fitness_cmax``                  float  yes
-``PGASetFitnessMinType``             ``fitness_min_type``              sym    no
-``PGASetFitnessType``                ``fitness_type``                  sym    no
+``PGASetFitnessMinType``             ``fitness_min_type``              sym    yes
+``PGASetFitnessType``                ``fitness_type``                  sym    yes
 ``PGAIntegerSetFixedEdges``          ``fixed_edges``                          no
 ``PGAIntegerSetFixedEdges``          ``fixed_edges_symmetric``         bool   no
 ``PGAGetGAIterValue``                ``GA_iter``                       int    yes
@@ -304,7 +304,7 @@ PGApack name                         Constructor parameter             Type   Pr
 ``PGASetMaxFitnessRank``             ``max_fitness_rank``              float  yes
 ``PGASetMaxGAIterValue``             ``max_GA_iter``                   int    yes
 ``PGASetMaxNoChangeValue``           ``max_no_change``                 int    no
-``PGASetMaxSimilarityValue``         ``max_similarity``                int    no
+``PGASetMaxSimilarityValue``         ``max_similarity``                int    yes
 ``PGASetMixingType``                 ``mixing_type``                   sym    no
 ``PGASetMultiObjPrecision``          ``multi_obj_precision``           int    yes
 ``PGASetMutationAndCrossoverFlag``   ``mutation_and_crossover``        int    yes

@@ -374,6 +374,79 @@ class Test_PGA_Fast (_Test_PGA):
         assert -1000 <= t.random_gaussian (0, 0.01) <= 1000
     # end def test_getter_setter
 
+    def test_init_param (self):
+        if pytest.mpi_rank != 0:
+            return
+        initp = [(i, .5) for i in range (10)]
+        d = dict \
+            ( crossover_SBX_once_per_string = 1
+            , crossover_SBX_eta = 0.5
+            , max_similarity = 99
+            , DE_num_diffs = 2
+            , DE_dither_per_individual = 1
+            , DE_aux_factor = 0.99
+            , DE_probability_EO = 0.8
+            , uniform_crossover_prob = 0.8
+            , p_tournament_prob = 0.9
+            , max_fitness_rank = 1.1
+            , fitness_cmax = 1.1
+            , init_percent = initp
+            , restart = True
+            , restart_frequency = 100
+            , mutation_bounded = True
+            , mutation_or_crossover = True
+            , mutation_and_crossover = True
+            , mutation_value = 0.2
+            , mutation_poly_eta = 80.0
+            , mutation_poly_value = 5
+            , fitness_type = pga.PGA_FITNESS_RAW
+            , fitness_min_type = pga.PGA_FITNESSMIN_CMAX
+            , rtr_window_size = 23
+            , sum_constraints = False
+            , epsilon_generation = 23
+            , epsilon_exponent = 7.5
+            , epsilon_theta = 33
+            , multi_obj_precision = 10
+            , randomize_select = True
+            )
+        class T (pga.PGA):
+            def __init__ (self):
+                super ().__init__ (float, 10, **d)
+        t = T ()
+        assert t.crossover_SBX_once_per_string == 1
+        assert t.crossover_SBX_eta == 0.5
+        assert t.max_similarity == 99
+        assert t.DE_num_diffs == 2
+        assert t.DE_dither_per_individual == 1
+        assert t.DE_aux_factor == 0.99
+        assert t.DE_probability_EO == 0.8
+        assert t.uniform_crossover_prob == 0.8
+        assert t.p_tournament_prob == 0.9
+        assert t.max_fitness_rank == 1.1
+        assert t.fitness_cmax == 1.1
+        assert t.restart == True
+        assert t.restart_frequency == 100
+        assert t.mutation_bounded == True
+        assert t.mutation_or_crossover == True
+        assert t.mutation_and_crossover == False
+        assert t.mutation_value == 0.2
+        assert t.mutation_poly_eta == 80.0
+        assert t.mutation_poly_value == 5
+        assert t.fitness_type == pga.PGA_FITNESS_RAW
+        assert t.fitness_min_type == pga.PGA_FITNESSMIN_CMAX
+        assert t.rtr_window_size == 23
+        assert t.sum_constraints == False
+        assert t.epsilon_generation == 23
+        assert t.epsilon_exponent == 7.5
+        assert t.epsilon_theta == 33
+        assert t.multi_obj_precision == 10
+        assert t.get_iteration () == 0
+        assert t.randomize_select == 1
+        # no evaluate function:
+        with pytest.raises (NotImplementedError):
+            t.run ()
+    # end def test_init_param
+
 # end class Test_PGA_Fast
 
 class Test_PGA_Slow (_Test_PGA):
