@@ -511,6 +511,33 @@ class Test_PGA_Fast (_Test_PGA):
             t.get_allele (0, pga.PGA_OLDPOP, 0)
     # def test_set_allele
 
+    def test_bin_gray (self):
+        if pytest.mpi_rank != 0:
+            return
+        class T (pga.PGA):
+            def __init__ (self):
+                super ().__init__ (bool, 10)
+        t = T ()
+        pop = pga.PGA_OLDPOP
+        t.encode_int_as_binary (0, pop, 0, 4, 17)
+        t.encode_int_as_binary (0, pop, 5, 9, 23)
+        i = t.get_int_from_binary (0, pop, 0, 9)
+        assert i == 23 + (17 << 5)
+        l = 2.0
+        u = 100.0
+        f = t.get_real_from_binary (0, pop, 0, 9, l, u)
+        assert abs (f - (u - l) * i / 1023 + l) < 1e12
+        t.encode_real_as_binary (0, pop, 0, 9, l + 1, u + 1, f + 1)
+        assert t.get_int_from_binary (0, pop, 0, 9) == 23 + (17 << 5)
+        t.encode_int_as_gray_code (0, pop, 0, 4, 17)
+        t.encode_int_as_gray_code (0, pop, 5, 9, 23)
+        t.get_int_from_gray_code (0, pop, 0, 4) == 17
+        t.get_int_from_gray_code (0, pop, 5, 9) == 23
+        t.encode_real_as_gray_code (0, pop, 0, 9, l, u, 50.0)
+        f = t.get_real_from_gray_code (0, pop, 0, 9, l, u)
+        assert abs (f - 50) <= (1 / 1023) * (u - l)
+    # end def test_bin_gray
+
 # end class Test_PGA_Fast
 
 class Test_PGA_Slow (_Test_PGA):
