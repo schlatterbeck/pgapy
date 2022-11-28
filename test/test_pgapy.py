@@ -603,6 +603,22 @@ class Test_PGA_Fast (_Test_PGA):
             t.run ()
     # end def test_eval_misuse
 
+    def test_check_allele (self):
+        class T (pga.PGA):
+            def __init__ (self):
+                super ().__init__ (int, 10)
+        t = T ()
+        # wrong population:
+        with pytest.raises (ValueError):
+            t.get_allele (0, 4711, 0)
+        # wrong population index p:
+        with pytest.raises (ValueError):
+            t.get_allele (500, pga.PGA_OLDPOP, 0)
+        # wrong allele index
+        with pytest.raises (ValueError):
+            t.get_allele (0, pga.PGA_OLDPOP, 10)
+    # end def test_check_allele
+
 # end class Test_PGA_Fast
 
 class Test_PGA_Slow (_Test_PGA):
