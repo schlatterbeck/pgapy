@@ -463,6 +463,17 @@ class Test_PGA_Fast (_Test_PGA):
         assert t.randomize_select == 1
     # end def test_init_param
 
+    def test_init_param_intmutation (self):
+        if pytest.mpi_rank != 0:
+            return
+        d = dict (mutation_type = pga.PGA_MUTATION_PERMUTE)
+        class T (pga.PGA):
+            def __init__ (self):
+                super ().__init__ (int, 10, **d)
+        t = T ()
+        assert t.mutation_type == pga.PGA_MUTATION_PERMUTE
+    # end def test_init_param_intmutation
+
     def test_missing_eval (self):
         """ This needs special care with mpi: the rank-0 process will
             not raise the exception because it never calls evaluate.
