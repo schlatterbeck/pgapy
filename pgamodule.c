@@ -69,6 +69,14 @@ static PyObject *contexts       = NULL;
         return r;                           \
     }                                       \
 } while (0)
+#define ERR_CHECK_ERRNO(ctx,x,r) do {                            \
+    if (!(x)) {                                                  \
+        PyErr_SetString (PyExc_RuntimeError, strerror (errno));  \
+        SET_ERR(ctx);                                            \
+        return r;                                                \
+    }                                                            \
+} while (0)
+
 #define ERR_CHECK_OCCURRED(ctx,r) do {                                 \
     if (HAS_ERR(ctx)) {                                                \
         if (!PyErr_Occurred ()) {                                      \
@@ -120,6 +128,27 @@ static PyObject *contexts       = NULL;
     }                                                        \
 } while (0)
 
+#define ERR_DECREF_RET(cond, dec, ret) do {  \
+    if (!(cond)) {                           \
+        Py_CLEAR (dec);                      \
+        return (ret);                        \
+    }                                        \
+} while (0)
+#define ERR_DECREF_2_RET(cond, dec1, dec2, ret) do {  \
+    if (!(cond)) {                                    \
+        Py_CLEAR (dec1);                              \
+        Py_CLEAR (dec2);                              \
+        return (ret);                                 \
+    }                                                 \
+} while (0)
+#define ERR_DECREF_3_RET(cond, dec1, dec2, dec3, ret) do {  \
+    if (!(cond)) {                                          \
+        Py_CLEAR (dec1);                                    \
+        Py_CLEAR (dec2);                                    \
+        Py_CLEAR (dec3);                                    \
+        return (ret);                                       \
+    }                                                       \
+} while (0)
 
 /*********************************
  * Convenience functions in module
@@ -355,10 +384,7 @@ static PGAContext *get_context (PyObject *self)
     if (!PGA_ctx) {
         return NULL;
     }
-    if (!PyArg_Parse (PGA_ctx, "L", &llctx)) {
-        Py_DECREF   (PGA_ctx);
-        return NULL;
-    }
+    ERR_DECREF_RET (PyArg_Parse (PGA_ctx, "L", &llctx), PGA_ctx, NULL);
     Py_DECREF (PGA_ctx);
     /* If an error occurred */
     if (*((int *)((PGAContext *)llctx)->ga.CustomData)) {
@@ -378,18 +404,28 @@ static PGAContext *get_context (PyObject *self)
 /*
  * Retrieve the FILE *fp from the PGA object
  */
-static FILE *get_fp (PyObject *self)
+static FILE *get_fp (PyObject *self, PyObject *file)
 {
-    PyObject   *pyfp = PyObject_GetAttrString (self, "_fp");
+    PyObject *pyfp = PyObject_GetAttrString (self, "_fp");
+    PyObject *fno = NULL;
     long long lfp;
+    int fd_from_self = -1;
+    int fd_from_file = -1;
     if (!pyfp) {
         return NULL;
     }
-    if (!PyArg_Parse (pyfp, "L", &lfp)) {
-        Py_DECREF   (pyfp);
-        return NULL;
+    ERR_DECREF_RET (PyArg_Parse (pyfp, "L", &lfp), pyfp, NULL);
+    Py_DECREF (pyfp);
+    fd_from_self = fileno ((FILE *)lfp);
+    /* Now extract fd from file */
+    fno = PyObject_CallMethod (file, "fileno", "");
+    /* If an error happens here (should not) we return the fp anyway */
+    if (fno != NULL) {
+        if (PyArg_Parse (fno, "i", &fd_from_file)) {
+            ERR_DECREF_RET (fd_from_self == fd_from_file, fno, NULL);
+        }
+        Py_DECREF (fno);
     }
-    Py_DECREF   (pyfp);
     /* Visual C disable warning about size */
     #ifdef _MSC_VER
     #pragma warning(push)
@@ -399,6 +435,37 @@ static FILE *get_fp (PyObject *self)
     #ifdef _MSC_VER
     #pragma warning(pop)
     #endif
+}
+
+static PyObject *module_os = NULL;
+
+/* Return a FILE created from dup'd fd from file, caller needs to close */
+static FILE *get_fp_from_file (PyObject *file)
+{
+    FILE *fp = NULL;
+    int fd = -1;
+    PyObject *fno = PyObject_CallMethod (file, "fileno", "");
+    PyObject *fdp = NULL;
+    if (fno == NULL) {
+        return NULL;
+    }
+    if (module_os == NULL) {
+        module_os = PyImport_ImportModule ("os");
+        if (!module_os) {
+            return NULL;
+        }
+    }
+    fdp = PyObject_CallMethod (module_os, "dup", "O", fno);
+    Py_DECREF (fno);
+    if (fdp == NULL) {
+        return NULL;
+    }
+    ERR_DECREF_RET (PyArg_Parse (fdp, "i", &fd), fdp, NULL);
+    Py_DECREF (fdp);
+    fp = fdopen (fd, "w");
+    CHECK_VALUE_EXCEPTION \
+        (fp != NULL, strerror (errno), PyExc_RuntimeError, NULL);
+    return fp;
 }
 
 /*
@@ -758,24 +825,30 @@ errout:
     return;
 }
 
-static int set_file (PGAContext *ctx, PyObject *self, FILE *fp)
+static PyObject *get_file_from_fp (PGAContext *ctx, PyObject *self, FILE *fp)
 {
     int retval = -1;
     PyObject *file = NULL;
     PyObject *pyfp = NULL;
+    int fd = fileno (fp);
+    
+    /* Should never happen unles fp is not a valid stream */
+    ERR_CHECK_ERRNO (ctx, fd >= 0, NULL);
 #if IS_PY3
-    file = PyFile_FromFd (fileno (fp), "", "w", -1, "utf-8", NULL, NULL, 0);
+    file = PyFile_FromFd (fd, "", "w", -1, "utf-8", NULL, NULL, 0);
 #else
-    file = PyFile_FromFile (fp, "<PGA_file>", "w", NULL);
+    {
+        FILE *fp2 = fdopen (fd, "w");
+        ERR_CHECK_ERRNO (ctx, fp2 != NULL, NULL);
+        file = PyFile_FromFile (fp2, "<PGA_file>", "w", NULL);
+    }
 #endif
-    ERR_CHECK (ctx, file, -1);
-    retval = PyObject_SetAttrString (self, "_file", file);
-    ERR_CHECK (ctx, retval >= 0, -1);
+    ERR_CHECK (ctx, file, NULL);
     pyfp = Py_BuildValue ("L", (long long) fp);
-    ERR_CHECK (ctx, pyfp, -1);
+    ERR_CHECK (ctx, pyfp, NULL);
     retval = PyObject_SetAttrString (self, "_fp", pyfp);
-    ERR_CHECK (ctx, retval >= 0, -1);
-    return 0;
+    ERR_CHECK (ctx, retval >= 0, NULL);
+    return file;
 }
 
 /*
@@ -794,22 +867,28 @@ static int set_file (PGAContext *ctx, PyObject *self, FILE *fp)
 static void print_gene (PGAContext *ctx, FILE *fp, int p, int pop)
 {
     PyObject *self = NULL, *file = NULL, *r = NULL;
+    int retval = -1;
     ERR_CHECK_X_OCCURRED (ctx);
     self    = get_self (ctx);
     ERR_CHECK_X (ctx, self);
     fflush (fp);
-    if (!PyObject_HasAttrString (self, "_file")) {
-        int res = set_file (ctx, self, fp);
-        ERR_CHECK_X (ctx, res == 0);
-    }
-    file = PyObject_GetAttrString (self, "_file");
+
+    file = get_file_from_fp (ctx, self, fp);
     ERR_CHECK_X (ctx, file);
-    r    = PyObject_CallMethod (self, "print_string", "Oii", file, p, pop);
+    r = PyObject_CallMethod (self, "print_string", "Oii", file, p, pop);
     ERR_CHECK_X (ctx, r);
     Py_CLEAR (r);
     /* Flush file */
-    r    = PyObject_CallMethod (file, "flush", "");
+    r = PyObject_CallMethod (file, "flush", "");
     ERR_CHECK_X (ctx, r);
+    Py_CLEAR (r);
+    /* File is set to not close unterlying fd but close anyway */
+    r = PyObject_CallMethod (file, "close", "");
+    ERR_CHECK_X (ctx, r);
+    Py_CLEAR (r);
+    /* Now remove self._fp */
+    retval = PyObject_DelAttrString (self, "_fp");
+    ERR_CHECK_X (ctx, retval == 0);
 errout:
     Py_CLEAR (file);
     Py_CLEAR (r);
@@ -1460,10 +1539,11 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     assert (contexts);
     assert (self);
     PyObject_SetItem (contexts, PGA_ctx, self);
-    if (PyObject_SetAttrString (self, "context", PGA_ctx) < 0) {
-        Py_CLEAR (PGA_ctx);
-        return INIT_FAIL;
-    }
+
+    ERR_DECREF_RET
+        ( PyObject_SetAttrString (self, "context", PGA_ctx) >= 0
+        , PGA_ctx, INIT_FAIL
+        );
     Py_CLEAR (PGA_ctx);
     /*
      * Allocate data structure for error indicator, for now this is just
@@ -1750,10 +1830,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             if (!l) {
                 return INIT_FAIL;
             }
-            if (!PyArg_Parse (l, "i", permute_lh + i)) {
-                Py_CLEAR (l);
-                return INIT_FAIL;
-            }
+            ERR_DECREF_RET (PyArg_Parse (l, "i", permute_lh + i), l, INIT_FAIL);
             Py_CLEAR (l);
         }
         CHECK_VALUE
@@ -1798,43 +1875,25 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
                 return INIT_FAIL;
             }
             low  = PySequence_GetItem (x, 0);
-            if (!low) {
-                Py_CLEAR (x);
-                return INIT_FAIL;
-            }
+            ERR_DECREF_RET (low, x, INIT_FAIL);
             high = PySequence_GetItem (x, 1);
-            if (!high) {
-                Py_CLEAR (x);
-                Py_CLEAR (low);
-                return INIT_FAIL;
-            }
+            ERR_DECREF_2_RET (high, x, low, INIT_FAIL);
             Py_CLEAR (x);
             if (is_real) {
                 PyObject *l = NULL, *h = NULL;
                 double hi;
                 l = PyNumber_Float (low);
-                if (!l) {
-                    Py_CLEAR (low);
-                    Py_CLEAR (high);
-                    return INIT_FAIL;
-                }
+                ERR_DECREF_2_RET (l, low, high, INIT_FAIL);
                 h = PyNumber_Float (high);
-                if (!h) {
-                    Py_CLEAR (low);
-                    Py_CLEAR (high);
-                    Py_CLEAR (l);
-                    return INIT_FAIL;
-                }
+                ERR_DECREF_3_RET (h, low, high, l, INIT_FAIL);
                 Py_CLEAR (low);
                 Py_CLEAR (high);
-                if (  !PyArg_Parse (h, "d", ((double *)i_high) + i)
-                   || !PyArg_Parse (l, "d", ((double *)i_low)  + i)
-                   )
-                {
-                    Py_CLEAR (l);
-                    Py_CLEAR (h);
-                    return INIT_FAIL;
-                }
+                ERR_DECREF_2_RET
+                    ( (  PyArg_Parse (h, "d", ((double *)i_high) + i)
+                      && PyArg_Parse (l, "d", ((double *)i_low)  + i)
+                      )
+                    , l, h, INIT_FAIL
+                    );
                 hi = ((double *)i_high) [i];
                 if (init_percent) {
                     CHECK_VALUE
@@ -1843,28 +1902,17 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             } else {
                 PyObject *l = NULL, *h = NULL;
                 l = PyNumber_Long (low);
-                if (!l) {
-                    Py_CLEAR (low);
-                    Py_CLEAR (high);
-                    return INIT_FAIL;
-                }
+                ERR_DECREF_2_RET (l, low, high, INIT_FAIL);
                 h = PyNumber_Long (high);
-                if (!h) {
-                    Py_CLEAR (low);
-                    Py_CLEAR (high);
-                    Py_CLEAR (l);
-                    return INIT_FAIL;
-                }
+                ERR_DECREF_3_RET (h, low, high, l, INIT_FAIL);
                 Py_CLEAR (low);
                 Py_CLEAR (high);
-                if (  !PyArg_Parse (h, "i", ((int *)i_high) + i)
-                   || !PyArg_Parse (l, "i", ((int *)i_low)  + i)
-                   )
-                {
-                    Py_CLEAR (l);
-                    Py_CLEAR (h);
-                    return INIT_FAIL;
-                }
+                ERR_DECREF_2_RET
+                    ( (  PyArg_Parse (h, "i", ((int *)i_high) + i)
+                      && PyArg_Parse (l, "i", ((int *)i_low)  + i)
+                      )
+                    , l, h, INIT_FAIL
+                    );
             }
         }
         if (is_real) {
@@ -2503,17 +2551,11 @@ static PyObject *PGA_get_evaluation (PyObject *self, PyObject *args)
         return NULL;
     }
     ele = Py_BuildValue ("d", PGAGetEvaluation (ctx, p, pop, &aux));
-    if (ele == NULL) {
-        Py_DECREF (tuple);
-        return NULL;
-    }
+    ERR_DECREF_RET (ele != NULL, tuple, NULL);
     PyTuple_SetItem (tuple, 0, ele);
     for (i=0; i<ctx->ga.NumAuxEval; i++) {
         ele = Py_BuildValue ("d", aux [i]);
-        if (ele == NULL) {
-            Py_DECREF (tuple);
-            return NULL;
-        }
+        ERR_DECREF_RET (ele != NULL, tuple, NULL);
         PyTuple_SetItem (tuple, i + 1, ele);
     }
     return tuple;
@@ -2691,6 +2733,8 @@ static PyObject *PGA_print_string (PyObject *self, PyObject *args)
     PGAContext   *ctx = NULL;
     int           p, pop;
     FILE         *fp = NULL;
+    int           do_close = 0;
+    char         *errmsg = NULL;
 
     if (!PyArg_ParseTuple (args, "Oii", &file, &p, &pop)) {
         return NULL;
@@ -2698,8 +2742,13 @@ static PyObject *PGA_print_string (PyObject *self, PyObject *args)
     if (!(ctx = get_context (self))) {
         return NULL;
     }
-    if (!(fp = get_fp (self))) {
-        return NULL;
+    if (!(fp = get_fp (self, file))) {
+        PyErr_Clear ();
+        fp = get_fp_from_file (file);
+        if (fp == NULL) {
+            return NULL;
+        }
+        do_close = 1;
     }
     switch (PGAGetDataType (ctx)) {
     case PGA_DATATYPE_BINARY:
@@ -2729,7 +2778,18 @@ static PyObject *PGA_print_string (PyObject *self, PyObject *args)
     default:
         assert (0);
     }
-    fflush (fp);
+    if (fflush (fp) != 0) {
+        errmsg = "Cannot flush FILE";
+    }
+    if (do_close) {
+        if (fclose (fp) != 0) {
+            errmsg = "Cannot close FILE";
+        }
+    }
+    if (errmsg) {
+        PyErr_SetString (PyExc_ValueError, errmsg);
+        return NULL;
+    }
     Py_INCREF (Py_None);
     return Py_None;
 }

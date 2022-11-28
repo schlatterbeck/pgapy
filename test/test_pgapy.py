@@ -72,8 +72,6 @@ from opt_parity3  import main as gp_parity3_main
 from opt_integral import main as gp_integral_main
 
 class _Test_PGA:
-    out_name    = 'test/output.out'
-
     @property
     def basename (self):
         assert self.test_name.startswith ('test_')
@@ -88,7 +86,7 @@ class _Test_PGA:
     @property
     def data_name (self):
         return os.path.join ('test', self.basename + '.data')
-    # end def out_name
+    # end def data_name
 
     @property
     def out_options (self):
@@ -200,11 +198,11 @@ class Test_PGA_Fast (_Test_PGA):
         self.compare ()
     # end def test_magic_square_ed
 
-    def test_magic_square_custom_mutation (self):
+    def test_magic_square_cm (self):
         ca = '-l 3 -m 0.111 --use-custom-mutation'.split ()
         magic_square_main (self.out_options + ca)
         self.compare ()
-    # end def test_magic_square_custom_mutation
+    # end def test_magic_square_cm
 
     def test_minfloat (self):
         minfloat_main (self.out_options)
@@ -629,6 +627,22 @@ class Test_PGA_Fast (_Test_PGA):
         with pytest.raises (ValueError):
             t.get_allele (0, pga.PGA_OLDPOP, 10)
     # end def test_check_allele
+
+    def test_print_string (self):
+        if pytest.mpi_rank != 0:
+            return
+        class T (pga.PGA):
+            def __init__ (self):
+                super ().__init__ (int, 10)
+        t = T ()
+        for i in range (10):
+            t.set_allele (0, pga.PGA_OLDPOP, i, i)
+        with open (self.out_name, 'w') as f:
+            t.print_string (f, 0, pga.PGA_OLDPOP)
+        with open (self.data_name, 'r') as f:
+            r = f.read ()
+        self.compare ()
+    # end def test_print_string
 
 # end class Test_PGA_Fast
 
