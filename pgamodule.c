@@ -463,17 +463,10 @@ static double evaluate (PGAContext *ctx, int p, int pop, double *aux)
         length = PySequence_Length (res1);
         if (length != ctx->ga.NumAuxEval + 1) {
             char x [60];
-            if (length < 0) {
-                sprintf
-                    ( x, "Expected sequence of length %d"
-                    , ctx->ga.NumAuxEval + 1
-                    );
-            } else {
-                sprintf
-                    ( x, "Invalid length %zu of evaluations, expect %d"
-                    , length, ctx->ga.NumAuxEval + 1
-                    );
-            }
+            sprintf
+                ( x, "Invalid length %zd of evaluations, expect %d"
+                , length, ctx->ga.NumAuxEval + 1
+                );
             PyErr_SetString (PyExc_ValueError, x);
             SET_ERR (ctx);
             goto errout;

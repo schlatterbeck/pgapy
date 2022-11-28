@@ -581,6 +581,28 @@ class Test_PGA_Fast (_Test_PGA):
         assert r == captured
     # end def test_int_params
 
+    def test_eval_misuse (self):
+        if pytest.mpi_n_proc > 1:
+            return
+        d = dict (num_eval = 3)
+        class T (pga.PGA):
+            def evaluate (self, p, pop):
+                return 2
+            def __init__ (self):
+                super ().__init__ (int, 10, **d)
+        t = T ()
+        with pytest.raises (ValueError):
+            t.run ()
+        class T (pga.PGA):
+            def evaluate (self, p, pop):
+                return 1, 2, 3, 4
+            def __init__ (self):
+                super ().__init__ (int, 10, **d)
+        t = T ()
+        with pytest.raises (ValueError):
+            t.run ()
+    # end def test_eval_misuse
+
 # end class Test_PGA_Fast
 
 class Test_PGA_Slow (_Test_PGA):
