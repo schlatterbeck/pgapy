@@ -139,6 +139,12 @@ class Test_PGA_Fast (_Test_PGA):
         self.compare ()
     # end def test_dtlz2
 
+    def test_dtlz2_scaled (self):
+        opt= '-R 42 -r --scale=10'.split ()
+        dtlz2_main (self.out_options + opt)
+        self.compare ()
+    # end def test_dtlz2_scaled
+
     def test_fourbar (self):
         fourbar_main (self.out_options + ['-R', '42'])
         self.compare ()

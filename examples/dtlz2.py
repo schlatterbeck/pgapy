@@ -37,8 +37,18 @@ class DTLZ2 (pga.PGA):
             , print_options        = [pga.PGA_REPORT_STRING]
             , mutation_bounce_back = True
             , no_duplicates        = True
-            , reference_points     = refpoints
+            #, print_frequency      = 1
             )
+        if args.reference_directions:
+            l = 96
+            d.update \
+                ( refdir_scale         = 0.05
+                , refdir_partitions    = 8
+                , reference_directions = [[1, 1, 1], [1, 1, 1]]
+                , num_replace          = l
+                )
+        else:
+            d.update (reference_points = refpoints)
         if args.random_seed:
             d ['random_seed'] = args.random_seed
         if self.args.output_file:
@@ -60,7 +70,10 @@ class DTLZ2 (pga.PGA):
                 p *= np.cos (x [j] * np.pi / 2)
             if i > 0:
                 p *= np.sin (x [self.nobj - i - 1] * np.pi / 2)
-            y.append (p * (1 + g))
+            scale = 1
+            if self.args.scale:
+                scale = self.args.scale ** i
+            y.append (p * (1 + g) * scale)
         return y
     # end def evaluate
 
@@ -70,11 +83,13 @@ def main (argv):
     cmd = ArgumentParser ()
     cmd.add_argument \
         ( '-d', '--dimension'
+        , help    = "Dimension of problem, default=%(default)s"
         , type    = int
         , default = 12
         )
     cmd.add_argument \
         ( '-m', '--nobjective'
+        , help    = "Number of objectives, default=%(default)s"
         , type    = int
         , default = 3
         )
@@ -84,11 +99,23 @@ def main (argv):
         )
     cmd.add_argument \
         ( '-p', '--das-dennis-partitions'
+        , help    = "Number of das dennis partitions, default=%(default)s"
         , type    = int
         , default = 12
         )
     cmd.add_argument \
-        ( '-r', '-R', '--random-seed'
+        ( '-r', '--reference-directions'
+        , help   = 'Use reference directions instead of reference points'
+        , action = 'store_true'
+        )
+    cmd.add_argument \
+        ( '-s', '--scale'
+        , help    = "Scaling of problem, default=%(default)s"
+        , type    = float
+        , default = 1
+        )
+    cmd.add_argument \
+        ( '-R', '--random-seed'
         , type    = int
         )
     args = cmd.parse_args (argv)
