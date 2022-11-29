@@ -650,6 +650,18 @@ class Test_PGA_Fast (_Test_PGA):
         self.compare ()
     # end def test_print_string
 
+    def test_das_dennis (self):
+        if pytest.mpi_rank != 0:
+            return
+        dd = pga.das_dennis (3, 12, 0.05, [1, 1, 1])
+        assert len (dd [0]) == 3
+        assert len (dd) == 91
+        with pytest.raises (ValueError):
+            dd = pga.das_dennis (3, 12, 0.05, [1, 1, 1, 5])
+        with pytest.raises (ValueError):
+            dd = pga.das_dennis (3, 12, 0.05, 1)
+    # end def test_das_dennis
+
 # end class Test_PGA_Fast
 
 class Test_PGA_Slow (_Test_PGA):
