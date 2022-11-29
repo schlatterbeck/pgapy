@@ -662,6 +662,26 @@ class Test_PGA_Fast (_Test_PGA):
             dd = pga.das_dennis (3, 12, 0.05, 1)
     # end def test_das_dennis
 
+    def test_refpoints (self):
+        if pytest.mpi_rank != 0:
+            return
+        d = dict (num_eval = 3, num_constraint = 0, reference_points = 2)
+        class T (pga.PGA):
+            def __init__ (self):
+                super ().__init__ (int, 10, **d)
+        with pytest.raises (ValueError):
+            t = T ()
+        d.update (reference_points = [])
+        with pytest.raises (ValueError):
+            t = T ()
+        d.update (reference_points = [[1, 2, 3, 4]])
+        with pytest.raises (ValueError):
+            t = T ()
+        d.update (reference_points = [['a', 2, 3]])
+        with pytest.raises (ValueError):
+            t = T ()
+    # end def test_refpoints
+
 # end class Test_PGA_Fast
 
 class Test_PGA_Slow (_Test_PGA):
