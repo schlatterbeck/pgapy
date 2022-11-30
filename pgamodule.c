@@ -1039,8 +1039,8 @@ static int check_probability (double probability)
  * We get a callback method that calls a PGA function with a context as
  * the first parameter.
  * The sequence contains integers. We get a pointer into the constants
- * array and a lenght (number of valid constants for this PGA callback)
- * Constants are checked against the constants in the arry. Optionally
+ * array and a length (number of valid constants for this PGA callback)
+ * Constants are checked against the constants in the array. Optionally
  * an additional checkfun is called for each object.
  */
 static int init_sequence

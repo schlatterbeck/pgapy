@@ -682,6 +682,20 @@ class Test_PGA_Fast (_Test_PGA):
             t = T ()
     # end def test_refpoints
 
+    def test_print_option_hamming (self):
+        if pytest.mpi_rank != 0:
+            return
+        d = dict (print_options = [pga.PGA_REPORT_HAMMING])
+        class T (pga.PGA):
+            def __init__ (self):
+                super ().__init__ (int, 10, **d)
+        with pytest.raises (ValueError):
+            t = T ()
+        d = dict (print_options = [''])
+        with pytest.raises (TypeError):
+            t = T ()
+    # end def test_print_option_hamming
+
 # end class Test_PGA_Fast
 
 class Test_PGA_Slow (_Test_PGA):
