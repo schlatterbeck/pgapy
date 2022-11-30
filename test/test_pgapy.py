@@ -52,6 +52,7 @@ from one_max          import main as one_max_main
 from sort_numbers     import main as sort_numbers_main
 from twobar           import main as twobar_main
 from vibr             import main as vibr_main
+from namefull         import main as namefull_main
 
 skip_tsplib = skip_fann = lambda fun, *args, **kw: fun
 
@@ -710,5 +711,10 @@ class Test_PGA_Slow (_Test_PGA):
         gp_integral_main (self.out_options + p)
         self.compare ()
     # end def test_gp_integral_multi
+
+    def test_namefull (self):
+        namefull_main (self.out_options + '-R 42'.split ())
+        self.compare ()
+    # end def test_namefull
 
 # end class Test_PGA_Slow

@@ -1,0 +1,91 @@
+Iter #     Field      Value
+10         Best       2.700000e+01
+#    0: [Mhrs >^taDsJnplem=t*ing matc|: HelSR#WorNd!]
+
+Mhrs >^taDsJnplem=t*ing matc|: HelSR#WorNd!
+Evaluations: 1000
+
+Iter #     Field      Value
+20         Best       3.300000e+01
+#    0: [%hrs is arsBm"legst*ing matc|: He~lo WorldH]
+
+%hrs is arsBm"legst*ing matc|: He~lo WorldH
+Evaluations: 1900
+
+Iter #     Field      Value
+30         Best       3.800000e+01
+#    0: [Mhrs is arsi@plegstring match: Hello World!]
+
+Mhrs is arsi@plegstring match: Hello World!
+Evaluations: 2798
+
+Iter #     Field      Value
+40         Best       4.000000e+01
+#    0: [Mhrs is a simple st%ing match: Hello World!]
+
+Mhrs is a simple st%ing match: Hello World!
+Evaluations: 3697
+
+Iter #     Field      Value
+50         Best       4.100000e+01
+#    0: [nhrs is a simple string match: Hello World!]
+
+nhrs is a simple string match: Hello World!
+Evaluations: 4597
+
+Iter #     Field      Value
+60         Best       4.100000e+01
+#    0: [nhrs is a simple string match: Hello World!]
+
+nhrs is a simple string match: Hello World!
+Evaluations: 5496
+
+Iter #     Field      Value
+70         Best       4.100000e+01
+#    0: [nhrs is a simple string match: Hello World!]
+
+nhrs is a simple string match: Hello World!
+Evaluations: 6396
+
+Iter #     Field      Value
+80         Best       4.100000e+01
+#    0: [nhrs is a simple string match: Hello World!]
+
+nhrs is a simple string match: Hello World!
+Evaluations: 7295
+
+Iter #     Field      Value
+90         Best       4.200000e+01
+#    0: [Thrs is a simple string match: Hello World!]
+
+Thrs is a simple string match: Hello World!
+Evaluations: 8195
+
+Iter #     Field      Value
+100        Best       4.200000e+01
+#    0: [Thrs is a simple string match: Hello World!]
+
+Thrs is a simple string match: Hello World!
+Evaluations: 9093
+
+Iter #     Field      Value
+110        Best       4.200000e+01
+#    0: [Thrs is a simple string match: Hello World!]
+
+Thrs is a simple string match: Hello World!
+Evaluations: 9991
+
+Iter #     Field      Value
+120        Best       4.200000e+01
+#    0: [Thrs is a simple string match: Hello World!]
+
+Thrs is a simple string match: Hello World!
+Evaluations: 10891
+
+The Best Evaluation: 4.300000e+01.
+The Best String:
+#    0: [This is a simple string match: Hello World!]
+
+This is a simple string match: Hello World!
+Evaluations: 11070
+

@@ -594,7 +594,7 @@ static PGAHash build_hash (PGAContext *ctx, int p, int pop)
         int rr;
         PyObject *r = PyObject_CallMethod (self, "hash", "ii", p, pop);
         ERR_CHECK_X (ctx, r);
-        rr = PyArg_Parse (r, "i", &hash);
+        rr = PyArg_Parse (r, "L", &hash);
         ERR_CHECK_X (ctx, rr);
         hash = ((hash >> 32) ^ hash) & 0xFFFFFFFF;
         return hash;
