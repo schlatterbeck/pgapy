@@ -717,4 +717,11 @@ class Test_PGA_Slow (_Test_PGA):
         self.compare ()
     # end def test_namefull
 
+    @skip_tsplib
+    def test_tsp_linhp318_lk (self):
+        opt = '-m 20 -k 0.01 examples/sequence/tsplib/linhp318.tsp'.split ()
+        tsp_main (self.out_options + opt)
+        self.compare ()
+    # end def test_tsp_linhp318_lk
+
 # end class Test_PGA_Slow

@@ -1269,6 +1269,8 @@ class TSP (pga.PGA) :
                         import pdb; pdb.set_trace ()
             else :
                 self.normal_fail += 1
+            # Depending on selection method we need to update fitness
+            self.fitness (pop)
     # end def endofgen
 
     def gene_difference (self, p1, pop1, p2, pop2) :
@@ -1392,7 +1394,7 @@ def main (argv):
         )
     cmd.add_argument \
         ( '-R', '--random-seed'
-        , help    = 'Random seed to for initializing random number generator'
+        , help    = 'Random seed, default=%(default)s'
         , type    = int
         , default = 42
         )
