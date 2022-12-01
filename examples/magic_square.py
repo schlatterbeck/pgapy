@@ -44,6 +44,8 @@ class Magic_Square (pga.PGA):
             p ['mutation_prob'] = args.mutation_rate
         if self.args.output_file:
             p ['output_file'] = args.output_file
+        self.cache = {}
+        self.cache_hits = 0
         super (self.__class__, self).__init__ (int, nsq, **p)
     # end def __init__
 
@@ -139,6 +141,22 @@ class Magic_Square (pga.PGA):
             self.set_allele (c2, pop2, i, c2g [i])
     # end def crossover
 
+    def endofgen (self):
+        pop = pga.PGA_NEWPOP
+        for p in range (self.pop_size):
+            assert self.get_evaluation_up_to_date (p, pop)
+            a = self.get_ind (p, pop)
+            if a not in self.cache:
+                self.cache [a] = self.get_evaluation (p, pop)
+    # end def endofgen
+
+    def get_ind (self, p, pop):
+        a = []
+        for i in range (len (self)):
+            a.append (self.get_allele (p, pop, i))
+        return tuple (a)
+    # end def get_ind
+
     def mutation_ (self, p, pop, r):
         """ Custom mutation operator:
             We take the shape of the square into account and do a
@@ -179,6 +197,17 @@ class Magic_Square (pga.PGA):
         return mutations
     # end def mutation
 
+    def pre_eval (self, pop):
+        for p in range (self.pop_size):
+            if self.get_evaluation_up_to_date (p, pop):
+                continue
+            a = self.get_ind (p, pop)
+            if a in self.cache:
+                self.set_evaluation (p, pop, self.cache [a])
+                self.set_evaluation_up_to_date (p, pop, True)
+                self.cache_hits += 1
+    # end def pre_eval
+
     def evaluate (self, p, pop):
         best = self.best
         rows, rsum, csum, d1sum, d2sum = self.pheno (p, pop)
@@ -200,6 +229,8 @@ class Magic_Square (pga.PGA):
         fitness = self.get_fitness (p, pop)
         print (f % d2sum, csum, f % d1sum, file = file)
         print ("Best idx:", self.get_best_index (pop), file = file)
+        print ("Cache hits: %d" % self.cache_hits, file = file)
+        file.flush ()
     # end def print_string
 
     def stop_cond (self):

@@ -6,6 +6,7 @@ Iter #     Field      Value
      [9, 6, 4, 16] 35
   34 [32, 36, 35, 33]   34
 Best idx: 359
+Cache hits: 571
 
 Iter #     Field      Value
 20         Best       1.042466e+00
@@ -15,6 +16,7 @@ Iter #     Field      Value
      [3, 4, 16, 10] 33
   34 [34, 35, 34, 33]   38
 Best idx: 48
+Cache hits: 1300
 
 Iter #     Field      Value
 30         Best       1.032712e+00
@@ -24,6 +26,7 @@ Iter #     Field      Value
      [9, 5, 4, 16] 34
   35 [33, 34, 35, 34]   34
 Best idx: 9
+Cache hits: 2085
 
 The Best Evaluation: 0.000000e+00.
 The Best String:
@@ -33,4 +36,5 @@ The Best String:
      [9, 5, 4, 16] 34
   34 [34, 34, 34, 34]   34
 Best idx: 150
+Cache hits: 2159
 
