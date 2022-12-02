@@ -1,15 +1,15 @@
 Genetic Programming Examples
 ============================
 
-.. |optimize_xor.py| replace:: ``optimize_xor.py``
-.. |optimize_parity3.py| replace:: ``optimize_parity3.py``
+.. |opt_xor.py| replace:: ``opt_xor.py``
+.. |opt_parity3.py| replace:: ``opt_parity3.py``
 .. |opt_integral.py| replace:: ``opt_integral.py``
 
 This directory contains examples of Genetic Programming (GP) [1]_, [2]_,
-[3]_, [4]_. We do symbolic regression. The example |optimize_xor.py|_
+[3]_, [4]_. We do symbolic regression. The example |opt_xor.py|_
 optimizes a boolean expression, the goal is to express the exclusive or
 operation with only negated and (NAND). Also with only NAND,
-|optimize_parity3.py|_ searches to express the 3-variable parity
+|opt_parity3.py|_ searches to express the 3-variable parity
 problem. Finally |opt_integral.py|_ does a numeric integration of the
 given expression (for 50 numeric values) and tries to find a symbolic
 expression that most closely matches the given numbers.
@@ -40,11 +40,9 @@ types.
    Mydlowec, Jessen Yu, and Guido Lanza. *Genetic Programming: Routine
    Human-Competitive Machine Intelligence,* volume IV of Genetic
    Programming. Springer, 2003.
-.. _optimize_xor.py:
-    https://github.com/schlatterbeck/pgapy/blob/master/examples/gp/optimize_xor.py
-.. _optimize_.py:
-    https://github.com/schlatterbeck/pgapy/blob/master/examples/gp/optimize_xor.py
-.. _optimize_parity3.py:
-    https://github.com/schlatterbeck/pgapy/blob/master/examples/gp/optimize_parity3.py
+.. _opt_xor.py:
+    https://github.com/schlatterbeck/pgapy/blob/master/examples/gp/opt_xor.py
+.. _opt_parity3.py:
+    https://github.com/schlatterbeck/pgapy/blob/master/examples/gp/opt_parity3.py
 .. _opt_integral.py:
     https://github.com/schlatterbeck/pgapy/blob/master/examples/gp/opt_integral.py

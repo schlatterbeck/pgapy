@@ -38,32 +38,6 @@ class PGA_Random (Random) :
 
 # end class PGA_Random
 
-def good_solution ():
-    """ Build a good solution to integral (sin (k * x))
-    """
-    tree = F_sub ()
-    tree.add_child (F_div (Terminal ('a'), Terminal ('k')))
-    fd = F_div ()
-    tree.add_child (fd)
-    fd.add_child (F_cos (F_mul (Terminal ('x'), Terminal ('k'))))
-    fd.add_child (Terminal ('k'))
-    return tree
-# end def good_solution
-
-def medium_solution ():
-    """ Build a medium solution to integral (sin (k * x))
-    """
-    tree = F_div ()
-    sub  = F_sub ()
-    tree.add_child (sub)
-    tree.add_child (Terminal ('k'))
-    sub.add_child \
-        (F_cos (F_sub (F_mul (Terminal ('x'), Terminal ('k')), Terminal ('c'))))
-    sub.add_child \
-        (F_mul (F_sub (Terminal ('a'), Terminal ('c')), F_sin (Terminal ('b'))))
-    return tree
-# end def good_solution
-
 class Find_Integral (pga.PGA, Genetic_Programming):
 
     def __init__ (self, args):
@@ -107,6 +81,8 @@ class Find_Integral (pga.PGA, Genetic_Programming):
             d ['num_replace']    = self.popsize
             d ['num_eval']       = 2
             d ['num_constraint'] = 0
+        if self.args.output_file:
+            d ['output_file'] = args.output_file
         pga.PGA.__init__ (self, Function, 10, **d)
         npoints = 50
         self.X = np.arange (0, np.pi + np.pi / npoints, np.pi / npoints)
@@ -122,19 +98,6 @@ class Find_Integral (pga.PGA, Genetic_Programming):
                     ]
                 self.Y.append (np.array (r))
     # end def __init__
-
-    def eval_solution (self):
-        tree = good_solution ()
-        print (tree)
-        s = self.evaluate (0, 0, tree)
-        self.print_string (sys.stdout, 0, 0, tree)
-        print (s)
-        tree = medium_solution ()
-        print (tree)
-        s = self.evaluate (0, 0, tree)
-        self.print_string (sys.stdout, 0, 0, tree)
-        print (s)
-    # end def eval_solution
 
     def eval (self, x, *args):
         for n, t in enumerate (self.prange):
@@ -226,9 +189,9 @@ class Find_Integral (pga.PGA, Genetic_Programming):
             print (file = file)
         if self.args.verbose:
             print (ind.as_dot (), file = file)
-        h = hash (ind)
-        h = ((h >> 32) ^ h) & 0xFFFFFFFF
-        print ("Hash: %x" % h)
+        #h = hash (ind)
+        #h = ((h >> 32) ^ h) & 0xFFFFFFFF
+        #print ("Hash: %x" % h, file = file)
         file.flush ()
     # end def print_string
 
@@ -241,7 +204,7 @@ class Find_Integral (pga.PGA, Genetic_Programming):
 
 # end class Find_Integral
 
-def main ():
+def main (argv):
     cmd = ArgumentParser ()
     cmd.add_argument \
         ( '-r', '--random-seed'
@@ -274,12 +237,16 @@ def main ():
         ( '--min-depth'
         , help    = "Minimum depth for multi-objective, default=%(default)s"
         , type    = int
-        , default = 5
+        , default = 2
         )
     cmd.add_argument \
         ( '-M', '--multiobjective'
         , help    = "Use multi-objective optimization"
         , action  = 'store_true'
+        )
+    cmd.add_argument \
+        ( "-O", "--output-file"
+        , help    = "Output file for progress information"
         )
     cmd.add_argument \
         ( '-p', '--popsize'
@@ -291,13 +258,13 @@ def main ():
         ( '-t', '--n-terminals'
         , help    = "Number of terminals for fitting, default=%(default)s"
         , type    = int
-        , default = 3
+        , default = 0
         )
     cmd.add_argument \
         ( '-T', '--tournament-size'
         , help    = "Number of individuals in tournament, default=%(default)s"
         , type    = int
-        , default = 7
+        , default = 3
         )
     cmd.add_argument \
         ( '-v', '--verbose'
@@ -309,7 +276,7 @@ def main ():
         , help    = "Use the constant 1 as terminal"
         , action  = 'store_true'
         )
-    args = cmd.parse_args ()
+    args = cmd.parse_args (argv)
     if args.n_terminals > 10:
         print \
             ( "Max number of terminals for fitting = 10, got %s"
@@ -325,4 +292,4 @@ def main ():
 # end def main
 
 if __name__ == '__main__':
-    main ()
+    main (sys.argv [1:])

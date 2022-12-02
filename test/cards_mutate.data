@@ -1,0 +1,10 @@
+Iter #     Field      Value
+10         Best       2.000000e+01
+3, 8, 7, 10, 6: 34 -- 2, 5, 4, 1, 9: 360
+10 iterations
+
+The Best Evaluation: 0.000000e+00.
+The Best String:
+9, 8, 7, 2, 10: 36 -- 4, 1, 6, 3, 5: 360
+16 iterations
+

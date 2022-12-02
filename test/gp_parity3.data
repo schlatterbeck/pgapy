@@ -1,0 +1,8 @@
+Iter #     Field      Value
+10         Best       1.000000e+00
+10 iterations
+nand (nand (nand (nand (nand (b, c), nand (a, b)), nand (c, a)), nand (nand (a, b), nand (nand (a, a), nand (c, a)))), nand (nand (nand (nand (a, a), nand (c, b)), nand (nand (c, a), nand (b, b))), nand (nand (nand (c, a), nand (b, a)), nand (nand (b, a), nand (b, c)))))
+The Best Evaluation: 0.000000e+00.
+The Best String:
+14 iterations
+nand (nand (nand (nand (nand (b, c), nand (a, b)), nand (c, a)), nand (nand (a, b), nand (nand (a, a), b))), nand (nand (nand (nand (a, a), nand (c, b)), nand (nand (c, a), nand (b, b))), nand (nand (nand (c, a), a), nand (nand (nand (c, c), nand (c, b)), nand (b, c)))))

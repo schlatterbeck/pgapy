@@ -12,6 +12,7 @@
 *.pyo
 *.rej
 *.hacked
+.coverage*
 *~
 .#*
 .*.swp
@@ -22,4 +23,9 @@ README.html
 MANIFEST
 announce_pypi
 upload_pypi
+build
 dist
+coverage.info
+coverage_out
+.coverage
+.nfs*

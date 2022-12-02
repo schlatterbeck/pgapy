@@ -9,6 +9,9 @@ PGAPy: Python Wrapper for PGAPack Parallel Genetic Algorithm Library
 News
 ----
 
+News 12-2022: Add regression test and update to new upstream with
+several bug-fixes. Includes also some bug fixes in wrapper.
+
 News 10-2022: Add user defined datatypes. Example in ``examples/gp`` use
 user defined data types to implement genetic programming (we represent
 expressions by a tree data structure). This uses the new serialization
@@ -283,7 +286,7 @@ PGApack name                         Constructor parameter             Type   Pr
 ``PGASetDECrossoverProb``            ``DE_crossover_prob``             double yes
 ``PGASetDECrossoverType``            ``DE_crossover_type``             sym    no
 ``PGASetDEDither``                   ``DE_dither``                     double yes
-``PGASetDEDitherPerIndividual``      ``DE_dither_per_individual``      bool   no
+``PGASetDEDitherPerIndividual``      ``DE_dither_per_individual``      bool   yes
 ``PGASetDEJitter``                   ``DE_jitter``                     double yes
 ``PGASetDENumDiffs``                 ``DE_num_diffs``                  int    yes
 ``PGASetDEProbabilityEO``            ``DE_probability_EO``             double yes
@@ -294,8 +297,8 @@ PGApack name                         Constructor parameter             Type   Pr
 ``PGASetEpsilonTheta``               ``epsilon_theta``                 int    yes
 ``PGAGetEvalCount``                  ``eval_count``                    int    yes
 ``PGASetFitnessCmaxValue``           ``fitness_cmax``                  float  yes
-``PGASetFitnessMinType``             ``fitness_min_type``              sym    no
-``PGASetFitnessType``                ``fitness_type``                  sym    no
+``PGASetFitnessMinType``             ``fitness_min_type``              sym    yes
+``PGASetFitnessType``                ``fitness_type``                  sym    yes
 ``PGAIntegerSetFixedEdges``          ``fixed_edges``                          no
 ``PGAIntegerSetFixedEdges``          ``fixed_edges_symmetric``         bool   no
 ``PGAGetGAIterValue``                ``GA_iter``                       int    yes
@@ -304,7 +307,7 @@ PGApack name                         Constructor parameter             Type   Pr
 ``PGASetMaxFitnessRank``             ``max_fitness_rank``              float  yes
 ``PGASetMaxGAIterValue``             ``max_GA_iter``                   int    yes
 ``PGASetMaxNoChangeValue``           ``max_no_change``                 int    no
-``PGASetMaxSimilarityValue``         ``max_similarity``                int    no
+``PGASetMaxSimilarityValue``         ``max_similarity``                int    yes
 ``PGASetMixingType``                 ``mixing_type``                   sym    no
 ``PGASetMultiObjPrecision``          ``multi_obj_precision``           int    yes
 ``PGASetMutationAndCrossoverFlag``   ``mutation_and_crossover``        int    yes
@@ -659,6 +662,105 @@ Extension definition that fits your installation. If your installation
 is interesting to more people, feel free to submit a patch that adds
 your Extension-configuration to the standard ``setup.py``.
 
+Testing
+-------
+
+For testing |--| preferrably before installation you can build locally::
+
+    python3 setup.py build_ext --inplace
+
+After this you have a ``pga.*.so`` file in the local directory. Now you
+can run the tests with::
+
+    python3 -m pytest test
+
+This runs all the tests and can take a while. Note that the tests run
+most of the examples in the ``examples`` directory with different
+command line parameters where available. To perform several optimization
+runs in a single (Python-) process, we must call ``MPI_Init``
+*explicitly* (and not relying on PGAPack to call it implicitly). This is
+because ``MPI_Init`` may be called only once per process. Calling of
+``MPI_Init`` and ``MPI_Finalize`` is handled in a fixture in
+``test/conftest.py``
+
+Coverage
+++++++++
+
+For the python examples, the coverage can be computed with::
+
+  python3 -m pytest --cov examples test
+
+or more verbose including untested lines with::
+
+  python3 -m pytest --cov-report term-missing --cov examples test
+
+Performing a coverage analysis for the C code in ``pgamodule.c`` is
+currently possible only on Linux |--| at least, since I'm developing on
+Linux this is the architecture where I've found out how to perform
+coverage analysis including the C code.
+To compile for coverage analysis::
+
+  export CFLAGS=-coverage
+  python3 setup.py build_ext --inplace
+
+This will create a file ending in ``.gcno`` under the ``build`` directory,
+typically something like ``build/temp.linux-x86_64-3.9`` when using
+``python3.9`` on the ``x86_64`` architecture. Running the tests will
+create statistics data files with ending ``.gcda``. These are data files
+for the GNU profiler ``gcov``. From these, ``.html`` files can be
+generated that can be inspected with a browser::
+
+  lcov --capture --directory . --output-file coverage.info
+  genhtml coverage.info --output-directory coverage_out
+
+Note that the ``lcov`` program is part of the linux distribution.
+
+Running under MPI
++++++++++++++++++
+
+The tests can be directly run under MPI. Note that currently the
+``--with-mpi`` option of ``pytest`` is *not* supported. This option
+asumes that the package ``mpi4py`` is used. But ``pgapy`` uses only
+calls from pgapack, which in turn calls MPI.
+
+Running under MPI is done using::
+
+ mpirun $MPI_OPTIONS python3 -m pytest test
+
+The ``MPI_OPTIONS`` can be, e.g.::
+
+    MPI_OPTIONS=--machinefile ~/.mpi-openmpi --np 8
+
+which would use a machine definition file for openmpi in your home
+directory and eight processes.
+
+Running under MPI is especially useful for determining C code coverage.
+Asuming a parallel version of ``openmpi`` is installed, the code can be
+compiled with::
+
+ PGA_PARALLEL_VARIANT=openmpi
+ PGA_MODULE=module_from_parallel_install
+ export CFLAGS=-coverage
+ python3 setup.py build_ext --inplace
+
+Note that the coverage analysis uses files in the build directory which
+need to be present before a parallel version can be started. Otherwise
+each parallel instance would try to create the coverage files resulting
+in race conditions. Once the coverage files are in place, the coverage
+framework ensures proper locking so that no two processes write
+concurrently to the same coverage files.
+
+Creating the coverage files is best achieved by running the tests
+without MPI first and then running the same version with a number of
+processes under MPI. Running under MPI shows that the serialization and
+deserialization code in ``pgamodule.c`` is called.
+
+As of this writing we get::
+
+ Lines:      1423    1475    96.5 %
+ Functions:   131     133    98.5 %
+
+
 References
 ----------
 
@@ -704,6 +806,12 @@ References
 
 Changes
 -------
+
+Version 2.1: Regression test
+
+- PGApack bug-fixes discovered during testing
+- Bug-fixes of python wrapper
+- Lots of tests with coverage of wrapper C-code > 90%
 
 Version 2.0: User defined data types
 

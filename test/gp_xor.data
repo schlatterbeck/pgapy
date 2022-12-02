@@ -1,0 +1,4 @@
+The Best Evaluation: 0.000000e+00.
+The Best String:
+2 iterations
+nand (nand (nand (b, a), b), nand (nand (b, b), a))

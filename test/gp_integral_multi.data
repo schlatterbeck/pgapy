@@ -1,0 +1,384 @@
+Iter #     Field   Idx Value
+1          Best        0 5.840793e+01
+1          Best        1 2.000000e+00
+Non-dominated individuals:
+1 iterations
+evaluation: 67.051533, 3
+terminals: 3, functions: 3, depth: 3
+((x / k) * sin (x))
+
+1 iterations
+evaluation: 58.407927, 4
+terminals: 4, functions: 4, depth: 4
+((sqrt (x) / (x / x)) / k)
+
+1 iterations
+evaluation: 92.497798, 2
+terminals: 2, functions: 1, depth: 2
+(x / k)
+
+Iter #     Field   Idx Value
+2          Best        0 5.840793e+01
+2          Best        1 2.000000e+00
+Non-dominated individuals:
+2 iterations
+evaluation: 67.051533, 3
+terminals: 3, functions: 3, depth: 3
+((x / k) * sin (x))
+
+2 iterations
+evaluation: 58.407927, 4
+terminals: 4, functions: 4, depth: 4
+((sqrt (x) / (x / x)) / k)
+
+2 iterations
+evaluation: 92.497798, 2
+terminals: 2, functions: 1, depth: 2
+(x / k)
+
+Iter #     Field   Idx Value
+3          Best        0 5.270608e+01
+3          Best        1 2.000000e+00
+Non-dominated individuals:
+3 iterations
+evaluation: 92.497798, 2
+terminals: 2, functions: 1, depth: 2
+(x / k)
+
+3 iterations
+evaluation: 60.458068, 3
+terminals: 3, functions: 2, depth: 3
+(x / (k + k))
+
+3 iterations
+evaluation: 52.706081, 6
+terminals: 4, functions: 5, depth: 6
+(x / (k - (sin (cos (k)) - k)))
+
+3 iterations
+evaluation: 58.407927, 4
+terminals: 4, functions: 4, depth: 4
+((sqrt (x) / (x / x)) / k)
+
+Iter #     Field   Idx Value
+4          Best        0 5.270608e+01
+4          Best        1 2.000000e+00
+Non-dominated individuals:
+4 iterations
+evaluation: 92.497798, 2
+terminals: 2, functions: 1, depth: 2
+(x / k)
+
+4 iterations
+evaluation: 58.407927, 3
+terminals: 2, functions: 2, depth: 3
+(sqrt (x) / k)
+
+4 iterations
+evaluation: 52.706081, 6
+terminals: 4, functions: 5, depth: 6
+(x / (k - (sin (cos (k)) - k)))
+
+Iter #     Field   Idx Value
+5          Best        0 5.270608e+01
+5          Best        1 2.000000e+00
+Non-dominated individuals:
+5 iterations
+evaluation: 92.497798, 2
+terminals: 2, functions: 1, depth: 2
+(x / k)
+
+5 iterations
+evaluation: 58.407927, 3
+terminals: 2, functions: 2, depth: 3
+(sqrt (x) / k)
+
+5 iterations
+evaluation: 52.706081, 6
+terminals: 4, functions: 5, depth: 6
+(x / (k - (sin (cos (k)) - k)))
+
+Iter #     Field   Idx Value
+6          Best        0 5.270608e+01
+6          Best        1 2.000000e+00
+Non-dominated individuals:
+6 iterations
+evaluation: 92.497798, 2
+terminals: 2, functions: 1, depth: 2
+(x / k)
+
+6 iterations
+evaluation: 58.407927, 3
+terminals: 2, functions: 2, depth: 3
+(sqrt (x) / k)
+
+6 iterations
+evaluation: 56.452674, 5
+terminals: 4, functions: 4, depth: 5
+(x / ((k / sqrt (x)) + k))
+
+6 iterations
+evaluation: 52.706081, 6
+terminals: 4, functions: 5, depth: 6
+(x / (k - (sin (cos (k)) - k)))
+
+Iter #     Field   Idx Value
+7          Best        0 3.781796e+01
+7          Best        1 2.000000e+00
+Non-dominated individuals:
+7 iterations
+evaluation: 92.497798, 2
+terminals: 2, functions: 1, depth: 2
+(x / k)
+
+7 iterations
+evaluation: 58.407927, 3
+terminals: 2, functions: 2, depth: 3
+(sqrt (x) / k)
+
+7 iterations
+evaluation: 37.817963, 14
+terminals: 14, functions: 26, depth: 14
+(((sin ((cos (sqrt (cos ((cos (((cos (x) * (x / x)) - ((x / x) + cos (x)))) * sin (sqrt (x)))))) * sin (x))) / sqrt (k)) + sqrt (((x / x) - cos ((k * x))))) / k)
+
+7 iterations
+evaluation: 50.580171, 11
+terminals: 9, functions: 14, depth: 11
+(sqrt ((x + ((x / (k + sin (sin (k)))) * sin ((x - (sqrt ((k + sin (x))) + k)))))) / k)
+
+7 iterations
+evaluation: 56.452674, 5
+terminals: 4, functions: 4, depth: 5
+(x / ((k / sqrt (x)) + k))
+
+7 iterations
+evaluation: 52.706081, 6
+terminals: 4, functions: 5, depth: 6
+(x / (k - (sin (cos (k)) - k)))
+
+Iter #     Field   Idx Value
+8          Best        0 3.758221e+01
+8          Best        1 2.000000e+00
+Non-dominated individuals:
+8 iterations
+evaluation: 58.407927, 3
+terminals: 2, functions: 2, depth: 3
+(sqrt (x) / k)
+
+8 iterations
+evaluation: 37.582214, 17
+terminals: 16, functions: 29, depth: 17
+(((sin ((cos (sqrt (cos ((cos (((cos (x) * (x / x)) - ((x / x) + (sqrt (sqrt ((x - k))) / k)))) * sin (sqrt (x)))))) * sin (x))) / sqrt (k)) + sqrt (((x / x) - cos ((k * x))))) / k)
+
+8 iterations
+evaluation: 37.817963, 14
+terminals: 14, functions: 26, depth: 14
+(((sin ((cos (sqrt (cos ((cos (((cos (x) * (x / x)) - ((x / x) + cos (x)))) * sin (sqrt (x)))))) * sin (x))) / sqrt (k)) + sqrt (((x / x) - cos ((k * x))))) / k)
+
+8 iterations
+evaluation: 50.580171, 11
+terminals: 9, functions: 14, depth: 11
+(sqrt ((x + ((x / (k + sin (sin (k)))) * sin ((x - (sqrt ((k + sin (x))) + k)))))) / k)
+
+8 iterations
+evaluation: 92.497798, 2
+terminals: 2, functions: 1, depth: 2
+(x / k)
+
+8 iterations
+evaluation: 56.452674, 5
+terminals: 4, functions: 4, depth: 5
+(x / ((k / sqrt (x)) + k))
+
+8 iterations
+evaluation: 39.181909, 13
+terminals: 11, functions: 19, depth: 13
+(((sin ((cos ((sin ((sqrt (cos ((x / x))) / k)) + k)) * sin (x))) / sqrt (k)) + sqrt (((x / x) - cos ((k * x))))) / k)
+
+8 iterations
+evaluation: 52.386555, 9
+terminals: 8, functions: 12, depth: 9
+(sqrt ((x + ((x / (k + sin (sin (k)))) * sin ((x - (sqrt (x) + k)))))) / k)
+
+8 iterations
+evaluation: 52.706081, 6
+terminals: 4, functions: 5, depth: 6
+(x / (k - (sin (cos (k)) - k)))
+
+Iter #     Field   Idx Value
+9          Best        0 3.752453e+01
+9          Best        1 2.000000e+00
+Non-dominated individuals:
+9 iterations
+evaluation: 92.497798, 2
+terminals: 2, functions: 1, depth: 2
+(x / k)
+
+9 iterations
+evaluation: 37.817963, 14
+terminals: 14, functions: 26, depth: 14
+(((sin ((cos (sqrt (cos ((cos (((cos (x) * (x / x)) - ((x / x) + cos (x)))) * sin (sqrt (x)))))) * sin (x))) / sqrt (k)) + sqrt (((x / x) - cos ((k * x))))) / k)
+
+9 iterations
+evaluation: 58.407927, 3
+terminals: 2, functions: 2, depth: 3
+(sqrt (x) / k)
+
+9 iterations
+evaluation: 39.181909, 13
+terminals: 11, functions: 19, depth: 13
+(((sin ((cos ((sin ((sqrt (cos ((x / x))) / k)) + k)) * sin (x))) / sqrt (k)) + sqrt (((x / x) - cos ((k * x))))) / k)
+
+9 iterations
+evaluation: 55.332599, 4
+terminals: 3, functions: 5, depth: 4
+(sin (sqrt (x)) * (sqrt (x) / k))
+
+9 iterations
+evaluation: 37.524532, 17
+terminals: 17, functions: 30, depth: 17
+(((sin ((cos (sqrt (cos ((cos (((cos (x) * (x / x)) - ((x / x) + sin ((((x / x) * sin (x)) / k))))) * sin (sqrt (x)))))) * sin (x))) / sqrt (k)) + sqrt (((x / x) - cos ((k * x))))) / k)
+
+9 iterations
+evaluation: 40.002908, 8
+terminals: 8, functions: 14, depth: 8
+(((sin ((cos (sin (x)) * sin (x))) / sqrt (k)) + sqrt (((x / x) - cos ((k * x))))) / k)
+
+9 iterations
+evaluation: 52.706081, 6
+terminals: 4, functions: 5, depth: 6
+(x / (k - (sin (cos (k)) - k)))
+
+Iter #     Field   Idx Value
+10         Best        0 3.304212e+01
+10         Best        1 2.000000e+00
+Non-dominated individuals:
+10 iterations
+evaluation: 92.497798, 2
+terminals: 2, functions: 1, depth: 2
+(x / k)
+
+10 iterations
+evaluation: 33.042122, 11
+terminals: 12, functions: 18, depth: 11
+(((sin ((cos (((x * (sin (x) / (x * x))) + k)) * sin (x))) / sqrt (k)) + sqrt (((x / x) - cos ((k * x))))) / k)
+
+10 iterations
+evaluation: 58.407927, 3
+terminals: 2, functions: 2, depth: 3
+(sqrt (x) / k)
+
+10 iterations
+evaluation: 47.507547, 7
+terminals: 8, functions: 13, depth: 7
+(((sin ((cos (x) * sin (x))) / sqrt (k)) + sqrt (((x / x) - cos ((k * x))))) / k)
+
+10 iterations
+evaluation: 55.332599, 4
+terminals: 3, functions: 5, depth: 4
+(sin (sqrt (x)) * (sqrt (x) / k))
+
+10 iterations
+evaluation: 40.002908, 8
+terminals: 8, functions: 14, depth: 8
+(((sin ((cos (sin (x)) * sin (x))) / sqrt (k)) + sqrt (((x / x) - cos ((k * x))))) / k)
+
+10 iterations
+evaluation: 52.706081, 6
+terminals: 4, functions: 5, depth: 6
+(x / (k - (sin (cos (k)) - k)))
+
+Iter #     Field   Idx Value
+11         Best        0 3.048370e+01
+11         Best        1 2.000000e+00
+Non-dominated individuals:
+11 iterations
+evaluation: 58.407927, 3
+terminals: 2, functions: 2, depth: 3
+(sqrt (x) / k)
+
+11 iterations
+evaluation: 47.507547, 7
+terminals: 8, functions: 13, depth: 7
+(((sin ((cos (x) * sin (x))) / sqrt (k)) + sqrt (((x / x) - cos ((k * x))))) / k)
+
+11 iterations
+evaluation: 30.483698, 10
+terminals: 22, functions: 31, depth: 10
+(((sin (((sin (((x / x) - (x / x))) * cos (sqrt ((x / x)))) * (((sqrt (x) * sin (x)) - ((x / x) + (x / x))) - (k * ((x - x) * sin (x)))))) / sqrt (k)) + sqrt (((x / x) - cos ((k * x))))) / k)
+
+11 iterations
+evaluation: 92.497798, 2
+terminals: 2, functions: 1, depth: 2
+(x / k)
+
+11 iterations
+evaluation: 55.332599, 4
+terminals: 3, functions: 5, depth: 4
+(sin (sqrt (x)) * (sqrt (x) / k))
+
+11 iterations
+evaluation: 36.722567, 8
+terminals: 9, functions: 14, depth: 8
+(((sin ((cos ((x / x)) * sin (x))) / sqrt (k)) + sqrt (((x / x) - cos ((k * x))))) / k)
+
+11 iterations
+evaluation: 52.706081, 6
+terminals: 4, functions: 5, depth: 6
+(x / (k - (sin (cos (k)) - k)))
+
+Iter #     Field   Idx Value
+12         Best        0 4.910428e-05
+12         Best        1 2.000000e+00
+Non-dominated individuals:
+12 iterations
+evaluation: 92.497798, 2
+terminals: 2, functions: 1, depth: 2
+(x / k)
+
+12 iterations
+evaluation: 58.407927, 3
+terminals: 2, functions: 2, depth: 3
+(sqrt (x) / k)
+
+12 iterations
+evaluation: 4.9104284e-05, 5
+terminals: 5, functions: 5, depth: 5
+(((x / x) - cos ((k * x))) / k)
+
+12 iterations
+evaluation: 55.332599, 4
+terminals: 3, functions: 5, depth: 4
+(sin (sqrt (x)) * (sqrt (x) / k))
+
+The Best (0) evaluation: 4.910428e-05
+The Best (1) evaluation: 2.000000e+00
+The Nondominated Strings:
+F     0 9.24977978490273e+01
+F     1 2.00000000000000e+00
+12 iterations
+evaluation: 92.497798, 2
+terminals: 2, functions: 1, depth: 2
+(x / k)
+
+F     0 5.84079269912027e+01
+F     1 3.00000000000000e+00
+12 iterations
+evaluation: 58.407927, 3
+terminals: 2, functions: 2, depth: 3
+(sqrt (x) / k)
+
+F     0 4.91042838218156e-05
+F     1 5.00000000000000e+00
+12 iterations
+evaluation: 4.9104284e-05, 5
+terminals: 5, functions: 5, depth: 5
+(((x / x) - cos ((k * x))) / k)
+
+F     0 5.53325987050706e+01
+F     1 4.00000000000000e+00
+12 iterations
+evaluation: 55.332599, 4
+terminals: 3, functions: 5, depth: 4
+(sin (sqrt (x)) * (sqrt (x) / k))
+

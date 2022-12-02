@@ -1,12 +1,10 @@
 #!/usr/bin/python3
 
-from __future__ import print_function, division
-from pga import PGA, PGA_REPORT_STRING
 from argparse import ArgumentParser
-
 import pga
+import sys
 
-class Magic_Square (PGA) :
+class Magic_Square (pga.PGA):
     """ This example uses priorities (aka "Random Keys", see James C.
         Bean. Genetic algorithms and random keys for sequencing and
         optimization. ORSA Journal on Computing, 6(2):154-160, 1994.)
@@ -17,7 +15,7 @@ class Magic_Square (PGA) :
         but it didn't.
     """
 
-    def __init__ (self, args) :
+    def __init__ (self, args):
         self.args = args
         self.n    = args.length
         nsq       = self.n**2
@@ -27,7 +25,7 @@ class Magic_Square (PGA) :
             , init                  = [[0, nsq * 100]] * nsq
             , pop_size              = args.population_size
             , num_replace           = int (args.population_size * 0.9)
-            , max_GA_iter           = 1000
+            , max_GA_iter           = 500
             , max_no_change         = 400
             , print_options         = [pga.PGA_REPORT_STRING]
             , random_seed           = args.random_seed
@@ -37,20 +35,24 @@ class Magic_Square (PGA) :
             , stopping_rule_types   =
                 [pga.PGA_STOP_NOCHANGE, pga.PGA_STOP_MAXITER]
             )
-        if args.mutation_rate :
+        if args.use_euclidian_gene_distance:
+            self.gene_distance = self.euclidian_distance
+        if args.mutation_rate:
             p ['mutation_prob'] = args.mutation_rate
-        super (self.__class__, self).__init__ (int, nsq, **p)
+        if self.args.output_file:
+            p ['output_file'] = args.output_file
+        super (self.__class__, self).__init__ (float, nsq, **p)
     # end def __init__
 
-    def circle_iter (self) :
+    def circle_iter (self):
         """ Yield coordinates of concentric rings around middle.
             if self.n is odd, we first yield the middle point.
-        >>> class args (object) :
+        >>> class args (object):
         ...     pass
         >>> args.random_seed = 23
         >>> args.length = 3
         >>> m = Magic_Square (args)
-        >>> for p in m.circle_iter () :
+        >>> for p in m.circle_iter ():
         ...    print (p)
         [1, 1]
         [0, 0]
@@ -64,7 +66,7 @@ class Magic_Square (PGA) :
 
         >>> args.length = 4
         >>> m = Magic_Square (args)
-        >>> for p in m.circle_iter () :
+        >>> for p in m.circle_iter ():
         ...    print (p)
         [1, 1]
         [2, 1]
@@ -85,7 +87,7 @@ class Magic_Square (PGA) :
         
         >>> args.length = 5
         >>> m = Magic_Square (args)
-        >>> for p in m.circle_iter () :
+        >>> for p in m.circle_iter ():
         ...    print (p)
         [2, 2]
         [1, 1]
@@ -115,25 +117,25 @@ class Magic_Square (PGA) :
         """
         m  = (self.n - 1) / 2.
         mi = int (m)
-        for k in range (mi, -1, -1) :
+        for k in range (mi, -1, -1):
             # concentric ring around middle
             p = [k, k]
             yield (p)
-            while abs (p [0] + 1 - m) <= m - k :
+            while abs (p [0] + 1 - m) <= m - k:
                 p [0] += 1
                 yield p
-            while abs (p [1] + 1 - m) <= m - k :
+            while abs (p [1] + 1 - m) <= m - k:
                 p [1] += 1
                 yield p
-            while abs (p [0] - 1 - m) <= m - k :
+            while abs (p [0] - 1 - m) <= m - k:
                 p [0] -= 1
                 yield p
-            while p [1] - 1 > k :
+            while p [1] - 1 > k:
                 p [1] -= 1
                 yield p
     # end def circle_iter
 
-    def pheno (self, p, pop) :
+    def pheno (self, p, pop):
         rsum  = [0] * self.n
         csum  = [0] * self.n
         d1sum = 0
@@ -145,19 +147,19 @@ class Magic_Square (PGA) :
                 , key = lambda x: (self.get_allele (p, pop, x - 1), x)
                 )
             )
-        for n, (x, y) in enumerate (self.circle_iter ()) :
+        for n, (x, y) in enumerate (self.circle_iter ()):
             v = g [n]
             rows [y][x] = v
             rsum [x] += v
             csum [y] += v
-            if x == y :
+            if x == y:
                 d1sum += v
-            if y == self.n - x - 1 :
+            if y == self.n - x - 1:
                 d2sum += v
         return rows, rsum, csum, d1sum, d2sum
     # end def pheno
 
-    def evaluate (self, p, pop) :
+    def evaluate (self, p, pop):
         best = self.best
         rows, rsum, csum, d1sum, d2sum = self.pheno (p, pop)
         eval = \
@@ -169,37 +171,36 @@ class Magic_Square (PGA) :
         return (eval) ** (1/50.)
     # end def evaluate
 
-    def print_string (self, file, p, pop) :
+    def print_string (self, file, p, pop):
         sl = len ('%s' % self.best)
         f  = '%%%ss' % sl
         rows, rsum, csum, d1sum, d2sum = self.pheno (p, pop)
-        for r, row in enumerate (rows) :
+        for r, row in enumerate (rows):
             print (' ' * sl, row, rsum [r], file = file)
         fitness = self.get_fitness (p, pop)
         print (f % d2sum, csum, f % d1sum, file = file)
-        print ("Best idx:", self.get_best_index (pop))
-        # The following two test for old bugs in pgapack and should no
-        # longer happen.
-        if not self.get_evaluation_up_to_date (p, pop) :
-            print ("OOOPS: Not up-to-date")
-        if self.evaluate (p, pop) != fitness :
-            print ("OOOPS: Fitness differs")
+        print ("Best idx:", self.get_best_index (pop), file = file)
+        print ("%d iterations" % self.GA_iter, file = file)
     # end def print_string
 
-    def stop_cond (self) :
+    def stop_cond (self):
         """ Stop when the evaluation has reached 0
         """
         best = self.get_best_index (pga.PGA_OLDPOP)
         eval = self.evaluate (best, pga.PGA_OLDPOP)
-        if eval == 0 :
+        if eval == 0:
             return True
         return self.check_stopping_conditions ()
     # end def stop_cond
 
 # end class Magic_Square
 
-if __name__ == '__main__' :
+def main (argv):
     cmd = ArgumentParser ()
+    cmd.add_argument \
+        ( "-O", "--output-file"
+        , help    = "Output file for progress information"
+        )
     cmd.add_argument \
         ( '-p', '--population-size'
         , type    = int
@@ -207,7 +208,7 @@ if __name__ == '__main__' :
         , help    = "Population size, default=%(default)s"
         )
     cmd.add_argument \
-        ( '-r', '--random-seed'
+        ( '-r', '-R', '--random-seed'
         , type    = int
         , default = 23
         , help    = "Random seed, default=%(default)s"
@@ -223,7 +224,15 @@ if __name__ == '__main__' :
         , type    = float
         , help    = "Mutation rate, default is 1/l**2"
         )
-    args = cmd.parse_args ()
+    cmd.add_argument \
+        ( '--use-euclidian-gene-distance'
+        , help    = "Use euclidian gene distance function"
+        , action  = 'store_true'
+        )
+    args = cmd.parse_args (argv)
     pg = Magic_Square (args)
     pg.run ()
+# end def main
 
+if __name__ == '__main__':
+    main (sys.argv [1:])

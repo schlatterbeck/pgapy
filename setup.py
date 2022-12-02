@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (C) 2005-21 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2005-22 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # ****************************************************************************
@@ -126,16 +126,20 @@ setup \
     , ext_modules      = [module1]
     , data_files       = [ ( 'share/pgapy/examples'
                            , [ 'examples/cards.py'
-                             , 'examples/cards-mutate.py'
+                             , 'examples/cards_mutate.py'
                              , 'examples/constraint.py'
+                             , 'examples/dtlz2.py'
                              , 'examples/fourbar.py'
                              , 'examples/gears.py'
+                             , 'examples/hello_world_char.py'
+                             , 'examples/hello_world_int.py'
+                             , 'examples/himmelblau.py'
+                             , 'examples/magic_prio.py'
                              , 'examples/magic_square.py'
-                             , 'examples/magic_square_prio.py'
                              , 'examples/minfloat.py'
                              , 'examples/multi.py'
-                             , 'examples/one-max.py'
-                             , 'examples/sort-numbers.py'
+                             , 'examples/one_max.py'
+                             , 'examples/sort_numbers.py'
                              , 'examples/twobar.py'
                              , 'examples/vibr.py'
                              , 'examples/xor.py'

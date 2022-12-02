@@ -1,20 +1,19 @@
 #!/usr/bin/python3
 
-from __future__ import print_function, division
-from rsclib.autosuper import autosuper
-from argparse import ArgumentParser
-from math import sqrt
+from __future__       import print_function, division
+from argparse         import ArgumentParser
+from math             import sqrt
 import pga
 import sys
 
-class Four_Bar (pga.PGA, autosuper) :
+class Four_Bar (pga.PGA):
     """ Example from [1]
     [1] Tapabrata Ray, Kang Tai, and Kin Chye Seow.  Multiobjective
         design optimization by an evolutionary algorithm. Engineering
         Optimization, 33(4):399–424, 2001.
     """
 
-    def __init__ (self, args) :
+    def __init__ (self, args):
         self.args  = args
         self.F     = 10.
         self.E     = 2e5
@@ -42,14 +41,16 @@ class Four_Bar (pga.PGA, autosuper) :
             , print_options        = [pga.PGA_REPORT_STRING]
             , mutation_bounce_back = True
             )
-        if args.random_seed :
+        if args.random_seed:
             d ['random_seed'] = args.random_seed
-        self.__super.__init__ (float, 4, **d)
+        if self.args.output_file:
+            d ['output_file'] = args.output_file
+        super ().__init__ (float, 4, **d)
     # end def __init__
 
-    def evaluate (self, p, pop) :
+    def evaluate (self, p, pop):
         x = []
-        for i in range (len (self)) :
+        for i in range (len (self)):
             x.append (self.get_allele (p, pop, i))
         q2  = self.q2
         f1  = self.L * (2 * x [0] + q2 * x [1] + q2 * x [2] + x [3])
@@ -60,14 +61,20 @@ class Four_Bar (pga.PGA, autosuper) :
 
 # end class Four_Bar
 
-if __name__ == '__main__' :
+def main (argv):
     cmd = ArgumentParser ()
     cmd.add_argument \
-        ( '-r', '--random-seed'
+        ( "-O", "--output-file"
+        , help    = "Output file for progress information"
+        )
+    cmd.add_argument \
+        ( '-r', '-R', '--random-seed'
         , type    = int
         )
-    args = cmd.parse_args ()
-    print ("Example: FourBar")
+    args = cmd.parse_args (argv)
     pg = Four_Bar (args)
     pg.run ()
+# end def main
 
+if __name__ == '__main__':
+    main (sys.argv [1:])

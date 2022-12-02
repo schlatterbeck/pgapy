@@ -1,11 +1,10 @@
 #!/usr/bin/python3
 
-from __future__ import print_function
-from rsclib.autosuper import autosuper
+from argparse import ArgumentParser
 import pga
 import sys
 
-class Minfloat (pga.PGA, autosuper) :
+class Minfloat (pga.PGA):
     """ This demonstrates the use of the new Differential Evolution
         strategy. Note that there is no selection pressure in the linear
         selection method. Instead selection pressure is employed with
@@ -15,12 +14,12 @@ class Minfloat (pga.PGA, autosuper) :
         search degenerates to a random walk.
     """
 
-    def __init__ (self) :
+    def __init__ (self, args):
+        self.args = args
         self.gene_distance = self.euclidian_distance
         popsize = 30
-        super (self.__class__, self).__init__ \
-            ( float, 9
-            , maximize                    = False
+        d = dict \
+            ( maximize                    = False
             , pop_size                    = popsize
             , num_replace                 = popsize
             , print_options               = [pga.PGA_REPORT_STRING]
@@ -37,43 +36,57 @@ class Minfloat (pga.PGA, autosuper) :
             , mutation_only               = True
             , mutation_type               = pga.PGA_MUTATION_DE
             , tournament_with_replacement = False
-            , random_seed                 = 42
+            , random_seed                 = self.args.random_seed
             , DE_variant                  = pga.PGA_DE_VARIANT_BEST
             , DE_crossover_prob           = 0.2
             , DE_jitter                   = 0.001
             , DE_scale_factor             = 0.85 - (popsize * 0.0005)
             )
-        self.from_stop_cond = False
-        self.num_evals = 0
+        if self.args.output_file:
+            d ['output_file'] = args.output_file
+        super ().__init__ (float, 9, **d)
     # end def __init__
 
-    def evaluate (self, p, pop) :
-        assert self.from_stop_cond or not self.get_evaluation_up_to_date (p, pop)
-        self.num_evals += 1
+    def evaluate (self, p, pop):
+        assert not self.get_evaluation_up_to_date (p, pop)
         return sum (self.get_allele (p, pop, k) for k in range (len (self)))
     # end def evaluate
 
-    def stop_cond (self) :
+    def stop_cond (self):
         """ Stop when the evaluation has reached 0.99 * 10 * len (self)
         """
-        best = self.get_best_index (pga.PGA_OLDPOP)
-        self.from_stop_cond = True
-        eval = self.evaluate (best, pga.PGA_OLDPOP)
-        self.from_stop_cond = False
-        if eval <= -0.99999 * 10 * len (self) :
+        best = self.get_best_report_index (pga.PGA_OLDPOP, 0)
+        eval = self.get_evaluation (best, pga.PGA_OLDPOP)
+        if eval <= -0.99999 * 10 * len (self):
             return True
         return self.check_stopping_conditions ()
     # end def stop_cond
 
-    def print_string (self, file, p, pop) :
-        print ("evals: %s" % self.num_evals, file = file)
+    def print_string (self, file, p, pop):
+        print ("evals: %s" % self.eval_count, file = file)
         print ("best index: %d" % self.get_best_index (pop), file = file);
         file.flush ()
-        self.__super.print_string (file, p, pop)
+        super ().print_string (file, p, pop)
     # end def print_string
 
 # end class Minfloat
 
-if __name__ == '__main__' :
-    pg = Minfloat ()
+def main (argv):
+    cmd = ArgumentParser ()
+    cmd.add_argument \
+        ( "-O", "--output-file"
+        , help    = "Output file for progress information"
+        )
+    cmd.add_argument \
+        ( "-R", "--random-seed"
+        , help    = "Seed random number generator, default=%(default)s"
+        , type    = int
+        , default = 42
+        )
+    args = cmd.parse_args (argv)
+    pg = Minfloat (args)
     pg.run ()
+# end def main
+
+if __name__ == '__main__':
+    main (sys.argv [1:])

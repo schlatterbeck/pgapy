@@ -1,0 +1,27 @@
+Iter #     Field      Value
+10         Best       1.022215e+00
+     [9, 2, 4] 15
+     [1, 6, 8] 15
+     [5, 7, 3] 15
+  15 [15, 15, 15]   18
+Best idx: 12
+10 iterations
+
+Iter #     Field      Value
+20         Best       1.022215e+00
+     [9, 2, 4] 15
+     [1, 6, 8] 15
+     [5, 7, 3] 15
+  15 [15, 15, 15]   18
+Best idx: 12
+20 iterations
+
+The Best Evaluation: 0.000000e+00.
+The Best String:
+     [4, 3, 8] 15
+     [9, 5, 1] 15
+     [2, 7, 6] 15
+  15 [15, 15, 15]   15
+Best idx: 54
+22 iterations
+

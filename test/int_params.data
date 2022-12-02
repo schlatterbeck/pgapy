@@ -1,0 +1,70 @@
+Algorithm Parameters (Static)
+    Data type                      : Integer
+    Optimization Direction         : Minimize
+    Population Size                : 100
+    String Length                  : 10
+    Copy to Next Population        : Best
+    Stop: Maximum Iterations       : On
+        Maximum Iterations         : 1000
+    Stop: No Change                : Off
+        Max No Change Iterations   : 100
+    Stop: Too Similar              : Off
+        Percent Similarity         : 95
+    No. Strings Replaced per Iter  : 10
+    Mixing Type                    : Mutation or crossover
+    Crossover Type                 : Two Point
+    Crossover Probability          : 0.850000
+    Uniform Crossover Prob.        : 0.600000
+    Mutation Type                  : Permutation
+    Mutation Probability           : 0.100000
+    Real Mutation Constant         : 0.000000
+    Integer Mutation Constant      : 2
+    Mutation Range Bounded         : Off
+    Selection Type                 : Binary Tournament
+    Tournament Selection Param     : 0.600000
+    Restart Operator               : Off
+    Restart Frequency              : 50
+    Restart Allele Change Prob     : 0.500000
+    Allow Duplicates               : Yes
+    Fitness Type                   : Raw
+    Fitness Type(Minimization)     : CMax
+    Fitness Ranking Parameter      : 1.200000
+    Fitness CMAX Parameter         : 1.010000
+Algorithm Parameters (Dynamic)
+    Current Generation             : 0
+    Num Iters With No Change       : 0
+    Percent Similarity In Pop      : 0
+    Selection Index                : 0
+Initialization
+    Random Initialization          : On
+    Initialization Binary Prob     : 0.500000
+    Initialization Real            : Range
+    Initialization Integer         : Permutation
+    Initialization Character       : Lower Case
+    Random Number Seed             : 23
+Parallel
+    MPI Library Used               : Parallel
+    MPI Initialized by PGAPack     : Yes
+    Default Communicator           : MPI_COMM_WORLD
+Report
+    Print Frequency                : 10
+    Print Worst Evaluation         : Off
+    Print Average Evaluation       : Off
+    Print Offline Statistics       : Off
+    Print Online Statistics        : Off
+    Print Hamming Distance         : Off
+System
+    Maximum Integer                : 2147483647
+    Minimum Integer                : -2147483648
+    Maximum Double                 : 1.797693e+308
+    Minimum Double                 : 2.225074e-308
+Operations
+    CreateString  function         : PGAIntegerCreateString
+    InitString    function         : PGAIntegerInitString
+    BuildDatatype function         : PGAIntegerBuildDatatype
+    Mutation      function         : PGAIntegerMutation
+    Crossover     function         : PGAIntegerTwoptCrossover
+    CopyString    function         : PGAIntegerCopyString
+    Duplicate     function         : PGAIntegerDuplicate
+    End of Generation function     : NULL
+    Pre-Evaluation function        : NULL

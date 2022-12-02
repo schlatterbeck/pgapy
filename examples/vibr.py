@@ -1,13 +1,12 @@
 #!/usr/bin/python3
 
 from __future__ import print_function, division
-from rsclib.autosuper import autosuper
 from argparse import ArgumentParser
 from math import pi
 import pga
 import sys
 
-class Vibr (pga.PGA, autosuper) :
+class Vibr (pga.PGA):
     """ Example from [1]
     [1] Tapabrata Ray, Kang Tai, and Kin Chye Seow.  Multiobjective
         design optimization by an evolutionary algorithm. Engineering
@@ -16,7 +15,8 @@ class Vibr (pga.PGA, autosuper) :
     material = \
         [ (2770, 70e9, 1500), (100, 1.6e9, 500), (7780, 200e9, 800) ]
 
-    def __init__ (self, args) :
+    def __init__ (self, args):
+        self.args = args
         minmax = [ (3, 6), (.35, .5), (.01, .6), (.01, .6), (.01, .6)
                  , (0, 2.99), (0, 2.99), (0, 2.99)
                  ]
@@ -42,14 +42,16 @@ class Vibr (pga.PGA, autosuper) :
             , print_options        = [pga.PGA_REPORT_STRING]
             , mutation_bounce_back = True
             )
-        if args.random_seed :
+        if args.random_seed:
             d ['random_seed'] = args.random_seed
-        self.__super.__init__ (float, 8, **d)
+        if self.args.output_file:
+            d ['output_file'] = args.output_file
+        super ().__init__ (float, 8, **d)
     # end def __init__
 
-    def evaluate (self, p, pop) :
+    def evaluate (self, p, pop):
         x = []
-        for i in range (len (self)) :
+        for i in range (len (self)):
             x.append (self.get_allele (p, pop, i))
         L, b, d1, d2, d3, m1, m2, m3 = x
         m1    = int (m1)
@@ -76,9 +78,9 @@ class Vibr (pga.PGA, autosuper) :
         g3  = 1e-5 - d3 + d2
         g4  = d2 - d1 - 0.01
         g5  = d3 - d3 - 0.01
-        if g1 > 0 or g2 > 0 or g3 > 0 or g4 > 0 or g5 > 0 :
+        if g1 > 0 or g2 > 0 or g3 > 0 or g4 > 0 or g5 > 0:
             f1 = f2 = 0.0
-        else :
+        else:
             f1  = (pi / (2 * L ** 2)) * (E / mu) ** 0.5
             f2  = 2 * b * (c1 * d1 + c2 * (d2 - d1) + c3 * (d3 - d2))
         return -f1, f2, g1, g2, g3, g4, g5
@@ -86,14 +88,20 @@ class Vibr (pga.PGA, autosuper) :
 
 # end class Vibr
 
-if __name__ == '__main__' :
+def main (argv):
     cmd = ArgumentParser ()
     cmd.add_argument \
-        ( '-r', '--random-seed'
+        ( "-O", "--output-file"
+        , help    = "Output file for progress information"
+        )
+    cmd.add_argument \
+        ( '-r', '-R', '--random-seed'
         , type    = int
         )
-    args = cmd.parse_args ()
+    args = cmd.parse_args (argv)
     pg = Vibr (args)
-    print ("Example: Vibr rand: %s" % pg.random_seed)
     pg.run ()
+# end def main
 
+if __name__ == '__main__':
+    main (sys.argv [1:])

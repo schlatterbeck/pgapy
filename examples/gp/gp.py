@@ -69,7 +69,8 @@ class Offspring:
                 node.parent = None
             break
         assert node.depth <= self.max_depth
-        #node.invariant (down = True)
+        if node.debug:
+            node.invariant (down = True)
         return node
     # end def crossover
 
@@ -83,6 +84,7 @@ class Node:
         self.d_root  = 0
         self.p_eval  = None # eval of parent
         self.evalue  = None # own eval
+        self.debug   = False
     # end def __init__
 
     def __hash__ (self):
@@ -199,13 +201,16 @@ class Node:
 
     def invariant (self, down = False):
         if not self.parent and self.d_root != 0:
-            import pdb; pdb.set_trace ()
+            #import pdb; pdb.set_trace ()
+            assert 0
         if self.parent and self.d_root != self.parent.d_root + 1:
-            import pdb; pdb.set_trace ()
+            #import pdb; pdb.set_trace ()
+            assert 0
         if isinstance (self, Terminal):
             return
         if self.n_funcs != 1 + sum (c.n_funcs for c in self.children):
-            import pdb; pdb.set_trace ()
+            #import pdb; pdb.set_trace ()
+            assert 0
         if down:
             for c in self.children:
                 c.invariant (down = True)
@@ -233,7 +238,7 @@ class Function (Node):
     arity = 2
     fmt   = None
 
-    def __init__ (self, *children):
+    def __init__ (self, *children, debug = False):
         assert len (children) <= self.arity
         if not self.fmt:
             if getattr (self, 'sym', None) is not None:
@@ -248,6 +253,7 @@ class Function (Node):
         if self.children:
             self.depth += max (c.depth for c in self.children)
         super ().__init__ ()
+        self.debug = debug
     # end def __init__
 
     @property
@@ -543,7 +549,8 @@ class Genetic_Programming:
 
     random_tree_depth = 6
 
-    def __init__ (self, functions, terminals):
+    def __init__ (self, functions, terminals, debug = False):
+        self.debug     = debug
         self.functions = functions
         self.terminals = terminals
     # end def __init__
@@ -564,7 +571,7 @@ class Genetic_Programming:
                 if idx >= flen:
                     tree.add_child (self.terminals [idx - flen] ())
                 else:
-                    child = self.functions [idx] ()
+                    child = self.functions [idx] (debug = self.debug)
                     tree.add_child (child)
                     self.grow_tree (child, depth - 1, fulldepth = fulldepth)
     # end def grow_tree
@@ -610,11 +617,24 @@ class Genetic_Programming:
                         if f not in treedict:
                             treedict [f] = t
                             break
+        miss = 0
         while len (treedict) < n:
             t = self.random_tree (depth, fulldepth = False)
             f = t.format ()
             if f not in treedict:
                 treedict [f] = t
+            elif miss > 500:
+                t = self.random_tree (depth, fulldepth = True)
+                f = t.format ()
+                if f not in treedict:
+                    treedict [f] = t
+                else:
+                    miss += 1
+            else:
+                miss += 1
+            if miss > 1000:
+                depth += 1
+                miss   = 0
         return list (treedict.values ())
     # end def ramped_half_and_half
 

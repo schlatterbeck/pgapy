@@ -1,0 +1,160 @@
+Iter #     Field      Value
+10         Best       3.950000e+02
+evals: 100
+best index: 0
+Tries: 1158 2op: 200/922 Or-op: 44/236 Fail: 132
+Long edges: 124/235
+LK-Op: 0/0 (0)
+
+6 16 4 17 10 18 13 7 12 1 2 11 14 15 8 20 3 9 5 19
+
+Iter #     Field      Value
+20         Best       2.780000e+02
+evals: 149
+best index: 0
+Tries: 2698 2op: 302/2165 Or-op: 58/533 Fail: 440
+Long edges: 200/742
+LK-Op: 0/0 (0)
+
+1 4 18 20 3 13 19 7 15 8 16 10 14 2 17 11 12 9 5 6
+
+Iter #     Field      Value
+30         Best       2.550000e+02
+evals: 199
+best index: 2
+Tries: 4569 2op: 364/3634 Or-op: 67/935 Fail: 837
+Long edges: 232/1417
+LK-Op: 0/0 (0)
+
+5 6 19 7 15 8 16 1 4 13 3 20 18 10 14 2 17 11 12 9
+
+Iter #     Field      Value
+40         Best       2.550000e+02
+evals: 249
+best index: 0
+Tries: 6386 2op: 401/5105 Or-op: 71/1281 Fail: 1269
+Long edges: 259/2078
+LK-Op: 0/0 (0)
+
+5 6 19 7 15 8 16 1 4 13 3 20 18 10 14 2 17 11 12 9
+
+Iter #     Field      Value
+50         Best       2.520000e+02
+evals: 299
+best index: 0
+Tries: 8296 2op: 423/6656 Or-op: 71/1640 Fail: 1733
+Long edges: 273/2906
+LK-Op: 0/0 (0)
+
+9 5 6 19 7 15 16 8 2 13 4 1 12 11 17 14 10 18 20 3
+
+Iter #     Field      Value
+60         Best       2.520000e+02
+evals: 349
+best index: 0
+Tries: 10209 2op: 440/8221 Or-op: 76/1988 Fail: 2197
+Long edges: 287/3634
+LK-Op: 0/0 (0)
+
+9 5 6 19 7 15 16 8 2 13 4 1 12 11 17 14 10 18 20 3
+
+Iter #     Field      Value
+70         Best       2.520000e+02
+evals: 399
+best index: 0
+Tries: 12128 2op: 457/9729 Or-op: 78/2399 Fail: 2661
+Long edges: 304/4342
+LK-Op: 0/0 (0)
+
+9 5 6 19 7 15 16 8 2 13 4 1 12 11 17 14 10 18 20 3
+
+Iter #     Field      Value
+80         Best       2.520000e+02
+evals: 449
+best index: 0
+Tries: 14055 2op: 476/11287 Or-op: 80/2768 Fail: 3126
+Long edges: 318/5107
+LK-Op: 0/0 (0)
+
+9 5 6 19 7 15 16 8 2 13 4 1 12 11 17 14 10 18 20 3
+
+Iter #     Field      Value
+90         Best       2.520000e+02
+evals: 499
+best index: 0
+Tries: 15958 2op: 486/12804 Or-op: 83/3154 Fail: 3593
+Long edges: 338/5850
+LK-Op: 0/0 (0)
+
+9 5 6 19 7 15 16 8 2 13 4 1 12 11 17 14 10 18 20 3
+
+Iter #     Field      Value
+100        Best       2.520000e+02
+evals: 549
+best index: 0
+Tries: 17960 2op: 504/14381 Or-op: 83/3579 Fail: 4062
+Long edges: 351/6680
+LK-Op: 0/0 (0)
+
+9 5 6 19 7 15 16 8 2 13 4 1 12 11 17 14 10 18 20 3
+
+Iter #     Field      Value
+110        Best       2.520000e+02
+evals: 599
+best index: 0
+Tries: 19937 2op: 524/15993 Or-op: 83/3944 Fail: 4528
+Long edges: 365/7417
+LK-Op: 0/0 (0)
+
+9 5 6 19 7 15 16 8 2 13 4 1 12 11 17 14 10 18 20 3
+
+Iter #     Field      Value
+120        Best       2.510000e+02
+evals: 649
+best index: 0
+Tries: 21915 2op: 537/17555 Or-op: 86/4360 Fail: 5000
+Long edges: 377/8206
+LK-Op: 0/0 (0)
+
+1 12 11 17 2 14 10 18 20 3 9 5 6 16 8 15 7 19 13 4
+
+Iter #     Field      Value
+130        Best       2.510000e+02
+evals: 699
+best index: 0
+Tries: 23831 2op: 544/19071 Or-op: 86/4760 Fail: 5481
+Long edges: 389/8920
+LK-Op: 0/0 (0)
+
+1 12 11 17 2 14 10 18 20 3 9 5 6 16 8 15 7 19 13 4
+
+Iter #     Field      Value
+140        Best       2.510000e+02
+evals: 749
+best index: 0
+Tries: 25809 2op: 561/20638 Or-op: 91/5171 Fail: 5943
+Long edges: 405/9690
+LK-Op: 0/0 (0)
+
+1 12 11 17 2 14 10 18 20 3 9 5 6 16 8 15 7 19 13 4
+
+Iter #     Field      Value
+150        Best       2.510000e+02
+evals: 799
+best index: 0
+Tries: 27801 2op: 571/22237 Or-op: 93/5564 Fail: 6415
+Long edges: 421/10417
+LK-Op: 0/0 (0)
+
+1 12 11 17 2 14 10 18 20 3 9 5 6 16 8 15 7 19 13 4
+
+The Best Evaluation: 2.460000e+02.
+The Best String:
+evals: 829
+best index: 0
+Tries: 28971 2op: 575/23190 Or-op: 96/5781 Fail: 6698
+Long edges: 431/10902
+LK-Op: 0/0 (0)
+
+6 16 8 15 7 19 5 9 3 20 18 10 14 2 13 4 1 12 11 17
+
