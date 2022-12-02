@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Copyright (C) 2005-22 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
@@ -29,7 +29,7 @@
 # ****************************************************************************
 
 import sys
-from distutils.core import setup, Extension
+from setuptools import setup, Extension
 if sys.version_info.major > 2 :
     from subprocess     import run, PIPE
 try :
@@ -122,6 +122,7 @@ setup \
     , version          = VERSION
     , description      = 'Python wrapper for pgapack, the parallel genetic '\
                          'algorithm library'
+    , long_description_content_type = 'text/x-rst'
     , long_description = ''.join (description)
     , ext_modules      = [module1]
     , data_files       = [ ( 'share/pgapy/examples'
@@ -138,11 +139,27 @@ setup \
                              , 'examples/magic_square.py'
                              , 'examples/minfloat.py'
                              , 'examples/multi.py'
+                             , 'examples/namefull.py'
                              , 'examples/one_max.py'
                              , 'examples/sort_numbers.py'
                              , 'examples/twobar.py'
                              , 'examples/vibr.py'
                              , 'examples/xor.py'
+                             ]
+                           )
+                         , ( 'share/pgapy/examples/gp'
+                           , [ 'examples/gp/gp.py'
+                             , 'examples/gp/opt_integral.py'
+                             , 'examples/gp/opt_parity3.py'
+                             , 'examples/gp/opt_xor.py'
+                             , 'examples/gp/README.rst'
+                             ]
+                           )
+                         , ( 'share/pgapy/examples/sequence'
+                           , [ 'examples/sequence/croes.tsp'
+                             , 'examples/sequence/oliver30.tsp'
+                             , 'examples/sequence/plot_tour.py'
+                             , 'examples/sequence/tsp.py'
                              ]
                            )
                          , ( 'share/pgapy'
