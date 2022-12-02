@@ -9,6 +9,9 @@ PGAPy: Python Wrapper for PGAPack Parallel Genetic Algorithm Library
 News
 ----
 
+News 12-2022: Add regression test and update to new upstream with
+several bug-fixes. Includes also some bug fixes in wrapper.
+
 News 10-2022: Add user defined datatypes. Example in ``examples/gp`` use
 user defined data types to implement genetic programming (we represent
 expressions by a tree data structure). This uses the new serialization
@@ -754,9 +757,9 @@ deserialization code in ``pgamodule.c`` is called.
 
 As of this writing we get::
 
-              Hit   Total
- Lines:      1080    1459    74.0 %
- Functions:   110     125    88.0 %
+ Lines:      1423    1475    96.5 %
+ Functions:   131     133    98.5 %
+
 
 References
 ----------
@@ -803,6 +806,12 @@ References
 
 Changes
 -------
+
+Version 2.1: Regression test
+
+- PGApack bug-fixes discovered during testing
+- Bug-fixes of python wrapper
+- Lots of tests with coverage of wrapper C-code > 90%
 
 Version 2.0: User defined data types
 
