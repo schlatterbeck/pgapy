@@ -2,32 +2,8 @@
 
 import pga
 import sys
-import weakref
 from gp import F_nand, Terminal, Genetic_Programming, Function
-from random import Random
 from argparse import ArgumentParser
-
-class PGA_Random (Random) :
-
-    def __init__ (self, pga_instance) :
-        self.pga_instance = weakref.ref (pga_instance)
-        super ().__init__ (1)
-    # end def __init__
-
-    def getstate (self, *args, **kw) :
-        raise NotImplementedError ("Getting the state is not possible")
-    # end def getstate
-
-    def setstate (self, *args, **kw) :
-        raise NotImplementedError ("Setting the state is not possible")
-    # end def setstate
-
-    def random (self) :
-        return self.pga_instance ().random01 ()
-    # end def random
-
-# end class PGA_Random
-
 
 class Find_Parity_3 (pga.PGA, Genetic_Programming):
 
@@ -35,7 +11,7 @@ class Find_Parity_3 (pga.PGA, Genetic_Programming):
         self.args    = args
         self.randpop = []
         self.popsize = 500
-        self.random  = PGA_Random (self)
+        self.random  = pga.PGA_Random (self)
         terms = [Terminal ('a'), Terminal ('b'), Terminal ('c')]
         Genetic_Programming.__init__ (self, [F_nand], terms)
         d = dict \

@@ -56,7 +56,7 @@ modulename = environ.get ('PGA_MODULE', 'module_from_pgapack_submodule')
 # The default pgapack module: Use the version from the submodule pgapack
 # that comes with pgapy.
 module_from_pgapack_submodule = Extension \
-    ( 'pga'
+    ( 'pga.pga'
     , sources = ['pgamodule.c'] + pgapack_sources + [stub]
     , define_macros = [('FAKE_MPI', '1')]
     , include_dirs  = ['.', 'pgapack/fakempi', 'pgapack/include']
@@ -69,7 +69,7 @@ module_from_pgapack_submodule = Extension \
 BASE     = '/usr/local/pga/'	# default pga home in Linux machines
 DEB_BASE = '/usr/include/pgapack-serial' # Default on Debian since lenny
 module_from_source = Extension \
-    ( 'pga'
+    ( 'pga.pga'
     , sources       = ['pgamodule.c']
     , define_macros = []
     , include_dirs  = ['.', path.join (BASE, 'include'), DEB_BASE]
@@ -81,7 +81,7 @@ module_from_source = Extension \
 # Set environment variable PGA_MODULE to 'module_from_install' if you
 # want to use that version.
 module_from_install = Extension \
-    ( 'pga'
+    ( 'pga.pga'
     , sources       = ['pgamodule.c']
     , define_macros = []
     , include_dirs  = ['.', '/usr/include/pgapack-serial']
@@ -104,7 +104,7 @@ if modulename == 'module_from_parallel_install' and sys.version_info.major > 2 :
         , openmpi = path.join (arch_dir, 'openmpi')
         )
     module_from_parallel_install = Extension \
-        ( 'pga'
+        ( 'pga.pga'
         , sources       = ['pgamodule.c']
         , define_macros = []
         , include_dirs  = \
@@ -125,6 +125,7 @@ setup \
     , long_description_content_type = 'text/x-rst'
     , long_description = ''.join (description)
     , ext_modules      = [module1]
+    , packages         = ['pga']
     , data_files       = [ ( 'share/pgapy/examples'
                            , [ 'examples/cards.py'
                              , 'examples/cards_mutate.py'
@@ -178,7 +179,10 @@ setup \
         , 'Operating System :: OS Independent'
         , 'Programming Language :: C'
         , 'Programming Language :: Python'
+        , 'Topic :: Education'
+        , 'Topic :: Scientific/Engineering'
         , 'Topic :: Scientific/Engineering :: Artificial Intelligence'
+        , 'Topic :: Software Development :: Libraries'
         , 'Topic :: Software Development :: Libraries :: Python Modules'
 # Would be nice if distutils supported the following category -- it
 # doesn't according to "python setup.py register --list-classifiers"

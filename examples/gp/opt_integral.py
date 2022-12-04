@@ -2,12 +2,10 @@
 
 import pga
 import sys
-import weakref
 import warnings
 import numpy as np
 from gp import Terminal, Genetic_Programming, Function, Const
 from gp import F_add, F_sub, F_mul, F_div, F_sin, F_cos, F_sqrt
-from random import Random
 from argparse import ArgumentParser
 from scipy.optimize import curve_fit
 from scipy.integrate import fixed_quad
@@ -17,34 +15,13 @@ from scipy.integrate import fixed_quad
 msg = 'Covariance of the parameters could not be estimated'
 warnings.filterwarnings ("ignore", message = msg)
 
-class PGA_Random (Random) :
-
-    def __init__ (self, pga_instance) :
-        self.pga_instance = weakref.ref (pga_instance)
-        super ().__init__ (1)
-    # end def __init__
-
-    def getstate (self, *args, **kw) :
-        raise NotImplementedError ("Getting the state is not possible")
-    # end def getstate
-
-    def setstate (self, *args, **kw) :
-        raise NotImplementedError ("Setting the state is not possible")
-    # end def setstate
-
-    def random (self) :
-        return self.pga_instance ().random01 ()
-    # end def random
-
-# end class PGA_Random
-
 class Find_Integral (pga.PGA, Genetic_Programming):
 
     def __init__ (self, args):
         self.args    = args
         self.randpop = []
         self.popsize = args.popsize
-        self.random  = PGA_Random (self)
+        self.random  = pga.PGA_Random (self)
         self.param   = {}
         terms = [Terminal ('x')]
         if args.use_constant_1:

@@ -7,31 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from argparse import ArgumentParser
 from tsplib95 import load as tspload
-from random   import Random
 from copy     import copy, deepcopy
 from bisect   import bisect_left, bisect_right
 from collections import OrderedDict
-
-class PGA_Random (Random) :
-
-    def __init__ (self, pga_instance) :
-        self.pga_instance = pga_instance
-        super (self.__class__, self).__init__ (1)
-    # end def __init__
-
-    def getstate (self, *args, **kw) :
-        raise NotImplementedError ("Getting the state is not possible")
-    # end def getstate
-
-    def setstate (self, *args, **kw) :
-        raise NotImplementedError ("Setting the state is not possible")
-    # end def setstate
-
-    def random (self) :
-        return self.pga_instance.random01 ()
-    # end def random
-
-# end class PGA_Random
 
 class Long_Edge_Iter :
     def __init__ (self, parent, allele) :
@@ -515,7 +493,7 @@ class TSP (pga.PGA) :
                 self.fixed_edges.add (tuple (t))
                 self.fixed_edges.add (tuple (reversed (t)))
         super (self.__class__, self).__init__ (int, self.tsp.dimension, **d)
-        self.random  = PGA_Random (self)
+        self.random  = pga.PGA_Random (self)
         self.shuffle = list (range (len (self)))
         self.random.shuffle (self.shuffle)
         self.sidx    = 0

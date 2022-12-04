@@ -43,9 +43,7 @@ Initialization
     Initialization Character       : Lower Case
     Random Number Seed             : 23
 Parallel
-    MPI Library Used               : Parallel
     MPI Initialized by PGAPack     : Yes
-    Default Communicator           : MPI_COMM_WORLD
 Report
     Print Frequency                : 10
     Print Worst Evaluation         : Off

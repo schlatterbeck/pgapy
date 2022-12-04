@@ -29,9 +29,7 @@
 import pytest
 import pga
 import sys
-import os
-from filecmp import cmp
-from io      import StringIO
+from pga.testsupport import PGA_Test_Instrumentation
 
 # Import from examples
 sys.path.insert (1, "examples")
@@ -72,54 +70,7 @@ from opt_xor      import main as gp_xor_main
 from opt_parity3  import main as gp_parity3_main
 from opt_integral import main as gp_integral_main
 
-class _Test_PGA:
-    @property
-    def basename (self):
-        assert self.test_name.startswith ('test_')
-        return self.test_name [5:]
-    # end def basename
-
-    @property
-    def out_name (self):
-        return os.path.join ('test', self.basename + '.out')
-    # end def out_name
-
-    @property
-    def data_name (self):
-        return os.path.join ('test', self.basename + '.data')
-    # end def data_name
-
-    @property
-    def out_options (self):
-        return ['-O', self.out_name]
-    # end def out_options
-
-    @pytest.fixture (autouse = True)
-    def run_clean_test (self, request):
-        self.test_name = request.node.name
-        self.cleanup ()
-        yield
-        # Only clean up if successful, see pytest_runtest_makereport
-        # in conftest.py
-        if request.node.rep_call.passed:
-            self.cleanup ()
-    # end def run_clean_test
-
-    def cleanup (self):
-        if pytest.mpi_rank == 0:
-            try:
-                os.unlink (self.out_name)
-            except OSError:
-                pass
-    # end def cleanup
-
-    def compare (self):
-        if pytest.mpi_rank == 0:
-            assert cmp (self.data_name, self.out_name, shallow = False)
-    # end def compare
-# end class _Test_PGA
-
-class Test_PGA_Fast (_Test_PGA):
+class Test_PGA_Fast (PGA_Test_Instrumentation):
     def test_cards (self):
         cards_main (self.out_options + ['-R', '2'])
         self.compare ()
@@ -592,6 +543,10 @@ class Test_PGA_Fast (_Test_PGA):
                 continue
             if line.strip ().startswith ('Gene distance'):
                 continue
+            if line.strip ().startswith ('Default Communicator'):
+                continue
+            if line.strip ().startswith ('MPI Library Used'):
+                continue
             lines.append (line)
         captured = '\n'.join (lines)
         assert r == captured
@@ -699,7 +654,7 @@ class Test_PGA_Fast (_Test_PGA):
 
 # end class Test_PGA_Fast
 
-class Test_PGA_Slow (_Test_PGA):
+class Test_PGA_Slow (PGA_Test_Instrumentation):
 
     def test_gp_parity3 (self):
         gp_parity3_main (self.out_options + '-R 25'.split ())

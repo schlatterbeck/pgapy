@@ -128,6 +128,12 @@ static PyObject *contexts       = NULL;
     }                                                        \
 } while (0)
 
+#define ERR_RET(cond,ret) do {    \
+    if (!(cond)) {                \
+        return (ret);             \
+    }                             \
+} while (0)
+
 #define ERR_DECREF_RET(cond, dec, ret) do {  \
     if (!(cond)) {                           \
         Py_CLEAR (dec);                      \
@@ -294,6 +300,7 @@ static PyMethodDef Module_Methods [] =
 , { NULL } /* EMPTY VALUE AS END-MARKER */
 };
 
+
 /***********************
  * Constants (in Module)
  ***********************/
@@ -366,6 +373,61 @@ int compare_constdef (const void *v1, const void *v2)
 {
     const constdef_t *p1 = v1, *p2 = v2;
     return strcmp (p1->cd_name, p2->cd_name);
+}
+
+/***********************
+ * Exported Symbols
+ ***********************/
+
+/*
+ * Compute __all__, all exported symbols
+ * Return 0 on success, -1 on error
+ */
+static int all_symbols (PyObject *module)
+{
+    PyObject *tuple = NULL;
+    PyObject *ele = NULL;
+    int nfun = sizeof (Module_Methods) / sizeof (PyMethodDef) - 1;
+    int nobj = 2; /* the PGA class and VERSION */
+    int ncon = sizeof (constdef) / sizeof (constdef_t) - 1;
+    int idx  = 2;
+    int r    = -1;
+    constdef_t  *cd;
+    PyMethodDef *funp = NULL;
+
+    tuple = PyTuple_New (nfun + nobj + ncon);
+    ERR_RET (tuple != NULL, -1);
+
+    ele = Py_BuildValue ("s", "PGA");
+    ERR_CHECK_RET (ele != NULL);
+    r = PyTuple_SetItem (tuple, 0, ele);
+    ERR_CHECK_RET (r == 0);
+    ele = Py_BuildValue ("s", "VERSION");
+    ERR_CHECK_RET (ele != NULL);
+    r = PyTuple_SetItem (tuple, 1, ele);
+    ERR_CHECK_RET (r == 0);
+
+    /* Add constants */
+    for (cd = constdef; cd->cd_name; cd++) {
+        ele = Py_BuildValue ("s", cd->cd_name);
+        ERR_CHECK_RET (ele != NULL);
+        r = PyTuple_SetItem (tuple, idx++, ele);
+        ERR_CHECK_RET (r == 0);
+    }
+    for (funp = Module_Methods; funp->ml_name; funp++) {
+        ele = Py_BuildValue ("s", funp->ml_name);
+        ERR_CHECK_RET (ele != NULL);
+        r = PyTuple_SetItem (tuple, idx++, ele);
+        ERR_CHECK_RET (r == 0);
+    }
+    ele = NULL;
+    r = PyModule_AddObject (module, "__all__", tuple);
+    ERR_CHECK_RET (r == 0);
+    return 0;
+errout:
+    Py_CLEAR (ele);
+    Py_CLEAR (tuple);
+    return -1;
 }
 
 /******************************************************
@@ -3514,7 +3576,14 @@ PyMODINIT_FUNC initpga (void)
         return FAIL;
     }
     Py_INCREF (&PGA_Type);
-    PyModule_AddObject (module, "PGA", (PyObject *) &PGA_Type);
+    if (PyModule_AddObject (module, "PGA", (PyObject *) &PGA_Type) < 0) {
+        Py_DECREF (&PGA_Type);
+        return FAIL;
+    }
+    if (all_symbols (module) != 0) {
+        Py_DECREF (&PGA_Type);
+        return FAIL;
+    }
     module_Dict = PyModule_GetDict (module);
     PyDict_SetItemString (module_Dict, "contexts", contexts);
     PyDict_SetItemString (module_Dict, "VERSION", version);

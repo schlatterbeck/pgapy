@@ -35,8 +35,8 @@ $(VERSION): $(SRC)
 
 clean:
 	rm -f MANIFEST Version.h Version.py Version.pyc default.css README.html
-	rm -rf ${CLEAN} PGAPy.egg-info
-	make -C pgapack clean
+	rm -rf ${CLEAN} PGAPy.egg-info pga.cpython* __pycache__
+	make -C pgapack clobber
 
 $(USERGUIDE):
 	make -C $(PGAPACK_DOC)
