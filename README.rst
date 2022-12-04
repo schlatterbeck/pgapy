@@ -807,6 +807,14 @@ References
 Changes
 -------
 
+Version 2.2: Module directory
+
+- Put the pga C-module inside a pga module
+- Add several python-only modules to pga
+- pga.__init__ exports everything to this is compatible
+- pga.random includes a python Random class based on the pgapack random
+  number generator
+
 Version 2.1: Regression test
 
 - PGApack bug-fixes discovered during testing
