@@ -3362,6 +3362,16 @@ static PyObject *PGA_num_eval (PyObject *self, void *closure)
     return Py_BuildValue ("i", PGAGetNumAuxEval (ctx) + 1);
 }
 
+/* Special getter for maximize */
+static PyObject *PGA_maximize (PyObject *self, void *closure)
+{
+    PGAContext *ctx;
+    if (!(ctx = get_context (self))) {
+        return NULL;
+    }
+    return Py_BuildValue ("i", PGAGetOptDirFlag (ctx) == PGA_MAXIMIZE ? 1:0);
+}
+
 /* Yet another explicit getter which uses the default mpi communicator */
 static PyObject *PGA_mpi_rank (PyObject *self, void *closure)
 {
@@ -3415,6 +3425,7 @@ static PyGetSetDef PGA_getset [] =
 , GETTER_ENTRY (max_fitness_rank)
 , GETTER_ENTRY (max_GA_iter)
 , GETTER_ENTRY (max_similarity)
+, GETTER_ENTRY (maximize)
 , GETTER_ENTRY (mpi_n_proc)
 , GETTER_ENTRY (mpi_rank)
 , GETSET_ENTRY (multi_obj_precision)
