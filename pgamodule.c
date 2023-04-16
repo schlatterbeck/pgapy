@@ -1,4 +1,4 @@
-/* Copyright (C) 2005-22 Dr. Ralf Schlatterbeck Open Source Consulting.
+/* Copyright (C) 2005-23 Dr. Ralf Schlatterbeck Open Source Consulting.
  * Reichergasse 131, A-3411 Weidling.
  * Web: http://www.runtux.com Email: office@runtux.com
  * ****************************************************************************
@@ -265,6 +265,7 @@ errout:
 static PyObject *PGA_MPI_Init (PyObject *self, PyObject *args, PyObject *kw)
 {
     int argc;
+    int ret = 0;
     char **c_argv = NULL;
     PyObject *pyargv;
     static char *kwlist [] = {"argv", NULL};
@@ -274,22 +275,38 @@ static PyObject *PGA_MPI_Init (PyObject *self, PyObject *args, PyObject *kw)
     }
     c_argv = parse_argv (pyargv, &argc);
     Py_DECREF (pyargv);
-    MPI_Init (&argc, &c_argv);
-    Py_INCREF (Py_None);
-    return Py_None;
+    ret = MPI_Init (&argc, &c_argv);
+    return Py_BuildValue ("i", ret);
+}
+
+static PyObject *PGA_MPI_Abort (PyObject *self, PyObject *args, PyObject *kw)
+{
+    int errorcode = 0;
+    int ret = 0;
+    static char *kwlist [] =
+        { "errorcode"
+        , NULL
+        };
+    if (!PyArg_ParseTupleAndKeywords (args, kw, "i", kwlist, &errorcode)) {
+        return NULL;
+    }
+    ret = MPI_Abort (MPI_COMM_WORLD, errorcode);
+    return Py_BuildValue ("i", ret);
 }
 
 /* We don't care if someone calls this with arguments */
 static PyObject *PGA_MPI_Finalize (PyObject *self, PyObject *args, PyObject *kw)
 {
-    MPI_Finalize ();
-    Py_INCREF (Py_None);
-    return Py_None;
+    int ret = MPI_Finalize ();
+    return Py_BuildValue ("i", ret);
 }
 
 static PyMethodDef Module_Methods [] =
 { { "das_dennis", (PyCFunction)das_dennis, METH_VARARGS | METH_KEYWORDS
   , "Return Das/Dennis points"
+  }
+, { "MPI_Abort", (PyCFunction)PGA_MPI_Abort, METH_VARARGS | METH_KEYWORDS
+  , "Abort MPI"
   }
 , { "MPI_Finalize", (PyCFunction)PGA_MPI_Finalize, METH_VARARGS | METH_KEYWORDS
   , "Finalize MPI"

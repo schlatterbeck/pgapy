@@ -9,6 +9,18 @@ PGAPy: Python Wrapper for PGAPack Parallel Genetic Algorithm Library
 News
 ----
 
+News 04-2023:
+
+- The last build on PyPi was broken for serial installs, it was missing
+  the ``mpi_stub.c`` needed for the serial version. Parallel installs
+  were still possible so I didn't notice, sorry!
+- Add MPI_Abort to the wrapper, it is called with::
+
+    pga.MPI_Abort (errcode)
+
+  See below in secion `Running with MPI`_ how this can be used to abort
+  the MPI run in case of exception in the ``evaluate`` method.
+
 News 12-2022: Add regression test and update to new upstream with
 several bug-fixes. Includes also some bug fixes in wrapper.
 
@@ -60,7 +72,7 @@ why I wanted to use it in Python, too.
 
 To get started you need the PGAPack library, although
 it now comes bundled with PGApy, to install a *parallel* version you
-currently need a pre-installed PGApack compiled for the MPI library of
+currently need a pre-installed PGAPack_ compiled for the MPI library of
 choice. See `Installation`_ section for details.
 
 There currently is not much documentation for PGAPy.
@@ -117,14 +129,6 @@ contains some updates concerning support of newer MPI_ versions and
 documentation updates.  I've also included patches in the git repository
 of the Debian maintainer of the package, Dirk Eddelbuettel.
 I'm actively maintaining that branch, adding new features and bug-fixes.
-
-.. _`PGAPack Readme`:
-   https://github.com/schlatterbeck/pgapack/blob/master/README.rst
-.. _PGAPack:          http://ftp.mcs.anl.gov/pub/pgapack/
-.. _`PGAPack fork on github`: https://github.com/schlatterbeck/pgapack
-.. _MPI: http://mpi-forum.org/
-.. _`my pgapack debian package builder`:
-    https://github.com/schlatterbeck/debian-pgapack
 
 To get you started, I've included some very simple examples in
 ``examples``, e.g., ``one-max.py`` implements the "Maxbit" example
@@ -200,7 +204,7 @@ The following naming conventions were used for the wrapper:
   separate function for each datatype, so ``PGAGetBinaryAllele``,
   ``PGAGetCharacterAllele``, ``PGAGetIntegerAllele``, ``PGAGetRealAllele`` all
   become ``get_allele``. Same holds true for ``set_allele``.
-- Whenever a name in PGApack has a "Value" or "Flag" suffix, I've left
+- Whenever a name in PGAPack has a "Value" or "Flag" suffix, I've left
   this out, so ``PGAGetFitnessCmaxValue`` becomes ``fitness_cmax``
   and ``PGAGetMutationAndCrossoverFlag`` becomes
   ``mutation_and_crossover``, the only exception to this rule is for the
@@ -210,7 +214,7 @@ The following naming conventions were used for the wrapper:
 - Some fields can take multiple values (they are implemented by ORing
   integer constants, in python they are specified as a list or tuple of
   constants). These are converted to plural (if not already plural in
-  PGApack), e.g., ``PGASetStoppingRuleType`` becomes ``stopping_rule_types``.
+  PGAPack), e.g., ``PGASetStoppingRuleType`` becomes ``stopping_rule_types``.
 - Internal method names in the wrapper program have a leading PGA\_ |--| so
   the class method ``set_allele`` is implemented by the C-function
   ``PGA_set_allele`` in ``pgamodule.c``.
@@ -218,17 +222,17 @@ The following naming conventions were used for the wrapper:
 Constructor Parameters
 ----------------------
 
-PGApack has a lot of ``PGASet`` and ``PGAGet`` functions for setting
+PGAPack_ has a lot of ``PGASet`` and ``PGAGet`` functions for setting
 parameters. These are reflected in constructor parameters on the one hand
 and in (typically read-only, but see below) properties of a ``PGA``
 object on the other hand. The
-following table gives an overview of all the original PGApack names and
-the names of the python wrapper. For the PGApack name I've only listed
+following table gives an overview of all the original PGAPack_ names and
+the names of the python wrapper. For the PGAPack_ name I've only listed
 the ``PGASet`` function, in many cases there is a corresponding
 ``PGAGet`` function. If a corresponding read-only property exists for a
 constructor parameter this is indicated in the "Prop" column. In some
 cases properties are missing because no corresponding ``PGAGet`` function
-is implemented in PGApack, in other cases returning a numeric value that
+is implemented in PGAPack_, in other cases returning a numeric value that
 has a symbolic constant in PGApy doesn't make much sense.
 
 The properties have the same name as the constructor parameter.
@@ -254,7 +258,7 @@ for each allele.
 The ``num_eval`` property is special: Due to limitations of the C
 programming language, for multiple evaluations in C the first evaluation
 is returned as the function return-value of the ``evaluate`` function
-and all other parameters are returned in an auxiliary array. PGApack
+and all other parameters are returned in an auxiliary array. PGAPack_
 specifies the number of auxiliary evaluations to be returned. In Python
 the evaluation function can always return a sequence of evaluation
 values and the ``num_eval`` is one more than ``PGAGetNumAuxEval`` would
@@ -274,7 +278,7 @@ These currently are ``crossover_prob``, ``epsilon_exponent``,
 the optimizer (child of PGA.pga) object.
 
 ==================================== ================================= ====== ====
-PGApack name                         Constructor parameter             Type   Prop
+PGAPack name                         Constructor parameter             Type   Prop
 ==================================== ================================= ====== ====
 ``PGASetCrossoverBoundedFlag``       ``crossover_bounded``             int    yes
 ``PGASetCrossoverBounceBackFlag``    ``crossover_bounce_back``         int    yes
@@ -420,14 +424,14 @@ Method                        Parameters         Return
 User-Methods
 ------------
 
-PGApack has the concept of user functions. These allow customization of
+PGAPack_ has the concept of user functions. These allow customization of
 different areas of a genetic algorihm. In Python they are implemented as
 methods that can be changed in a derived class. One of the methods that
 *must* be implemented in a derived class is the ``evaluate`` function
-(although technically it is not a user function in PGApack). It
+(although technically it is not a user function in PGAPack). It
 interprets the gene and returns an evaluation value or a sequence of
 evaluation values if you set the ``num_eval`` constructor parameter.
-PGApack computes a fitness from the raw evaluation value. For some
+PGAPack_ computes a fitness from the raw evaluation value. For some
 methods an up-call into the PGA class is possible, for some methods this
 is not possible (and in most cases not reasonable). Note that for the
 ``stop_cond`` method, the standard check for stopping conditions can be
@@ -437,7 +441,7 @@ called with::
 
 The following table lists the overridable methods with their parameters
 (for the function signature the first parameter *self* is omitted). Note
-that in PGApack there are additional user functions that are needed for
+that in PGAPack_ there are additional user functions that are needed for
 user-defined data types which are currently not exposed in Python. In the
 function signatures *p* denotes the index of the individual and *pop*
 denotes the population. If more than one individual is specified (e.g.,
@@ -466,7 +470,7 @@ Method              Call Signature                 Return Value      Up-Call
 Constants
 ---------
 
-The following PGApack constants are available:
+The following PGAPack_ constants are available:
 
 ========================== ===========================================
 Constant                   Description
@@ -582,7 +586,7 @@ with the same tree structure).
 Missing Features
 ----------------
 
-As already mentioned, not all functions and constants of PGAPack are
+As already mentioned, not all functions and constants of PGAPack_ are
 wrapped yet |--| still for many applications the given set should be
 enough. If you need additional functions, you may want to wrap these and
 send_ me a patch.
@@ -631,7 +635,7 @@ have unpacked or checked out from sources you can install with::
  python3 setup.py install --prefix=/usr/local
 
 If you want a parallel version using an MPI_ (Message-Passing Interface)
-library you will have to install a parallel version of PGApack first.
+library you will have to install a parallel version of PGAPack_ first.
 The easiest way to do this is to use `my pgapack debian package builder`_
 from github. Clone this repository, check out the branch ``master``,
 install the build dependencies, they're listed in the file
@@ -647,7 +651,7 @@ library of choice. If you don't have a preference for an MPI library,
 ``libpgapack-openmpi`` is the package that uses the Debians default
 preferences of an MPI library.
 
-Once a parallel version of PGApack is installed, you can install PGApy
+Once a parallel version of PGAPack_ is installed, you can install PGApy
 as follows: You set environment variables for the ``PGA_PARALLEL_VARIANT``
 (one of ``mpich``, ``openmpi``, or ``lam``) and set the ``PGA_MODULE`` to
 ``module_from_parallel_install``. Finally you envoke the setup, e.g.::
@@ -656,11 +660,50 @@ as follows: You set environment variables for the ``PGA_PARALLEL_VARIANT``
  export PGA_MODULE=module_from_parallel_install
  python3 setup.py install --prefix=/usr/local
 
+Note that the same works with ``pip install``, i.e., after installation
+of a parallel version of PGAPack_ you can directly install with ``pip``::
+
+ export PGA_PARALLEL_VARIANT=openmpi
+ export PGA_MODULE=module_from_parallel_install
+ pip install pgapy
+
+or alternatively depending on how pip is installed on your system::
+
+ python3 -m pip install pgapy
+
 If your MPI library is installed in a different place you should study
 the *Extension* configurations in ``setup.py`` to come up with an
 Extension definition that fits your installation. If your installation
 is interesting to more people, feel free to submit a patch that adds
 your Extension-configuration to the standard ``setup.py``.
+
+Running with MPI
+----------------
+
+To run a parallel version with MPI_, a parallel version must be
+installed, see above in section Installation_.
+
+For a serial version, PGAPy makes sure that the otimization is aborted
+if an exception occurs in the ``evaluate`` function. This is currently not
+the case for MPI, because the framework currently does not support
+returning information to the rank-0 MPI leader process. A workaround is
+as follows: Rename your ``evaluate`` method to ``_evaluate`` and catch
+exceptions in a new ``evaluate`` method that wraps ``_evaluate``.
+Call ``MPI_Abort`` if an exception occurs::
+
+    import traceback
+    import sys
+
+    ...
+
+    def evaluate (self, p, pop):
+        try:
+            return self._evaluate (p, pop)
+        except Exception:
+            # Optionally log exception here
+            print (traceback.format_exc ())
+            pga.MPI_Abort (1)
+            sys.exit (1)
 
 Testing
 -------
@@ -678,7 +721,7 @@ This runs all the tests and can take a while. Note that the tests run
 most of the examples in the ``examples`` directory with different
 command line parameters where available. To perform several optimization
 runs in a single (Python-) process, we must call ``MPI_Init``
-*explicitly* (and not relying on PGAPack to call it implicitly). This is
+*explicitly* (and not relying on PGAPack_ to call it implicitly). This is
 because ``MPI_Init`` may be called only once per process. Calling of
 ``MPI_Init`` and ``MPI_Finalize`` is handled in a fixture in
 ``test/conftest.py``
@@ -807,6 +850,12 @@ References
 Changes
 -------
 
+Version 2.2.1: MPI_Abort
+
+- Add MPI_Abort to the wrapper
+- Include ``mpi_stub.c`` in the release (this is missing if some env
+  variables are set, see above in Installation)
+
 Version 2.2: Module directory
 
 - Put the pga C-module inside a pga module
@@ -817,7 +866,7 @@ Version 2.2: Module directory
 
 Version 2.1: Regression test
 
-- PGApack bug-fixes discovered during testing
+- PGAPack bug-fixes discovered during testing
 - Bug-fixes of python wrapper
 - Lots of tests with coverage of wrapper C-code > 90%
 
@@ -963,3 +1012,11 @@ algorithm implementations out there with a lot of features for
 experimentation.
 
 - Initial Release
+
+.. _`PGAPack Readme`:
+   https://github.com/schlatterbeck/pgapack/blob/master/README.rst
+.. _PGAPack:          http://ftp.mcs.anl.gov/pub/pgapack/
+.. _`PGAPack fork on github`: https://github.com/schlatterbeck/pgapack
+.. _MPI: http://mpi-forum.org/
+.. _`my pgapack debian package builder`:
+    https://github.com/schlatterbeck/debian-pgapack
