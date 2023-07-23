@@ -850,6 +850,13 @@ References
 Changes
 -------
 
+Version 2.2.2: Add pyproject.toml
+
+- Add pyproject.toml -- unfortunately it seems that binary modules
+  cannot currently be described in the pyproject.toml, especially not
+  the variant selection via the environment that is currently
+  implemented in setup.py
+
 Version 2.2.1: MPI_Abort
 
 - Add MPI_Abort to the wrapper

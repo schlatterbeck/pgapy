@@ -20,7 +20,7 @@ USERGUIDE=$(PGAPACK_DOC)/user_guide.pdf
 
 LASTRELEASE:=$(shell $(RELEASETOOLS)/lastrelease -n)
 VERSIONH=Version.h
-VERSIONPY=Version.py
+VERSIONPY=pga/Version.py
 VERSION=$(VERSIONH) $(VERSIONPY)
 
 USERNAME=schlatterbeck

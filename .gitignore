@@ -31,3 +31,4 @@ coverage_out
 .nfs*
 oldstuff
 rebuild
+PGAPy.egg-info

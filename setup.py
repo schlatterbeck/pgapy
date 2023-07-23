@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # Copyright (C) 2005-23 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
@@ -33,7 +32,7 @@ from setuptools import setup, Extension
 if sys.version_info.major > 2 :
     from subprocess     import run, PIPE
 try :
-    from Version    import VERSION
+    from pga.Version    import VERSION
 except :
     VERSION = None
 from textwrap       import dedent
@@ -169,7 +168,7 @@ setup \
                          ]
     , author           = "Ralf Schlatterbeck"
     , author_email     = "rsc@runtux.com"
-    , url              = "http://pgapy.sourceforge.net/"
+    , url              = "https://github.com/schlatterbeck/pgapy"
     , classifiers      = \
         [ 'Development Status :: 5 - Production/Stable'
         , 'Intended Audience :: Developers'
