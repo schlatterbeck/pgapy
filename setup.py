@@ -29,19 +29,22 @@
 
 import sys
 from setuptools import setup, Extension
+sys.path.insert (1, '.')
+from pga import __version__
 if sys.version_info.major > 2 :
     from subprocess     import run, PIPE
-try :
-    from pga.Version    import VERSION
-except :
-    VERSION = None
 from textwrap       import dedent
 from os             import path, environ
 from glob           import glob
 
-description = []
 with open ('README.rst') as f :
     description = f.read ()
+
+if __version__.startswith ('0+'):
+    with open ('Version.h', 'w') as f:
+        print ('#define VERSION "%s"' % __version__, file = f)
+    with open ('pgapack/docs/user_guide.pdf', 'w') as f:
+        pass
 
 license = 'BSD License'
 pgapack_sources = []
@@ -118,7 +121,7 @@ module1 = locals ()[modulename]
 
 setup \
     ( name             = 'PGAPy'
-    , version          = VERSION
+    , version          = __version__
     , description      = 'Python wrapper for pgapack, the parallel genetic '\
                          'algorithm library'
     , long_description_content_type = 'text/x-rst'

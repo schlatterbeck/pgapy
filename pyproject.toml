@@ -59,6 +59,4 @@ classifiers     = [
 "Bug Tracker" = "https://github.com/schlatterbeck/pgapy/issues"
 
 [tool.setuptools.dynamic]
-version = {attr = "pga.Version.VERSION"}
-
-
+version = {attr = "pga.__version__"}

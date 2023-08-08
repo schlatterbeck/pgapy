@@ -34,11 +34,13 @@ all: $(VERSION) $(USERGUIDE)
 $(VERSION): $(SRC)
 
 clean:
-	rm -f MANIFEST Version.h Version.py Version.pyc default.css README.html
-	rm -rf ${CLEAN} PGAPy.egg-info pga.cpython* __pycache__
+	rm -f MANIFEST $(VERSION) Version.pyc default.css README.html
+	rm -rf ${CLEAN} PGAPy.egg-info pga/pga.cpython* pga/__pycache__
 	make -C pgapack clobber
 
 $(USERGUIDE):
 	make -C $(PGAPACK_DOC)
+
+dist: $(USERGUIDE) $(VERSION)
 
 include $(RELEASETOOLS)/Makefile-pyrelease
