@@ -25,6 +25,7 @@ class Vibr (pga.PGA):
             ( maximize             = False
             , num_eval             = 7
             , num_constraint       = 5
+            , sum_constraints      = False
             , pop_size             = 40
             , num_replace          = 40
             , select_type          = pga.PGA_SELECT_LINEAR

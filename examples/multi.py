@@ -46,6 +46,7 @@ class Multi_Objective (pga.PGA):
             , max_GA_iter          = 250
             , num_eval             = 4
             , num_constraint       = 2
+            , sum_constraints      = False
             , no_duplicates        = True
             , mutation_bounce_back = True
             , print_options        = [pga.PGA_REPORT_STRING]

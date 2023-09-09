@@ -12,7 +12,7 @@ EXAMPLES=$(patsubst %.py,examples/%.py,cards.py cards_mutate.py    \
     constraint.py dtlz2.py fourbar.py gears.py hello_world_char.py \
     hello_world_int.py himmelblau.py magic_prio.py magic_square.py \
     minfloat.py multi.py namefull.py one_max.py sort_numbers.py    \
-    twobar.py vibr.py xor.py)
+    twobar.py vibr.py neural.py)
 SRC=Makefile MANIFEST.in setup.py $(README) README.html \
     pgamodule.c $(EXAMPLES)
 PGAPACK_DOC=pgapack/docs

@@ -677,6 +677,40 @@ Extension definition that fits your installation. If your installation
 is interesting to more people, feel free to submit a patch that adds
 your Extension-configuration to the standard ``setup.py``.
 
+Note on newer python versions
++++++++++++++++++++++++++++++
+
+Newer python versions have deprecated installing into the system python
+version, even in ``/usr/local``. You can still build the pgapy package
+locally and install using the installer. On Debian Linux you need the
+following packages installed::
+
+    apt-get install python3-pip python3-dev python3-toml \
+        python3-build python3-installer python3-venv python3-sphinx
+        netpbm
+
+Then you can build locally and install::
+
+    python3 -m build
+    python3 -m installer dist/*.whl
+
+Better yet, clone my releasetool package from github::
+
+    git clone https://github.com/schlatterbeck/releasetool.git
+
+into a directory *parallel* to pgapy and build using::
+
+    make dist
+
+This also will generate a Version.py file with the correct version
+number from git. If you want to install a parallel version you should
+set the environment variables::
+
+ export PGA_PARALLEL_VARIANT=openmpi
+ export PGA_MODULE=module_from_parallel_install
+
+*before* building.
+
 Running with MPI
 ----------------
 

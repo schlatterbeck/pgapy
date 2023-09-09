@@ -147,7 +147,7 @@ setup \
                              , 'examples/sort_numbers.py'
                              , 'examples/twobar.py'
                              , 'examples/vibr.py'
-                             , 'examples/xor.py'
+                             , 'examples/neural.py'
                              ]
                            )
                          , ( 'share/pgapy/examples/gp'

@@ -50,7 +50,7 @@ Report
     Print Average Evaluation       : Off
     Print Offline Statistics       : Off
     Print Online Statistics        : Off
-    Print Hamming Distance         : Off
+    Print Genetic Distance         : Off
 System
     Maximum Integer                : 2147483647
     Minimum Integer                : -2147483648

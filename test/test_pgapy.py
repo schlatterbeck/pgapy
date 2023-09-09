@@ -52,12 +52,12 @@ from twobar           import main as twobar_main
 from vibr             import main as vibr_main
 from namefull         import main as namefull_main
 
-skip_tsplib = skip_fann = lambda fun, *args, **kw: fun
+skip_tsplib = skip_neural = lambda fun, *args, **kw: fun
 
 try:
-    from xor      import main as xor_main
+    from neural   import main as xor_main
 except ImportError as err:
-    skip_fann = pytest.mark.skip (reason = str (err))
+    skip_neural = pytest.mark.skip (reason = str (err))
 
 sys.path.insert (1, "examples/sequence")
 try:
@@ -192,21 +192,21 @@ class Test_PGA_Fast (PGA_Test_Instrumentation):
         self.compare ()
     # end def test_vibr
 
-    @skip_fann
+    @skip_neural
     def test_xor (self):
-        xor_main (self.out_options)
+        xor_main (self.out_options + '-R 1'.split ())
         self.compare ()
     # end def test_xor
 
-    @skip_fann
+    @skip_neural
     def test_xor_binary (self):
-        xor_main (self.out_options + '-b -m 100'.split ())
+        xor_main (self.out_options + '-R 2 -b -m 100'.split ())
         self.compare ()
     # end def test_xor_binary
 
-    @skip_fann
+    @skip_neural
     def test_xor_gray (self):
-        xor_main (self.out_options + '-g -m 100'.split ())
+        xor_main (self.out_options + '-R 23 -g -m 100'.split ())
         self.compare ()
     # end def test_xor_gray
 
@@ -314,7 +314,7 @@ class Test_PGA_Fast (PGA_Test_Instrumentation):
         assert t.restart_frequency == 50
         assert t.rtr_window_size == 5
         assert t.string_length == 10
-        assert t.sum_constraints == 0
+        assert t.sum_constraints == 1
         assert t.tournament_size == 2
         assert t.tournament_with_replacement == 1
         assert t.truncation_proportion == 0.5
@@ -662,7 +662,7 @@ class Test_PGA_Slow (PGA_Test_Instrumentation):
     # end def test_gp_parity3
 
     def test_gp_integral_multi (self):
-        p = '-r 1 -f np.sin(k*x) --multi'.split ()
+        p = '-r 20 -f np.sin(k*x) --multi -g 17'.split ()
         gp_integral_main (self.out_options + p)
         self.compare ()
     # end def test_gp_integral_multi

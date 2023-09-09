@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# Copyright (C) 2022 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2022-23 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # ****************************************************************************
@@ -39,6 +39,8 @@ def called_from_pip_or_build ():
     if 'pip' in comp and '_vendor' in comp and 'pyproject_hooks' in comp:
         return True
     if 'pep517' in comp:
+        return True
+    if 'setup.py' in comp:
         return True
     return False
 
