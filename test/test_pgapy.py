@@ -693,4 +693,11 @@ class Test_PGA_Slow (PGA_Test_Instrumentation):
         self.compare ()
     # end def test_tsp_linhp318_lk
 
+    @skip_neural
+    def test_adder (self):
+        args = '-R 1 -P Adder_Full --diff -p 200 -B %s' % neural_backend
+        xor_main (self.out_options + args.split ())
+        self.compare ()
+    # end def test_adder
+
 # end class Test_PGA_Slow

@@ -229,6 +229,7 @@ class Neural_Net_Generic (pga.PGA):
             pv  = ' '.join ('%11.6f' % x for x in v)
             pvs = ' '.join ('%4.2f' % x for x in vs)
             print ('%s: %s [%s] [%s]' % (inv, pv, pvs, rv), file = file)
+        file.flush ()
         super ().print_string (file, p, pop)
     # end def print_string
 
