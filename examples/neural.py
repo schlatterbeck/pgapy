@@ -40,7 +40,6 @@ class Scikitlearn_Mixin:
         if len (y) > 1:
             y = [y]
         nn.fit (x, y)
-        self.f = open ('scikit.log', 'w')
         super ().__init__ (*args, **kw)
     # end def __init__
 
@@ -54,11 +53,7 @@ class Scikitlearn_Mixin:
     def predict (self, *v):
         p = self.nn.predict (*v)
         if self.n_output != 1:
-            print (p [0], file = self.f)
-            self.f.flush ()
             return p [0]
-        print (p, file = self.f)
-        self.f.flush ()
         return p
     # end def predict
 
@@ -74,7 +69,6 @@ class Keras_Mixin:
         output = tf.keras.layers.Dense \
             (self.n_output, activation='linear', dtype = dt) (hidden)
         self.nn = tf.keras.Model (input, output)
-        self.f = open ('keras.log', 'w')
         super ().__init__ (*args, **kw)
     # end def __init__
 
@@ -86,10 +80,8 @@ class Keras_Mixin:
     # end def set_coefficients
 
     def predict (self, *v):
-        p = self.nn.predict (*v, verbose = 0)
-        print (p [0], file = self.f)
-        self.f.flush ()
-        return p [0]
+        p = self.nn (*v)
+        return p.numpy () [0]
     # end def predict
     
 # end class Keras_Mixin
@@ -198,7 +190,7 @@ class Neural_Net_Generic (pga.PGA):
         for inp in self.input_iter ():
             v   = self.function (inp)
             inp = [x * 2 - 1 for x in inp]
-            r1  = self.predict ([inp])
+            r1  = self.predict (np.array ([inp]))
             r2  = 1 / (1 + np.exp (-r1))
             for ev, av, avn in zip (v, r1, r2):
                 if -0.917 <= av <= 0.917:
@@ -234,7 +226,7 @@ class Neural_Net_Generic (pga.PGA):
             inv = ' '.join (str (i) for i in reversed (inp))
             rv  = ' '.join (str (x) for x in self.function (inp))
             inp = [x * 2 - 1 for x in inp]
-            v   = self.predict ([inp])
+            v   = self.predict (np.array ([inp]))
             vs  = 1 / (1 + np.exp (-v))
             pv  = ' '.join ('%11.6f' % x for x in v)
             pvs = ' '.join ('%4.2f' % x for x in vs)
