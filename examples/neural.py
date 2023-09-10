@@ -52,9 +52,9 @@ class Scikitlearn_Mixin:
 
     def predict (self, *v):
         p = self.nn.predict (*v)
-        if self.n_output != 1:
-            return p [0]
-        return p
+        if self.n_output == 1:
+            return np.array ([p]).T
+        return np.array (p)
     # end def predict
 
 # end class Scikitlearn_Mixin
@@ -81,7 +81,7 @@ class Keras_Mixin:
 
     def predict (self, *v):
         p = self.nn (*v)
-        return p.numpy () [0]
+        return p.numpy ()
     # end def predict
     
 # end class Keras_Mixin
@@ -121,6 +121,10 @@ class Neural_Net_Generic (pga.PGA):
             datatype = bool
             length   = length * self.float_bits
         super ().__init__ (datatype, length, **d)
+        self.expected  = np.array \
+            ([self.function (i) for i in self.input_iter ()])
+        self.scaled_in = np.array \
+            ([i for i in self.input_iter ()]) * 2 - 1
     # end def __init__
 
     def de_params (self):
@@ -186,25 +190,19 @@ class Neural_Net_Generic (pga.PGA):
 
     def evaluate (self, p, pop):
         self.build_pheno (p, pop)
-        s = 0
-        for inp in self.input_iter ():
-            v   = self.function (inp)
-            inp = [x * 2 - 1 for x in inp]
-            r1  = self.predict (np.array ([inp]))
-            r2  = 1 / (1 + np.exp (-r1))
-            for ev, av, avn in zip (v, r1, r2):
-                if -0.917 <= av <= 0.917:
-                    s += abs (ev - avn) ** 0.5
-                elif ev:
-                    if av < -0.917:
-                        s += av ** 2
-                    else:
-                        s += abs (ev - avn) ** 0.5
-                else:
-                    if av > 0.917:
-                        s += av ** 2
-                    else:
-                        s += abs (ev - avn) ** 0.5
+        ev   = self.expected
+        av   = self.predict (self.scaled_in)
+        avn  = 1 / (1 + np.exp (-av))
+        minr = np.logical_and (av >= -0.917, av <= 0.917)
+        ev1l = np.where (np.logical_and (ev != 0, av <  -0.917))
+        ev0l = np.where (np.logical_and (ev == 0, av >   0.917))
+        ev1s = np.logical_and (ev != 0, av >= -0.917)
+        ev0s = np.logical_and (ev == 0, av <=  0.917)
+        i05  = np.where (minr | ev0s | ev1s)
+        s    = 0
+        s += np.sum (abs (ev [i05] - avn [i05]) ** 0.5)
+        s += np.sum (av [ev1l] ** 2)
+        s += np.sum (av [ev0l] ** 2)
         return s
     # end def evaluate
 
@@ -226,7 +224,7 @@ class Neural_Net_Generic (pga.PGA):
             inv = ' '.join (str (i) for i in reversed (inp))
             rv  = ' '.join (str (x) for x in self.function (inp))
             inp = [x * 2 - 1 for x in inp]
-            v   = self.predict (np.array ([inp]))
+            v   = self.predict (np.array ([inp])) [0]
             vs  = 1 / (1 + np.exp (-v))
             pv  = ' '.join ('%11.6f' % x for x in v)
             pvs = ' '.join ('%4.2f' % x for x in vs)
