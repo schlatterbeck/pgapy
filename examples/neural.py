@@ -5,17 +5,96 @@
 # We train a simple neural network to recognize the XOR function.
 # Training, of course, uses a genetic algorithm, not backpropagation.
 
-from sklearn.neural_network import MLPRegressor
-from sklearn.exceptions import ConvergenceWarning
+try:
+    from sklearn.neural_network import MLPRegressor
+    from sklearn.exceptions import ConvergenceWarning
+except ImportError:
+    MLPRegressor = None
 from argparse import ArgumentParser
 import pga
 import sys
 import warnings
 import numpy as np
+try:
+    import tensorflow as tf
+except ImportError:
+    tf = None
 
-warnings.filterwarnings('ignore', category = ConvergenceWarning)
+if MLPRegressor is not None:
+    warnings.filterwarnings('ignore', category = ConvergenceWarning)
 
-class Neural_Net (pga.PGA):
+class Scikitlearn_Mixin:
+    """ Use neural network from scikit.learn
+    """
+
+    def __init__ (self, *args, **kw):
+        self.nn = nn = MLPRegressor \
+            ( hidden_layer_sizes = (self.n_hidden,)
+            , activation         = 'tanh'
+            , max_iter           = 1
+            )
+        # Seems we can set the size only with fit:
+        x = np.array ([[0] * self.n_input])
+        y = np.array ([0] * self.n_output)
+        # Special case for only one dimension in output
+        if len (y) > 1:
+            y = [y]
+        nn.fit (x, y)
+        self.f = open ('scikit.log', 'w')
+        super ().__init__ (*args, **kw)
+    # end def __init__
+
+    def set_coefficients (self, cf1, cf2, b1, b2):
+        np.copyto (self.nn.intercepts_ [0], b1)
+        np.copyto (self.nn.intercepts_ [1], b2)
+        np.copyto (self.nn.coefs_ [0],      cf1)
+        np.copyto (self.nn.coefs_ [1],      cf2)
+    # end def set_coefficients
+
+    def predict (self, *v):
+        p = self.nn.predict (*v)
+        if self.n_output != 1:
+            print (p [0], file = self.f)
+            self.f.flush ()
+            return p [0]
+        print (p, file = self.f)
+        self.f.flush ()
+        return p
+    # end def predict
+
+# end class Scikitlearn_Mixin
+
+class Keras_Mixin:
+
+    def __init__ (self, *args, **kw):
+        dt = tf.float64
+        input  = tf.keras.layers.Input (shape = (self.n_input,), dtype = dt)
+        hidden = tf.keras.layers.Dense \
+            (self.n_hidden, activation='tanh',   dtype = dt) (input)
+        output = tf.keras.layers.Dense \
+            (self.n_output, activation='linear', dtype = dt) (hidden)
+        self.nn = tf.keras.Model (input, output)
+        self.f = open ('keras.log', 'w')
+        super ().__init__ (*args, **kw)
+    # end def __init__
+
+    def set_coefficients (self, cf1, cf2, b1, b2):
+        b = [b1,  b2]
+        c = [cf1, cf2]
+        for n, layer in enumerate (self.nn.layers [1:]):
+            layer.set_weights ([c [n], b [n]])
+    # end def set_coefficients
+
+    def predict (self, *v):
+        p = self.nn.predict (*v, verbose = 0)
+        print (p [0], file = self.f)
+        self.f.flush ()
+        return p [0]
+    # end def predict
+    
+# end class Keras_Mixin
+
+class Neural_Net_Generic (pga.PGA):
     """ This generalizes a neural network with one hidden layer
     """
 
@@ -90,17 +169,6 @@ class Neural_Net (pga.PGA):
     # end def get_float
 
     def build_pheno (self, p, pop):
-        nn  = MLPRegressor \
-            ( hidden_layer_sizes = (self.n_hidden,)
-            , activation         = 'tanh'
-            , max_iter           = 1
-            )
-        # Seems we can set the size only this way:
-        x = np.array ([[0] * self.n_input])
-        y = np.array ([0] * self.n_output)
-        if len (y) > 1:
-            y = [y]
-        nn.fit (x, y)
         offset = 0
         cf1 = np.array \
             ([self.get_float (p, pop, i + offset)
@@ -121,23 +189,16 @@ class Neural_Net (pga.PGA):
             ([self.get_float (p, pop, i + offset)
               for i in range (self.n_output)
             ])
-        np.copyto (nn.intercepts_ [0], b1)
-        np.copyto (nn.intercepts_ [1], b2)
-        np.copyto (nn.coefs_ [0],      cf1)
-        np.copyto (nn.coefs_ [1],      cf2)
-        return nn
+        self.set_coefficients (cf1, cf2, b1, b2)
     # end def build_pheno
 
     def evaluate (self, p, pop):
-        nn = self.build_pheno (p, pop)
+        self.build_pheno (p, pop)
         s = 0
         for inp in self.input_iter ():
             v   = self.function (inp)
             inp = [x * 2 - 1 for x in inp]
-            if self.n_output == 1:
-                r1 = nn.predict ([inp])
-            else:
-                r1 = nn.predict ([inp]) [0]
+            r1  = self.predict ([inp])
             r2  = 1 / (1 + np.exp (-r1))
             for ev, av, avn in zip (v, r1, r2):
                 if -0.917 <= av <= 0.917:
@@ -168,22 +229,17 @@ class Neural_Net (pga.PGA):
     def print_string (self, file, p, pop):
         if self.do_stop:
             print ("Evals: %s" % self.eval_count, file = file)
-        nn = self.build_pheno (p, pop)
+        self.build_pheno (p, pop)
         for inp in self.input_iter ():
             inv = ' '.join (str (i) for i in reversed (inp))
             rv  = ' '.join (str (x) for x in self.function (inp))
             inp = [x * 2 - 1 for x in inp]
-            if self.n_output == 1:
-                v   = nn.predict ([inp])
-            else:
-                v   = nn.predict ([inp]) [0]
+            v   = self.predict ([inp])
             vs  = 1 / (1 + np.exp (-v))
             pv  = ' '.join ('%11.6f' % x for x in v)
             pvs = ' '.join ('%4.2f' % x for x in vs)
             print ('%s: %s [%s] [%s]' % (inv, pv, pvs, rv), file = file)
         super ().print_string (file, p, pop)
-        #ann.print_connections ()
-        #print (ann.get_network_type (), file = file)
     # end def print_string
 
     def stop_cond (self):
@@ -196,9 +252,9 @@ class Neural_Net (pga.PGA):
         return self.do_stop
     # end def stop_cond
 
-# end class Neural_Net
+# end class Neural_Net_Generic
 
-class Xor (Neural_Net):
+class Xor (Neural_Net_Generic):
     n_input  = 2
     n_hidden = 2
     n_output = 1
@@ -210,7 +266,7 @@ class Xor (Neural_Net):
 
 # end class Xor
 
-class Adder_Full (Neural_Net):
+class Adder_Full (Neural_Net_Generic):
     """ A 2-bit adder, fully connected layers, 4 nodes in hidden layer
     """
     n_input  = 4
@@ -229,14 +285,25 @@ class Adder_Full (Neural_Net):
 # end class Adder_Full
 
 def main (argv):
-    warnings.filterwarnings('ignore', category = ConvergenceWarning)
+    if MLPRegressor is not None:
+        warnings.filterwarnings('ignore', category = ConvergenceWarning)
     de_variants = ('best', 'rand')
     problems    = ('Xor', 'Adder_Full')
+    backends    = dict (scikit_learn = Scikitlearn_Mixin, keras = Keras_Mixin)
+    if tf is None:
+        del backends ['keras']
+    if MLPRegressor is None:
+        del backends ['scikit_learn']
     cmd = ArgumentParser ()
     cmd.add_argument \
         ( "-b", "--binary"
         , help    = "Use binary code for gene (implies bit-gene)"
         , action  = 'store_true'
+        )
+    cmd.add_argument \
+        ( "-B", "--backend"
+        , help    = "Neuronal network backend to use, default=%(default)s"
+        , default = 'scikit_learn'
         )
     cmd.add_argument \
         ( "-d", "--differential-evolution"
@@ -328,7 +395,14 @@ def main (argv):
         sys.exit ("Binary/gray code cannot be combined with DE")
     if args.problem not in problems:
         sys.exit ("Invalid problem use one of %s" % ', '.join (problems))
-    pg = globals () [args.problem] (args)
+    if args.backend not in backends:
+        sys.exit \
+            ( "Invalid backend: %s use one of [%s]"
+            % (args.backend, ', '.join (backends))
+            )
+    class Problem (backends [args.backend], globals () [args.problem]):
+        pass
+    pg = Problem (args)
     pg.run ()
 # end def main
 

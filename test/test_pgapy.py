@@ -52,12 +52,23 @@ from twobar           import main as twobar_main
 from vibr             import main as vibr_main
 from namefull         import main as namefull_main
 
-skip_tsplib = skip_neural = lambda fun, *args, **kw: fun
+skip_tsplib = skip_neural = skip_tf = lambda fun, *args, **kw: fun
 
 try:
     from neural   import main as xor_main
+    from neural   import MLPRegressor, tf
 except ImportError as err:
-    skip_neural = pytest.mark.skip (reason = str (err))
+    skip_neural = skip_tf = pytest.mark.skip (reason = str (err))
+if MLPRegressor is None and tf is None:
+    msg = 'No neural network backend available'
+    skip_neural = skip_tf = pytest.mark.skip (reason = msg)
+if tf is None:
+    msg = 'No tensorflow/keras available'
+    skip_tf = pytest.mark.skip (reason = msg)
+if MLPRegressor is not None:
+    neural_backend = 'scikit_learn'
+else:
+    neural_backend = 'keras'
 
 sys.path.insert (1, "examples/sequence")
 try:
@@ -194,19 +205,22 @@ class Test_PGA_Fast (PGA_Test_Instrumentation):
 
     @skip_neural
     def test_xor (self):
-        xor_main (self.out_options + '-R 1'.split ())
+        args = '-R 1 -B %s' % neural_backend
+        xor_main (self.out_options + args.split ())
         self.compare ()
     # end def test_xor
 
     @skip_neural
     def test_xor_binary (self):
-        xor_main (self.out_options + '-R 2 -b -m 100'.split ())
+        args = '-R 2 -b -m 100 -B %s' % neural_backend
+        xor_main (self.out_options + args.split ())
         self.compare ()
     # end def test_xor_binary
 
     @skip_neural
     def test_xor_gray (self):
-        xor_main (self.out_options + '-R 23 -g -m 100'.split ())
+        args = '-R 23 -g -m 100 -B %s' % neural_backend
+        xor_main (self.out_options + args.split ())
         self.compare ()
     # end def test_xor_gray
 
