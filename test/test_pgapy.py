@@ -747,6 +747,7 @@ class Test_PGA_Slow (PGA_Test_Instrumentation):
 
     @skip_neural
     def test_adder (self):
+        # -R 3  ~1430 Gen, 286200 Evals
         # -R 9  ~1200 Gen, 241800 Evals
         # -R 17 ~1440 Gen, 288200 Evals, Error 2.1e-8
         # -R 22  ~510 Gen, 103200 Evals
@@ -754,9 +755,16 @@ class Test_PGA_Slow (PGA_Test_Instrumentation):
         # -R 25 ~1220 Gen, 244600 Evals
         # -R 41  ~480 Gen,  97800 Evals
         # -R 42 ~1090 Gen, 218200 Evals
-        args = '-R 3 -P Adder_Full --diff -p 200 -m 1440 -B %s' % neural_backend
-        xor_main (self.out_options + args.split ())
+        args = '-R 41 -P Adder_Full --diff -p 200 -m 1440 -B'
+        xor_main (self.out_options + args.split () + [neural_backend])
         self.compare ()
     # end def test_adder
+
+    @skip_tf
+    def test_adder_sparse (self):
+        args = '-R 42 -P Adder_Sparse --diff -p 200 -m 100 -B'
+        xor_main (self.out_options + args.split () + [neural_backend])
+        self.compare ()
+    # end def test_adder_sparse
 
 # end class Test_PGA_Slow

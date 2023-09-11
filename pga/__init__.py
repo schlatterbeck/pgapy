@@ -36,7 +36,7 @@ import inspect
 def called_from_pip_or_build ():
     sep  = os.path.sep
     comp = os.path.normpath (inspect.stack () [-1].filename).split (sep)
-    if 'pip' in comp and '_vendor' in comp and 'pyproject_hooks' in comp:
+    if 'pyproject_hooks' in comp:
         return True
     if 'pep517' in comp:
         return True

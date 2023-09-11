@@ -13,8 +13,12 @@ except ImportError:
 from argparse import ArgumentParser
 import pga
 import sys
+import os
 import warnings
 import numpy as np
+# Silence tensorflow warnings
+os.environ ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
 try:
     import tensorflow as tf
     ly = tf.keras.layers
@@ -354,7 +358,7 @@ class Adder_Sparse (Adder_Generic, Keras_Predict, Neural_Net_Generic):
         lh2     = Select_Layer ([[1, 3, 4]], dtype = dt) (c1)
         act2    = ly.Activation (activation, dtype = dt) (lh2)
         c2      = ly.concatenate ([input, act1, act2], axis = 1, dtype = dt)
-        output  = Select_Layer ([[0, 2, 4], [1, 3, 4, 5], [5]]) (c2)
+        output  = Select_Layer ([[0, 2, 4], [1, 3, 4, 5], [5]], dtype = dt) (c2)
         self.nn = tf.keras.Model (input, output)
         super ().__init__ (*args, **kw)
     # end def __init__
@@ -437,7 +441,7 @@ def cmd_opt (argv):
     cmd.add_argument \
         ( "-B", "--backend"
         , help    = "Neuronal network backend to use, default=%(default)s"
-        , default = 'scikit_learn'
+        , default = list (sorted (backends)) [-1]
         )
     cmd.add_argument \
         ( "-d", "--differential-evolution"
@@ -528,7 +532,7 @@ def cmd_opt (argv):
     if (args.binary or args.gray_code) and args.differential_evolution:
         sys.exit ("Binary/gray code cannot be combined with DE")
     if args.problem not in problems:
-        sys.exit ("Invalid problem use one of %s" % ', '.join (problems))
+        sys.exit ("Invalid problem, use one of %s" % ', '.join (problems))
     if args.backend not in backends:
         sys.exit \
             ( "Invalid backend: %s use one of [%s]"
