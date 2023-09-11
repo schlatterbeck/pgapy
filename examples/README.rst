@@ -18,10 +18,11 @@ numbers can be at most decimal 6 represented by 3 bits).
 It is well known that optimizing the xor problem with genetic algorithms
 is easy, see, e.g. [1]_, [2]_. The adder problem is difficult (when
 using an architecture that can easily be trained with backpropagation),
-see also [1]_ and [2]_. In fact so far (with a population size of 200
-and differential evolution) I've found only a single solution with::
+see also [1]_ and [2]_. In fact (with a population size of 200 and
+differential evolution) there are few solutions below 1000 generations.
+An example:
 
- neural.py -R 1 --diff --problem=Adder_Full --pop-size=200
+ neural.py -R 41 --diff --problem=Adder_Full --pop-size=200
 
 .. [1] Darrell Whitley. The GENITOR algorithm and selection pressure:
        Why rank-based allocation of reproductive trials is best. In
@@ -32,6 +33,13 @@ and differential evolution) I've found only a single solution with::
 .. [3] J. David Schaffer, editor. Proceedings of the Third International
        Conference on Genetic Algorithms (ICGA). Morgan Kaufmann,
        Fairfax, Virginia, June 1989.
+.. [4] D. E. Rumelhart, G. E. Hinton, and R. J. Williams. Learning
+       internal representations by error propagation. In Parallel
+       Distributed Processing: Explorations in the Microstructure of
+       Cognition [5], chapter 8, pages 318–362.
+.. [5] David E. Rumelhart and James L. McClelland. Parallel Distributed
+       Processing: Explorations in the Microstructure of Cognition,
+       volume 1: Foundations. MIT Press, Cambridge, Massachusetts, 1986.
 
 .. _fann: http://leenissen.dk/fann/wp/
 .. _`scikit.learn`: https://scikit-learn.org/

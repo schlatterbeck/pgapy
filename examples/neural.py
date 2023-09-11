@@ -17,8 +17,13 @@ import warnings
 import numpy as np
 try:
     import tensorflow as tf
+    ly = tf.keras.layers
+    Layer = ly.Layer
 except ImportError:
     tf = None
+    ly = None
+    class Layer:
+        pass
 
 if MLPRegressor is not None:
     warnings.filterwarnings('ignore', category = ConvergenceWarning)
@@ -59,14 +64,23 @@ class Scikitlearn_Mixin:
 
 # end class Scikitlearn_Mixin
 
-class Keras_Mixin:
+class Keras_Predict:
+
+    def predict (self, *v):
+        p = self.nn (*v)
+        return p.numpy ()
+    # end def predict
+
+# end class Keras_Predict
+
+class Keras_Mixin (Keras_Predict):
 
     def __init__ (self, *args, **kw):
         dt = tf.float64
-        input  = tf.keras.layers.Input (shape = (self.n_input,), dtype = dt)
-        hidden = tf.keras.layers.Dense \
+        input  = ly.Input (shape = (self.n_input,), dtype = dt)
+        hidden = ly.Dense \
             (self.n_hidden, activation='tanh',   dtype = dt) (input)
-        output = tf.keras.layers.Dense \
+        output = ly.Dense \
             (self.n_output, activation='linear', dtype = dt) (hidden)
         self.nn = tf.keras.Model (input, output)
         super ().__init__ (*args, **kw)
@@ -79,12 +93,48 @@ class Keras_Mixin:
             layer.set_weights ([c [n], b [n]])
     # end def set_coefficients
 
-    def predict (self, *v):
-        p = self.nn (*v)
-        return p.numpy ()
-    # end def predict
-    
 # end class Keras_Mixin
+
+class Select_Layer (Layer):
+
+    def __init__ (self, indeces, dtype = None):
+        super ().__init__ (dtype = dtype)
+        self.units   = len (indeces)
+        self.indeces = indeces
+        self.offsets = []
+        s = 0
+        for idx in self.indeces:
+            self.offsets.append ([s, s + len (idx)])
+            s += len (idx)
+    # end def __init__
+
+    def build (self, input_shape):
+        #w_init = tf.random_normal_initializer ()
+        z_init = tf.zeros_initializer ()
+        #print ('input_shape:', input_shape)
+        self.w = tf.Variable \
+            ( initial_value = z_init
+                  (shape = (input_shape [-1], self.units), dtype = self.dtype)
+            , trainable = True
+            )
+        self.b = tf.Variable \
+            ( initial_value = z_init (shape = (self.units,), dtype = self.dtype)
+            , trainable = True
+            )
+    # end def build
+
+    def call (self, inputs):
+        r = []
+        for n, idx in enumerate (self.indeces):
+            r.append \
+                ( tf.matmul
+                      ( tf.gather (inputs, idx, axis = 1)
+                      , tf.gather (self.w, idx, axis = 0) [:, n:n+1]
+                      )
+                + self.b [n]
+                )
+        return tf.concat (r, 1)
+# end class Select_Layer
 
 class Neural_Net_Generic (pga.PGA):
     """ This generalizes a neural network with one hidden layer
@@ -106,10 +156,13 @@ class Neural_Net_Generic (pga.PGA):
             )
         if self.args.gray_code or self.args.binary:
             self.bit_gene = True
-        length = \
-            ( (self.n_input  + 1) * self.n_hidden
-            + (self.n_hidden + 1) * self.n_output
-            )
+        if getattr (self, 'length', None):
+            length = self.length
+        else:
+            length = \
+                ( (self.n_input  + 1) * self.n_hidden
+                + (self.n_hidden + 1) * self.n_output
+                )
         if not self.bit_gene:
             mw = self.args.max_weight
             d.update (init = [(-mw, mw)] * length)
@@ -220,14 +273,14 @@ class Neural_Net_Generic (pga.PGA):
         if self.do_stop:
             print ("Evals: %s" % self.eval_count, file = file)
         self.build_pheno (p, pop)
-        for inp in self.input_iter ():
+        for n, inp in enumerate (self.input_iter ()):
             inv = ' '.join (str (i) for i in reversed (inp))
-            rv  = ' '.join (str (x) for x in self.function (inp))
-            inp = [x * 2 - 1 for x in inp]
+            rv  = ' '.join (str (x) for x in reversed (self.expected [n]))
+            inp = self.scaled_in [n]
             v   = self.predict (np.array ([inp])) [0]
             vs  = 1 / (1 + np.exp (-v))
-            pv  = ' '.join ('%11.6f' % x for x in v)
-            pvs = ' '.join ('%4.2f' % x for x in vs)
+            pv  = ' '.join ('%11.6f' % x for x in reversed (v))
+            pvs = ' '.join ('%4.2f' % x for x in reversed (vs))
             print ('%s: %s [%s] [%s]' % (inv, pv, pvs, rv), file = file)
         file.flush ()
         super ().print_string (file, p, pop)
@@ -257,12 +310,7 @@ class Xor (Neural_Net_Generic):
 
 # end class Xor
 
-class Adder_Full (Neural_Net_Generic):
-    """ A 2-bit adder, fully connected layers, 4 nodes in hidden layer
-    """
-    n_input  = 4
-    n_hidden = 4
-    n_output = 3
+class Adder_Generic:
 
     def function (self, inp):
         assert len (inp) == 4
@@ -270,19 +318,114 @@ class Adder_Full (Neural_Net_Generic):
         i2 = (inp [3] << 1) + inp [2]
         v  = i1 + i2
         assert v <= 6
-        return [int (bool (v & 4)), int (bool (v & 2)), v & 1]
+        return [((v & (1 << i)) >> i) for i in range (3)]
     # end def function
+
+# end class Adder_Generic
+
+
+class Adder_Full (Adder_Generic, Neural_Net_Generic):
+    """ A 2-bit adder, fully connected layers, 4 nodes in hidden layer
+    """
+    n_input  = 4
+    n_hidden = 4
+    n_output = 3
 
 # end class Adder_Full
 
-def main (argv):
+class Adder_Sparse (Adder_Generic, Keras_Predict, Neural_Net_Generic):
+    """ Sparse neural network for adder
+        Originally from Rumelhart, Hinton, Williams 1986 p. 342
+        (see README.rst)
+    """
+    n_input  = 4
+    n_hidden = n_output = None
+    length   = 18
+
+    def __init__ (self, *args, **kw):
+        activation = kw.get ('activation', 'tanh')
+        if 'activation' in kw:
+            del kw ['activation']
+        dt      = tf.float64
+        input   = tf.keras.layers.Input (shape = (4,), dtype = dt)
+        lh1     = Select_Layer ([[0, 2]], dtype = dt) (input)
+        act1    = ly.Activation (activation, dtype = dt) (lh1)
+        c1      = ly.concatenate ([input, act1], axis = 1, dtype = dt)
+        lh2     = Select_Layer ([[1, 3, 4]], dtype = dt) (c1)
+        act2    = ly.Activation (activation, dtype = dt) (lh2)
+        c2      = ly.concatenate ([input, act1, act2], axis = 1, dtype = dt)
+        output  = Select_Layer ([[0, 2, 4], [1, 3, 4, 5], [5]]) (c2)
+        self.nn = tf.keras.Model (input, output)
+        super ().__init__ (*args, **kw)
+    # end def __init__
+
+    def build_pheno (self, p, pop):
+        offset = 0
+        c = np.array \
+            ( [ self.get_float (p, pop, offset)
+              , 0
+              , self.get_float (p, pop, offset + 1)
+              , 0
+              ]
+            ).reshape (4, 1)
+        offset += 2
+        b  = np.array ([self.get_float (p, pop, offset)])
+        offset += 1
+        self.nn.layers [1].set_weights ([c, b])
+
+        c = np.array \
+            ( [ 0
+              , self.get_float (p, pop, offset)
+              , 0
+              , self.get_float (p, pop, offset + 1)
+              , self.get_float (p, pop, offset + 2)
+              ]
+            ).reshape (5, 1)
+        offset += 3
+        b  = np.array ([self.get_float (p, pop, offset)])
+        offset += 1
+        self.nn.layers [4].set_weights ([c, b])
+
+        c = np.array \
+            ( [ self.get_float (p, pop, offset)
+              , 0
+              , self.get_float (p, pop, offset + 1)
+              , 0
+              , self.get_float (p, pop, offset + 2)
+              , 0
+              #
+              , 0
+              , self.get_float (p, pop, offset + 3)
+              , 0
+              , self.get_float (p, pop, offset + 4)
+              , self.get_float (p, pop, offset + 5)
+              , self.get_float (p, pop, offset + 6)
+              #
+              , 0
+              , 0
+              , 0
+              , 0
+              , 0
+              , self.get_float (p, pop, offset + 7)
+              ]
+            ).reshape (3, 6).T
+        offset += 8
+        b = np.array ([self.get_float (p, pop, i + offset) for i in range (3)])
+        offset += 3
+        self.nn.layers [7].set_weights ([c, b])
+    # end def build_pheno
+
+# end class Adder_Sparse
+
+def cmd_opt (argv):
     if MLPRegressor is not None:
         warnings.filterwarnings('ignore', category = ConvergenceWarning)
     de_variants = ('best', 'rand')
-    problems    = ('Xor', 'Adder_Full')
+    problems    = ['Xor', 'Adder_Full', 'Adder_Sparse']
     backends    = dict (scikit_learn = Scikitlearn_Mixin, keras = Keras_Mixin)
     if tf is None:
         del backends ['keras']
+        del problems [-1]
     if MLPRegressor is None:
         del backends ['scikit_learn']
     cmd = ArgumentParser ()
@@ -391,8 +534,16 @@ def main (argv):
             ( "Invalid backend: %s use one of [%s]"
             % (args.backend, ', '.join (backends))
             )
-    class Problem (backends [args.backend], globals () [args.problem]):
-        pass
+    if args.problem == 'Adder_Sparse':
+        Problem = Adder_Sparse
+    else:
+        class Problem (backends [args.backend], globals () [args.problem]):
+            pass
+    return args, Problem
+# end def cmd_opt
+
+def main (argv = sys.argv [1]):
+    args, Problem = cmd_opt (argv)
     pg = Problem (args)
     pg.run ()
 # end def main

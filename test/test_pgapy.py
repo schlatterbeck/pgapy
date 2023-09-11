@@ -29,6 +29,7 @@
 import pytest
 import pga
 import sys
+import numpy as np
 from pga.testsupport import PGA_Test_Instrumentation
 
 # Import from examples
@@ -56,6 +57,7 @@ skip_tsplib = skip_neural = skip_tf = lambda fun, *args, **kw: fun
 
 try:
     from neural   import main as xor_main
+    from neural   import cmd_opt, Adder_Sparse
     from neural   import MLPRegressor, tf
 except ImportError as err:
     skip_neural = skip_tf = pytest.mark.skip (reason = str (err))
@@ -666,6 +668,56 @@ class Test_PGA_Fast (PGA_Test_Instrumentation):
             t = T ()
     # end def test_print_option_hamming
 
+    # Simple activation function returning only 0/1
+    # (given that 0 never occurs)
+    @staticmethod
+    def act_pos (a):
+        try:
+            b = a.numpy ()
+        except AttributeError:
+            return a
+        return (np.sign (b) + 1) / 2
+    # end def act_pos
+
+    @skip_tf
+    def test_adder_sparse_default (self):
+        args, p = cmd_opt (['-B' 'keras'])
+        a   = Adder_Sparse (args, activation = self.act_pos)
+        a.scaled_in = (a.scaled_in + 1) / 2
+        pop = pga.PGA_OLDPOP
+        # First hidden neuron
+        # Weights
+        a.set_allele (0, pop, 0, 1)
+        a.set_allele (0, pop, 1, 1)
+        # Bias
+        a.set_allele (0, pop, 2, -1.5)
+        # Second hidden neuron
+        # Weights
+        a.set_allele (0, pop, 3, 1)
+        a.set_allele (0, pop, 4, 1)
+        a.set_allele (0, pop, 5, 1)
+        # Bias
+        a.set_allele (0, pop, 6, -1.5)
+        # Output layer
+        # Weights
+        a.set_allele (0, pop,  7, 1)
+        a.set_allele (0, pop,  8, 1)
+        a.set_allele (0, pop,  9, -2)
+        a.set_allele (0, pop, 10, 1)
+        a.set_allele (0, pop, 11, 1)
+        a.set_allele (0, pop, 12, 1)
+        a.set_allele (0, pop, 13, -2)
+        a.set_allele (0, pop, 14, 1)
+        # Bias
+        a.set_allele (0, pop, 15, -0.5)
+        a.set_allele (0, pop, 16, -0.5)
+        a.set_allele (0, pop, 17, -0.5)
+        a.build_pheno (0, pop)
+        with open (self.out_name, 'w') as f:
+            a.print_string (f, 0, pop)
+        self.compare ()
+    # end def test_adder_sparse_default
+
 # end class Test_PGA_Fast
 
 class Test_PGA_Slow (PGA_Test_Instrumentation):
@@ -695,7 +747,14 @@ class Test_PGA_Slow (PGA_Test_Instrumentation):
 
     @skip_neural
     def test_adder (self):
-        args = '-R 1 -P Adder_Full --diff -p 200 -B %s' % neural_backend
+        # -R 9  ~1200 Gen, 241800 Evals
+        # -R 17 ~1440 Gen, 288200 Evals, Error 2.1e-8
+        # -R 22  ~510 Gen, 103200 Evals
+        # -R 23  ~530 Gen, 108000 Evals
+        # -R 25 ~1220 Gen, 244600 Evals
+        # -R 41  ~480 Gen,  97800 Evals
+        # -R 42 ~1090 Gen, 218200 Evals
+        args = '-R 3 -P Adder_Full --diff -p 200 -m 1440 -B %s' % neural_backend
         xor_main (self.out_options + args.split ())
         self.compare ()
     # end def test_adder
