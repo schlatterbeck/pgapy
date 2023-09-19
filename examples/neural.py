@@ -275,7 +275,11 @@ class Neural_Net_Generic (pga.PGA):
 
     def print_string (self, file, p, pop):
         if self.do_stop:
-            print ("Evals: %s" % self.eval_count, file = file)
+            print \
+                ( "Evals: %s, Gen: %s"
+                % (self.eval_count, self.GA_iter)
+                , file = file
+                )
         self.build_pheno (p, pop)
         for n, inp in enumerate (self.input_iter ()):
             inv = ' '.join (str (i) for i in reversed (inp))
@@ -336,6 +340,30 @@ class Adder_Full (Adder_Generic, Neural_Net_Generic):
     n_output = 3
 
 # end class Adder_Full
+
+class Coder_424 (Neural_Net_Generic):
+    """ A 4-to-2 Encoder coupled with a 2-to-4 Decoder, so the network
+        needs to learn something like the binary representation.
+    """
+
+    n_hidden = 2
+    n_input  = 2 ** n_hidden
+    n_output = n_input
+
+    def function (self, inp):
+        return inp
+    # end def function
+
+    def input_iter (self):
+        """ Interate over all possible input values
+            We only have 1 bit set for each pattern.
+        """
+        for k in range (self.n_input):
+            v = 2 ** k
+            yield [((v & (1 << i)) >> i) for i in range (self.n_input)]
+    # end def input_iter
+
+# end class Coder_424
 
 class Adder_Sparse (Adder_Generic, Keras_Predict, Neural_Net_Generic):
     """ Sparse neural network for adder
@@ -425,7 +453,8 @@ def cmd_opt (argv):
     if MLPRegressor is not None:
         warnings.filterwarnings('ignore', category = ConvergenceWarning)
     de_variants = ('best', 'rand')
-    problems    = ['Xor', 'Adder_Full', 'Adder_Sparse']
+    # Adder_Sparse needs to be the last one
+    problems    = ['Xor', 'Adder_Full', 'Coder_424', 'Adder_Sparse']
     backends    = dict (scikit_learn = Scikitlearn_Mixin, keras = Keras_Mixin)
     if tf is None:
         del backends ['keras']
