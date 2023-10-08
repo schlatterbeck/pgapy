@@ -52,6 +52,7 @@ from sort_numbers     import main as sort_numbers_main
 from twobar           import main as twobar_main
 from vibr             import main as vibr_main
 from namefull         import main as namefull_main
+from rr_jh            import main as rrjh_main
 
 skip_tsplib = skip_neural = skip_tf = lambda fun, *args, **kw: fun
 
@@ -766,5 +767,12 @@ class Test_PGA_Slow (PGA_Test_Instrumentation):
         xor_main (self.out_options + args.split () + [neural_backend])
         self.compare ()
     # end def test_adder_sparse
+
+    def test_rrjh (self):
+        opt = '-c onept --pop-r=rtr --mix=traditional --crossover-p=1 --no-dup'
+        opt = (opt + ' -R 6').split ()
+        rrjh_main (self.out_options + opt)
+        self.compare ()
+    # end def test_rrjh
 
 # end class Test_PGA_Slow
