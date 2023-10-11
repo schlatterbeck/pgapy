@@ -28,6 +28,7 @@ class Royal_Road (pga.PGA):
             , no_duplicates               = args.no_duplicates
             , select_type                 = args.select_type
             , tournament_with_replacement = args.with_replacement
+            , nam_window_size             = args.nam_window_size
             )
         if self.args.output_file:
             d ['output_file'] = args.output_file
@@ -177,6 +178,13 @@ def get_args (argv = sys.argv [1:]):
         ( "-n", "--no-duplicates"
         , help    = "Avoid duplicates"
         , action  = 'store_true'
+        )
+    cmd.add_argument \
+        ( "-N", "--nam-window-size"
+        , help    = "Negative assortative mating window size, "
+                    "default=%(default)s"
+        , type    = int
+        , default = 1
         )
     cmd.add_argument \
         ( "-O", "--output-file"

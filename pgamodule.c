@@ -1380,6 +1380,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     int char_init_type = -1;
     PyObject *Py_MPI_Initialized = NULL;
     PyObject *output_file = NULL;
+    int nam_window_size = 1;
     static char *kwlist[] =
         { "type"
         , "length"
@@ -1455,6 +1456,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         , "multi_obj_precision"
         , "output_file"
         , "char_init_type"
+        , "nam_window_size"
         , NULL
         };
 
@@ -1462,7 +1464,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             ( args
             , kw
             , "Oi|OiiOOOiiiidOiiOOOiidOOOddiOiOOiddd"
-              "iiiddddddOOOididdidiidiiiOOidOOiidiiOi"
+              "iiiddddddOOOididdidiidiiiOOidOOiidiiOii"
             , kwlist
             , &type
             , &length
@@ -1538,6 +1540,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             , &multi_obj_precision
             , &output_file
             , &char_init_type
+            , &nam_window_size
             )
         )
     {
@@ -2224,6 +2227,9 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             , "invalid char_init_type"
             );
         PGASetCharacterInitType (ctx, char_init_type);
+    }
+    if (nam_window_size > 1) {
+        PGASetNAMWindowSize (ctx, nam_window_size);
     }
 
     PGASetUp (ctx);
@@ -3344,6 +3350,7 @@ GETTER_FUNCTION (PGAGetTournamentSize,           tournament_size,        d)
 GETTER_FUNCTION (PGAGetTournamentWithReplacement,tournament_with_replacement,i)
 GETTER_FUNCTION (PGAGetTruncationProportion,     truncation_proportion,  d)
 GETTER_FUNCTION (PGAGetUniformCrossoverProb,     uniform_crossover_prob, d)
+GETTER_FUNCTION (PGAGetNAMWindowSize,            nam_window_size,        i)
 
 /* These do *NOT* end in semicolon */
 /*               pgapack name                pgapy name           type  max */
@@ -3456,6 +3463,7 @@ static PyGetSetDef PGA_getset [] =
 , GETTER_ENTRY (mutation_prob)
 , GETTER_ENTRY (mutation_type)
 , GETTER_ENTRY (mutation_value)
+, GETTER_ENTRY (nam_window_size)
 , GETTER_ENTRY (num_constraint)
 , GETTER_ENTRY (num_eval)
 , GETTER_ENTRY (num_replace)

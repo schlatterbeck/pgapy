@@ -9,6 +9,11 @@ PGAPy: Python Wrapper for PGAPack Parallel Genetic Algorithm Library
 News
 ----
 
+News Oct 2023:
+
+- Add Differential Evolution for integer
+- Add Negative Assortative Mating option
+
 News 04-2023:
 
 - The last build on PyPi was broken for serial installs, it was missing
@@ -324,6 +329,7 @@ PGAPack name                         Constructor parameter             Type   Pr
 ``PGASetMutationProb``               ``mutation_prob``                 float  yes
 ``PGASetMutationRealValue``          ``mutation_value``                float  yes
 ``PGASetMutationType``               ``mutation_type``                 sym    no
+``PGASetNAMWindowSize``              ``nam_window_size``               int    yes
 ``PGASetNoDuplicatesFlag``           ``no_duplicates``                 int    no
 ``PGASetNumAuxEval``                 ``num_eval``                      int    yes
 ``PGASetNumConstraint``              ``num_constraint``                int    yes
@@ -883,6 +889,14 @@ References
 
 Changes
 -------
+
+Version 2.4: New upstream
+
+- Wrap Negative Assortative Mating
+- Allow Differential Evolution for integer genes
+- Upstream fixes feature interaction bugs with duplicate avoidance and
+  Differential Evolution and RTR population replacement
+- Add option to use Negative Assortative Mating in Royal Road example
 
 Version 2.2.2: Add pyproject.toml
 
