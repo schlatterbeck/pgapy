@@ -166,12 +166,12 @@ class Test_PGA_Fast (PGA_Test_Instrumentation):
     # end def test_magic_prio_ed
 
     def test_magic_square (self):
-        magic_square_main (self.out_options + '-l 4'.split ())
+        magic_square_main (self.out_options + '-l 4 -R 3'.split ())
         self.compare ()
     # end def test_magic_square
 
     def test_magic_square_ed (self):
-        opt = '-l 4 --use-euclidian-gene-distance'.split ()
+        opt = '-l 4 --use-euclidian-gene-distance -R 11'.split ()
         magic_square_main (self.out_options + opt)
         self.compare ()
     # end def test_magic_square_ed
