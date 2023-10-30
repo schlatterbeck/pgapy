@@ -32,7 +32,7 @@ Iter #     Field      Value
 
 The Best Evaluation: 9.565624e-25.
 The Best String:
-Evals: 1091
+Evals: 1091, Gen: 40
 0 0: -143.387097 [0.00] [0]
 0 1:   45.064516 [1.00] [1]
 1 0:   45.064516 [1.00] [1]
