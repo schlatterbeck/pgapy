@@ -1,4 +1,4 @@
-# Copyright (C) 2022 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2022-23 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # ****************************************************************************
@@ -53,6 +53,7 @@ from twobar           import main as twobar_main
 from vibr             import main as vibr_main
 from namefull         import main as namefull_main
 from rr_jh            import main as rrjh_main
+from shaefer_a1       import main as shaefer_a1_main
 
 skip_tsplib = skip_neural = skip_tf = lambda fun, *args, **kw: fun
 
@@ -145,6 +146,11 @@ class Test_PGA_Fast (PGA_Test_Instrumentation):
         himmelblau_main (self.out_options + ['-R', '1'])
         self.compare ()
     # end def test_himmelblau
+
+    def test_shaefer_a1 (self):
+        shaefer_a1_main (self.out_options)
+        self.compare ()
+    # end def test_shaefer_a1
 
     def test_magic_prio (self):
         # Use length 3, doesn't find a solution otherwise :-)
