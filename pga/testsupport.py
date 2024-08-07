@@ -64,7 +64,12 @@ class PGA_Test_Instrumentation:
         yield
         # Only clean up if successful, see pytest_runtest_makereport
         # in conftest.py
-        if request.node.rep_call.passed:
+        # When test is skipped by calling pytest.skip, the hook is not
+        # run and rep_call doesn't exist, so to be more robust here we
+        # check if the rep_call attribute exists. No cleanup is
+        # necessary if the test was skipped...
+        rep_call = getattr (request.node, 'rep_call', None)
+        if rep_call and rep_call.passed:
             self.cleanup ()
     # end def run_clean_test
 
