@@ -296,7 +296,7 @@ class Neural_Net_Generic (pga.PGA):
 
     def stop_cond (self):
         best = self.get_best_index (pga.PGA_OLDPOP)
-        eval = self.evaluate (best, pga.PGA_OLDPOP)
+        eval = self.get_evaluation (best, pga.PGA_OLDPOP)
         if eval <= 1e-10:
             self.do_stop = True
         else:

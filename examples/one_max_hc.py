@@ -5,7 +5,7 @@ from argparse import ArgumentParser
 import pga
 import sys
 
-class One_Max (pga.PGA):
+class One_Max_With_Hillclimb (pga.PGA):
 
     def __init__ (self, args):
         self.args = args
@@ -17,16 +17,24 @@ class One_Max (pga.PGA):
                 , pga.PGA_REPORT_WORST
                 , pga.PGA_REPORT_AVERAGE
                 ]
+            , random_deterministic = True
             )
         if self.args.output_file:
             d ['output_file'] = args.output_file
         super (self.__class__, self).__init__ (bool, args.length, **d)
+        self.random = pga.PGA_Random (self)
     # end def __init__
 
     def evaluate (self, p, pop):
         return sum \
             (self.get_allele (p, pop, i) for i in range (len (self)))
     # end def evaluate
+
+    def hillclimb (self, p, pop):
+        """ Set a random allele to 1 """
+        idx = self.random.randrange (0, len (self))
+        self.set_allele (p, pop, idx, 1)
+    # end def hillclimb
 
     def print_string (self, file, p, pop):
         r = []
@@ -51,7 +59,7 @@ class One_Max (pga.PGA):
         return self.check_stopping_conditions ()
     # end def stop_cond
 
-# end class One_Max
+# end class One_Max_With_Hillclimb
 
 def main (argv):
     cmd = ArgumentParser ()
@@ -77,7 +85,7 @@ def main (argv):
         , action  = 'store_true'
         )
     args = cmd.parse_args (argv)
-    pg = One_Max (args)
+    pg = One_Max_With_Hillclimb (args)
     pg.run ()
 # end def main
 

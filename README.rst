@@ -9,6 +9,18 @@ PGAPy: Python Wrapper for PGAPack Parallel Genetic Algorithm Library
 News
 ----
 
+News April 2025:
+
+- Add an optional hillclimb method that is called for all new
+  individuals in the current generation. It can perform a hillclimbing
+  heuristics that runs in parallel when a parallel version is in use
+- Add a new constructor parameter ``random_deterministic`` that tells
+  the framework to use an random number generator seeded from the rank-0
+  random number generator for each individual evaluated. This allows use
+  of random numbers during hillclimbing or evaluation but still produces
+  random numbers that are reproduceable across runs (with the same
+  random seed, of course).
+
 News Oct 2023:
 
 - Add Differential Evolution for integer
@@ -340,6 +352,7 @@ PGAPack name                         Constructor parameter             Type   Pr
 ``PGASetPrintOptions``               ``print_options``                 msym   no
 ``PGASetPTournamentProb``            ``p_tournament_prob``             float  yes
 ``PGASetRandomizeSelect``            ``randomize_select``              int    yes
+``PGASetRandomDeterministic``        ``random_deterministic``          bool   no
 ``PGASetRandomSeed``                 ``random_seed``                   int    yes
 ``PGAGetRank``                       ``mpi_rank``                      int    yes
 ``PGASetRealInitRange``              ``init``                                 no
@@ -431,7 +444,7 @@ User-Methods
 ------------
 
 PGAPack_ has the concept of user functions. These allow customization of
-different areas of a genetic algorihm. In Python they are implemented as
+different areas of a genetic algorithm. In Python they are implemented as
 methods that can be changed in a derived class. One of the methods that
 *must* be implemented in a derived class is the ``evaluate`` function
 (although technically it is not a user function in PGAPack). It
@@ -467,6 +480,7 @@ Method              Call Signature                 Return Value      Up-Call
 ``evaluate``        *p, pop*                       sequence of float no
 ``gene_distance``   *p1, pop1, p2, pop2*           float             no
 ``hash``            *p, pop*                       int               no
+``hillclimb``       *p, pop*                       None              no
 ``initstring``      *p, pop*                       None              no
 ``mutation``        *p, pop, propability*          #mutations        no
 ``pre_eval``        *pop*                          None              no
@@ -889,6 +903,14 @@ References
 
 Changes
 -------
+
+Version 2.6: New upstream
+
+- Add an optional hillclimb method, see ``examples/one_max_hc.py``
+- Add a new constructor parameter ``random_deterministic`` that produces
+  reproduceable random numbers in the new hillclimb method (or during
+  evaluation) even when running a parallel version
+
 
 Version 2.4: New upstream
 

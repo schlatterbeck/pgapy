@@ -112,7 +112,7 @@ class Royal_Road (pga.PGA):
 
     def stop_cond (self):
         best = self.get_best_index (pga.PGA_OLDPOP)
-        eval = self.evaluate (best, pga.PGA_OLDPOP)
+        eval = self.get_evaluation (best, pga.PGA_OLDPOP)
         if eval == self.maxeval:
             return True
         return self.check_stopping_conditions ()

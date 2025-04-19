@@ -1,4 +1,4 @@
-/* Copyright (C) 2005-23 Dr. Ralf Schlatterbeck Open Source Consulting.
+/* Copyright (C) 2005-25 Dr. Ralf Schlatterbeck Open Source Consulting.
  * Reichergasse 131, A-3411 Weidling.
  * Web: http://www.runtux.com Email: office@runtux.com
  * ****************************************************************************
@@ -888,6 +888,23 @@ errout:
 }
 
 /*
+ * Used if the calling object has a hillclimb method.
+ */
+static void hillclimb (PGAContext *ctx, int p, int pop)
+{
+    PyObject *self = NULL, *r = NULL;
+    ERR_CHECK_X_OCCURRED (ctx);
+    self = get_self (ctx);
+    ERR_CHECK_X (ctx, self);
+    r = PyObject_CallMethod (self, "hillclimb", "ii", p, pop);
+    ERR_CHECK_X (ctx, r);
+errout:
+    Py_CLEAR (r);
+    Py_CLEAR (self);
+    return;
+}
+
+/*
  * Used if the calling object has a pre_eval method.
  */
 static void pre_eval (PGAContext *ctx, int pop)
@@ -1381,6 +1398,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     PyObject *Py_MPI_Initialized = NULL;
     PyObject *output_file = NULL;
     int nam_window_size = 1;
+    PyObject *random_deterministic = NULL;
     static char *kwlist[] =
         { "type"
         , "length"
@@ -1457,6 +1475,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         , "output_file"
         , "char_init_type"
         , "nam_window_size"
+        , "random_deterministic"
         , NULL
         };
 
@@ -1464,7 +1483,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             ( args
             , kw
             , "Oi|OiiOOOiiiidOiiOOOiidOOOddiOiOOiddd"
-              "iiiddddddOOOididdidiidiiiOOidOOiidiiOii"
+              "iiiddddddOOOididdidiidiiiOOidOOiidiiOiiO"
             , kwlist
             , &type
             , &length
@@ -1541,6 +1560,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             , &output_file
             , &char_init_type
             , &nam_window_size
+            , &random_deterministic
             )
         )
     {
@@ -1689,6 +1709,9 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     {
         PGASetUserFunction
             (ctx, PGA_USERFUNCTION_GEN_DISTANCE, (void *)gene_distance);
+    }
+    if (PyObject_HasAttrString (self, "hillclimb")) {
+        PGASetUserFunction (ctx, PGA_USERFUNCTION_HILLCLIMB, (void *)hillclimb);
     }
     if (  PyObject_HasAttrString (self, "initstring")
        || ctx->ga.datatype == PGA_DATATYPE_USER
@@ -2230,6 +2253,9 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     }
     if (nam_window_size > 1) {
         PGASetNAMWindowSize (ctx, nam_window_size);
+    }
+    if (random_deterministic && PyObject_IsTrue (random_deterministic)) {
+        PGASetRandomDeterministic (ctx, PGA_TRUE);
     }
 
     PGASetUp (ctx);
@@ -3501,6 +3527,10 @@ static void PGA_dealloc (PyObject *self)
     PyObject *PGA_ctx = NULL;
     int mpi_initialized = 0;
 
+    /* If we're called during creation we may not access ctx */
+    if (self->ob_refcnt == 0) {
+        return;
+    }
     ctx = get_context (self);
     #if 0
     fprintf (stderr, "After ctx in PGA_dealloc: %p\n", ctx);
