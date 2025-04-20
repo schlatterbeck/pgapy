@@ -1,4 +1,4 @@
-# Copyright (C) 2005-23 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2005-25 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # ****************************************************************************
@@ -36,14 +36,13 @@ dynamic         = ["version"]
 authors         = [{ name="Ralf Schlatterbeck", email="rsc@runtux.com" }, ]
 description     = "Python wrapper for pgapack, the parallel genetic algorithm library"
 readme          = "README.rst"
-license         = {text = "BSD License"}
+license         = "BSD-2-Clause"
 requires-python = '>=3.7'
 classifiers     = [
           'Development Status :: 5 - Production/Stable'
         , 'Intended Audience :: Developers'
         , 'Intended Audience :: Education'
         , 'Intended Audience :: Science/Research'
-        , 'License :: OSI Approved :: BSD License'
         , 'Operating System :: OS Independent'
         , 'Programming Language :: C'
         , 'Programming Language :: Python'
