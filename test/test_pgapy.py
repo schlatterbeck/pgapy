@@ -48,6 +48,7 @@ from magic_square     import main as magic_square_main
 from minfloat         import main as minfloat_main
 from multi            import main as multi_main
 from one_max          import main as one_max_main
+from one_max_hc       import main as one_max_hc_main
 from sort_numbers     import main as sort_numbers_main
 from twobar           import main as twobar_main
 from vibr             import main as vibr_main
@@ -193,9 +194,14 @@ class Test_PGA_Fast (PGA_Test_Instrumentation):
     # end def test_multi
 
     def test_one_max (self):
-        one_max_main (self.out_options + '-R 23 -v'.split ())
+        one_max_main (self.out_options + '-R 23'.split ())
         self.compare ()
     # end def test_one_max
+
+    def test_one_max_hc (self):
+        one_max_hc_main (self.out_options + '-R 23'.split ())
+        self.compare ()
+    # end def test_one_max_hc
 
     def test_sort_numbers (self):
         sort_numbers_main (self.out_options + '-R 23'.split ())
