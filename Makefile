@@ -33,6 +33,10 @@ all: $(VERSION) $(USERGUIDE)
 
 $(VERSION): $(SRC)
 
+test: all
+	python3 setup.py build_ext --inplace
+	python3 -m pytest test
+
 clean:
 	rm -f MANIFEST $(VERSION) Version.pyc default.css README.html
 	rm -rf ${CLEAN} PGAPy.egg-info pga/pga.cpython* pga/__pycache__
@@ -44,3 +48,5 @@ $(USERGUIDE):
 dist: $(USERGUIDE) $(VERSION)
 
 include $(RELEASETOOLS)/Makefile-pyrelease
+
+# vim: set noet :
