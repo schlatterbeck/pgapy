@@ -333,11 +333,20 @@ static constdef_t constdef [] =
     { {"PGA_CINIT_LOWER",           PGA_CINIT_LOWER           }
     , {"PGA_CINIT_MIXED",           PGA_CINIT_MIXED           }
     , {"PGA_CINIT_UPPER",           PGA_CINIT_UPPER           }
+    , {"PGA_CROSSOVER_AEX",         PGA_CROSSOVER_AEX         }
+    , {"PGA_CROSSOVER_CYCLE",       PGA_CROSSOVER_CYCLE       }
     , {"PGA_CROSSOVER_EDGE",        PGA_CROSSOVER_EDGE        }
+    , {"PGA_CROSSOVER_MODIFIED",    PGA_CROSSOVER_MODIFIED    }
+    , {"PGA_CROSSOVER_NOX",         PGA_CROSSOVER_NOX         }
+    , {"PGA_CROSSOVER_OBX",         PGA_CROSSOVER_OBX         }
     , {"PGA_CROSSOVER_ONEPT",       PGA_CROSSOVER_ONEPT       }
+    , {"PGA_CROSSOVER_ORDER",       PGA_CROSSOVER_ORDER       }
+    , {"PGA_CROSSOVER_PBX",         PGA_CROSSOVER_PBX         }
+    , {"PGA_CROSSOVER_PMX",         PGA_CROSSOVER_PMX         }
     , {"PGA_CROSSOVER_SBX",         PGA_CROSSOVER_SBX         }
     , {"PGA_CROSSOVER_TWOPT",       PGA_CROSSOVER_TWOPT       }
     , {"PGA_CROSSOVER_UNIFORM",     PGA_CROSSOVER_UNIFORM     }
+    , {"PGA_CROSSOVER_UOX",         PGA_CROSSOVER_UOX         }
     , {"PGA_DE_CROSSOVER_BIN",      PGA_DE_CROSSOVER_BIN      }
     , {"PGA_DE_CROSSOVER_EXP",      PGA_DE_CROSSOVER_EXP      }
     , {"PGA_DE_VARIANT_BEST",       PGA_DE_VARIANT_BEST       }
@@ -357,7 +366,9 @@ static constdef_t constdef [] =
     , {"PGA_MUTATION_GAUSSIAN",     PGA_MUTATION_GAUSSIAN     }
     , {"PGA_MUTATION_PERMUTE",      PGA_MUTATION_PERMUTE      }
     , {"PGA_MUTATION_POLY",         PGA_MUTATION_POLY         }
+    , {"PGA_MUTATION_POSITION",     PGA_MUTATION_POSITION     }
     , {"PGA_MUTATION_RANGE",        PGA_MUTATION_RANGE        }
+    , {"PGA_MUTATION_SCRAMBLE",     PGA_MUTATION_SCRAMBLE     }
     , {"PGA_MUTATION_UNIFORM",      PGA_MUTATION_UNIFORM      }
     , {"PGA_NEWPOP",                PGA_NEWPOP                }
     , {"PGA_OLDPOP",                PGA_OLDPOP                }
@@ -1399,6 +1410,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     PyObject *output_file = NULL;
     int nam_window_size = 1;
     PyObject *random_deterministic = NULL;
+    int mutation_scramble_max = -1;
     static char *kwlist[] =
         { "type"
         , "length"
@@ -1476,6 +1488,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         , "char_init_type"
         , "nam_window_size"
         , "random_deterministic"
+        , "mutation_scramble_max"
         , NULL
         };
 
@@ -1483,7 +1496,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             ( args
             , kw
             , "Oi|OiiOOOiiiidOiiOOOiidOOOddiOiOOiddd"
-              "iiiddddddOOOididdidiidiiiOOidOOiidiiOiiO"
+              "iiiddddddOOOididdidiidiiiOOidOOiidiiOiiOi"
             , kwlist
             , &type
             , &length
@@ -1561,6 +1574,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             , &char_init_type
             , &nam_window_size
             , &random_deterministic
+            , &mutation_scramble_max
             )
         )
     {
@@ -1767,7 +1781,17 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             ( (  crossover_type == PGA_CROSSOVER_ONEPT
               || crossover_type == PGA_CROSSOVER_TWOPT
               || crossover_type == PGA_CROSSOVER_UNIFORM
+              || crossover_type == PGA_CROSSOVER_SBX
               || crossover_type == PGA_CROSSOVER_EDGE
+              || crossover_type == PGA_CROSSOVER_PMX
+              || crossover_type == PGA_CROSSOVER_MODIFIED
+              || crossover_type == PGA_CROSSOVER_ORDER
+              || crossover_type == PGA_CROSSOVER_CYCLE
+              || crossover_type == PGA_CROSSOVER_OBX
+              || crossover_type == PGA_CROSSOVER_PBX
+              || crossover_type == PGA_CROSSOVER_UOX
+              || crossover_type == PGA_CROSSOVER_AEX
+              || crossover_type == PGA_CROSSOVER_NOX
               )
             , "invalid crossover_type"
             );
@@ -2088,6 +2112,9 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
                 ( (  mutation_type == PGA_MUTATION_CONSTANT
                   || mutation_type == PGA_MUTATION_PERMUTE
                   || mutation_type == PGA_MUTATION_RANGE
+                  || mutation_type == PGA_MUTATION_DE
+                  || mutation_type == PGA_MUTATION_SCRAMBLE
+                  || mutation_type == PGA_MUTATION_POSITION
                   )
                 , "invalid mutation_type for int"
                 );
@@ -2256,6 +2283,13 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     }
     if (random_deterministic && PyObject_IsTrue (random_deterministic)) {
         PGASetRandomDeterministic (ctx, PGA_TRUE);
+    }
+    if (mutation_scramble_max >= 0) {
+        CHECK_VALUE
+            ( (mutation_scramble_max >= 2 && mutation_scramble_max <= length)
+            , "invalid mutation_scramble_max"
+            );
+        PGASetMutationScrambleMax (ctx, mutation_scramble_max);
     }
 
     PGASetUp (ctx);
@@ -3360,6 +3394,7 @@ GETTER_FUNCTION (PGAGetMutationOrCrossoverFlag,  mutation_or_crossover,  i)
 GETTER_FUNCTION (PGAGetMutationOnlyFlag,         mutation_only,          i)
 GETTER_FUNCTION (PGAGetMutationPolyValue,        mutation_poly_value,    d)
 GETTER_FUNCTION (PGAGetMutationProb,             mutation_prob,          d)
+GETTER_FUNCTION (PGAGetMutationScrambleMax,      mutation_scramble_max,  i)
 GETTER_FUNCTION (PGAGetMutationType,             mutation_type,          i)
 GETTER_FUNCTION (PGAGetNumConstraint,            num_constraint,         i)
 GETTER_FUNCTION (PGAGetNumReplaceValue,          num_replace,            i)
@@ -3384,6 +3419,7 @@ GETTER_FUNCTION (PGAGetNAMWindowSize,            nam_window_size,        i)
 SETTER_FUNCTION (PGASetCrossoverProb,        crossover_prob,         d,  1)
 SETTER_FUNCTION (PGASetEpsilonExponent,      epsilon_exponent,       d, 10)
 SETTER_FUNCTION (PGASetMultiObjPrecision,    multi_obj_precision,    i, 14)
+SETTER_FUNCTION (PGASetMutationScrambleMax,  mutation_scramble_max,  i,  0)
 SETTER_FUNCTION (PGASetPTournamentProb,      p_tournament_prob,      d,  1)
 SETTER_FUNCTION (PGASetUniformCrossoverProb, uniform_crossover_prob, d,  1)
 
@@ -3488,6 +3524,7 @@ static PyGetSetDef PGA_getset [] =
 , GETTER_ENTRY (mutation_bounded)
 , GETTER_ENTRY (mutation_bounce_back)
 , GETTER_ENTRY (mutation_prob)
+, GETSET_ENTRY (mutation_scramble_max)
 , GETTER_ENTRY (mutation_type)
 , GETTER_ENTRY (mutation_value)
 , GETTER_ENTRY (nam_window_size)
