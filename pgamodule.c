@@ -3043,16 +3043,17 @@ static PyObject *PGA_set_allele (PyObject *self, PyObject *args)
     switch (PGAGetDataType (ctx)) {
     case PGA_DATATYPE_BINARY:
     {
-        int allele;
-        if (!PyArg_Parse (val, "i", &allele)) {
+        PGABinary allele; /* This is an unsigned long */
+        if (!PyArg_Parse (val, "k", &allele)) {
             return NULL;
         }
-        PGASetBinaryAllele (ctx, p, pop, i, allele);
+        /* Limit the value of allele to 0 or 1 */
+        PGASetBinaryAllele (ctx, p, pop, i, !!allele);
         break;
     }
     case PGA_DATATYPE_CHARACTER:
     {
-        char allele;
+        PGACharacter allele;
         if (!PyArg_Parse (val, "c", &allele)) {
             return NULL;
         }
@@ -3061,8 +3062,8 @@ static PyObject *PGA_set_allele (PyObject *self, PyObject *args)
     }
     case PGA_DATATYPE_INTEGER:
     {
-        int allele;
-        if (!PyArg_Parse (val, "i", &allele)) {
+        PGAInteger allele;
+        if (!PyArg_Parse (val, "l", &allele)) {
             return NULL;
         }
         PGASetIntegerAllele (ctx, p, pop, i, allele);
@@ -3070,7 +3071,7 @@ static PyObject *PGA_set_allele (PyObject *self, PyObject *args)
     }
     case PGA_DATATYPE_REAL:
     {
-        double allele;
+        PGAReal allele;
         if (!PyArg_Parse (val, "d", &allele)) {
             return NULL;
         }
