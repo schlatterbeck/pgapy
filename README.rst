@@ -303,6 +303,7 @@ the optimizer (child of PGA.pga) object.
 ==================================== ================================= ====== ====
 PGAPack name                         Constructor parameter             Type   Prop
 ==================================== ================================= ====== ====
+``PGASetCharacterInitType``          ``char_init_type``                int    no
 ``PGASetCrossoverBoundedFlag``       ``crossover_bounded``             int    yes
 ``PGASetCrossoverBounceBackFlag``    ``crossover_bounce_back``         int    yes
 ``PGASetCrossoverSBXEta``            ``crossover_SBX_eta``             float  yes
@@ -341,17 +342,20 @@ PGAPack name                         Constructor parameter             Type   Pr
 ``PGASetMutationBounceBackFlag``     ``mutation_bounce_back``          int    yes
 ``PGASetMutationBoundedFlag``        ``mutation_bounded``              int    yes
 ``PGASetMutationIntegerValue``       ``mutation_value``                int    yes
+``PGASetMutationOnlyFlag``           ``mutation_only``                 int    yes
 ``PGASetMutationOrCrossoverFlag``    ``mutation_or_crossover``         int    yes
 ``PGASetMutationPolyEta``            ``mutation_poly_eta``             float  yes
 ``PGASetMutationPolyValue``          ``mutation_poly_value``           float  yes
 ``PGASetMutationProb``               ``mutation_prob``                 float  yes
 ``PGASetMutationRealValue``          ``mutation_value``                float  yes
+``PGASetMutationScrambleMax``        ``mutation_scramble_max``         int    yes
 ``PGASetMutationType``               ``mutation_type``                 sym    no
 ``PGASetNAMWindowSize``              ``nam_window_size``               int    yes
 ``PGASetNoDuplicatesFlag``           ``no_duplicates``                 int    no
 ``PGASetNumAuxEval``                 ``num_eval``                      int    yes
 ``PGASetNumConstraint``              ``num_constraint``                int    yes
 ``PGASetNumReplaceValue``            ``num_replace``                   int    yes
+``PGASetOutputFile``                 ``output_file``                   str    no
 ``PGASetPopSize``                    ``pop_size``                      int    yes
 ``PGASetPopReplaceType``             ``pop_replace_type``              sym    no
 ``PGASetPrintFrequencyValue``        ``print_frequency``               int    yes
@@ -498,24 +502,48 @@ Constants
 
 The following PGAPack_ constants are available:
 
-========================== ===========================================
+========================== ===================================================
 Constant                   Description
-========================== ===========================================
-PGA_CROSSOVER_EDGE         Edge crossover for permutations
+========================== ===================================================
+PGA_CINIT_LOWER            Character-allele initialization, lowercase
+PGA_CINIT_MIXED            Character-allele initialization, mixed case
+PGA_CINIT_UPPER            Character-allele initialization, uppercase
+PGA_CROSSOVER_AEX          Alternating Edges for permutations
+PGA_CROSSOVER_CYCLE        Cycle Crossover for permutations
+PGA_CROSSOVER_EDGE         Edge Crossover for permutations
+PGA_CROSSOVER_MODIFIED     Modified Crossover for permutations
+PGA_CROSSOVER_NOX          Non-wrapping Order Crossover for permutations
+PGA_CROSSOVER_OBX          Order Based Crossover for permutations
 PGA_CROSSOVER_ONEPT        One-point Crossover
+PGA_CROSSOVER_ORDER        Order Crossover for permutations
+PGA_CROSSOVER_PBX          Position Based Crossover for permutations
+PGA_CROSSOVER_PMX          Partially Mapped Crossover for permutations
 PGA_CROSSOVER_SBX          Simulated Binary Crossover
 PGA_CROSSOVER_TWOPT        Two-point Crossover
 PGA_CROSSOVER_UNIFORM      Uniform Crossover
+PGA_CROSSOVER_UOX          Unified Order Based Crossover for permutations
+PGA_DE_CROSSOVER_BIN       Standard DE binomial crossover
+PGA_DE_CROSSOVER_EXP       Differential evolution exponential crossover
+PGA_DE_VARIANT_BEST        DE: Derive from best string
+PGA_DE_VARIANT_EITHER_OR   DE: Either-or variant
+PGA_DE_VARIANT_RAND        DE: Standard, derive from random string (default)
 PGA_FITNESSMIN_CMAX        Map fitness by subtracting worst
 PGA_FITNESSMIN_RECIPROCAL  Map fitness via reciprocal
 PGA_FITNESS_NORMAL         Linear normalization of fitness
 PGA_FITNESS_RANKING        Linear fitness ranking
 PGA_FITNESS_RAW            Identity fitness function
+PGA_MIX_MUTATE_AND_CROSS   Mixing: Mutation only when crossover
+PGA_MIX_MUTATE_ONLY        Mixing: Mutation only
+PGA_MIX_MUTATE_OR_CROSS    Mixing: Mutation only when no crossover
+PGA_MIX_TRADITIONAL        Mixing: Mutation after crossover
 PGA_MUTATION_CONSTANT      Mutation by adding/subtracting constant
+PGA_MUTATION_DE            Differential Evolution (implemented as mutation)
 PGA_MUTATION_GAUSSIAN      Mutation by selecting from Gaussian distribution
-PGA_MUTATION_PERMUTE       Mutation swaps two random genes
+PGA_MUTATION_PERMUTE       Mutation swaps two random genes, for permutations
 PGA_MUTATION_POLY          Polynomial Mutation
+PGA_MUTATION_POSITION      Position mutation for permutations
 PGA_MUTATION_RANGE         Replace gene with uniform selection from init range
+PGA_MUTATION_SCRAMBLE      Scramble mutation for permutations
 PGA_MUTATION_UNIFORM       Mutation uniform from interval
 PGA_NEWPOP                 Symbolic constant for new population
 PGA_OLDPOP                 Symbolic constant for old population
@@ -541,7 +569,7 @@ PGA_SELECT_TRUNCATION      Truncation selection
 PGA_STOP_MAXITER           Stop on max iterations
 PGA_STOP_NOCHANGE          Stop on max number of generations no change
 PGA_STOP_TOOSIMILAR        Stop when individuals too similar
-========================== ===========================================
+========================== ===================================================
 
 User Defined Data Types
 -----------------------
