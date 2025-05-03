@@ -810,7 +810,7 @@ typically something like ``build/temp.linux-x86_64-3.9`` when using
 ``python3.9`` on the ``x86_64`` architecture, the extension will be
 different for higher python versions, e.g. for python3.11 on Debian::
 
-build/temp.linux-x86_64-cpython-311
+    build/temp.linux-x86_64-cpython-311
 
 Running the tests will create statistics data files with ending
 ``.gcda``. These are data files for the GNU profiler ``gcov``. From
