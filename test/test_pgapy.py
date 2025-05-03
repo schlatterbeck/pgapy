@@ -1,4 +1,4 @@
-# Copyright (C) 2022-23 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2022-25 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # ****************************************************************************
@@ -55,6 +55,7 @@ from vibr             import main as vibr_main
 from namefull         import main as namefull_main
 from rr_jh            import main as rrjh_main
 from shaefer_a1       import main as shaefer_a1_main
+from magic_permute    import main as magic_permute_main
 
 skip_tsplib = skip_neural = skip_tf = lambda fun, *args, **kw: fun
 
@@ -85,6 +86,11 @@ sys.path.insert (1, "examples/gp")
 from opt_xor      import main as gp_xor_main
 from opt_parity3  import main as gp_parity3_main
 from opt_integral import main as gp_integral_main
+
+# Explicit decorator for long-running tests, but all tests in
+# Test_PGA_Slow are automagically skipped if longrun is not set
+# See conftest.py
+# @pytest.mark.slow
 
 class Test_PGA_Fast (PGA_Test_Instrumentation):
     def test_cards (self):
@@ -733,6 +739,7 @@ class Test_PGA_Fast (PGA_Test_Instrumentation):
 
 # end class Test_PGA_Fast
 
+@pytest.mark.slow
 class Test_PGA_Slow (PGA_Test_Instrumentation):
 
     def test_gp_parity3 (self):
@@ -786,5 +793,92 @@ class Test_PGA_Slow (PGA_Test_Instrumentation):
         rrjh_main (self.out_options + opt)
         self.compare ()
     # end def test_rrjh
+
+    # The following tests mirror the ones in pgapack sequence/magic
+    # They produce the same sequence of results with some differences
+    # in logging in the python implementation and different stopping
+    # condition in the python implementation (using PGA_STOP_NOCHANGE)
+
+    def test_magic_permute_pmx (self):
+        ca = '-l 5 -p 100 --no-dup -r 1'.split ()
+        magic_permute_main (self.out_options + ca)
+        self.compare ()
+    # end def test_magic_permute_pmx
+
+    def test_magic_permute_modified (self):
+        ca = '-l 5 -p 100 --no-dup -c modified -r 1'.split ()
+        magic_permute_main (self.out_options + ca)
+        self.compare ()
+    # end def test_magic_permute_modified
+
+    def test_magic_permute_modified_scramble (self):
+        ca = '-l 5 -p 100 --no-dup -c modified --mutation-type scramble -r 1'
+        ca = ca.split ()
+        magic_permute_main (self.out_options + ca)
+        self.compare ()
+    # end def test_magic_permute_modified_scramble
+
+    def test_magic_permute_modified_position (self):
+        ca = '-l 5 -p 100 --no-dup -c modified --mutation-type position -r 1'
+        ca = ca.split ()
+        magic_permute_main (self.out_options + ca)
+        self.compare ()
+    # end def test_magic_permute_modified_position
+
+    def test_magic_permute_order (self):
+        ca = '-l 5 -p 100 --no-dup -c order -r 1'.split ()
+        magic_permute_main (self.out_options + ca)
+        self.compare ()
+    # end def test_magic_permute_order
+
+    def test_magic_permute_order_scramble (self):
+        ca = '-l 5 -p 100 --no-dup -c order --mutation-type scramble -r 1'
+        ca = ca.split ()
+        magic_permute_main (self.out_options + ca)
+        self.compare ()
+    # end def test_magic_permute_order_scramble
+
+    def test_magic_permute_cycle (self):
+        ca = '-l 5 -p 100 --no-dup -c cycle -r 1'.split ()
+        magic_permute_main (self.out_options + ca)
+        self.compare ()
+    # end def test_magic_permute_cycle
+
+    def test_magic_permute_cycle_scramble (self):
+        ca = '-l 5 -p 100 --no-dup -c cycle --mutation-type scramble -r 1'
+        ca = ca.split ()
+        magic_permute_main (self.out_options + ca)
+        self.compare ()
+    # end def test_magic_permute_cycle_scramble
+
+    def test_magic_permute_obx (self):
+        ca = '-l 5 -p 100 --no-dup -c obx -r 7'.split ()
+        magic_permute_main (self.out_options + ca)
+        self.compare ()
+    # end def test_magic_permute_obx
+
+    def test_magic_permute_pbx (self):
+        ca = '-l 5 -p 100 --no-dup -c pbx -r 4'.split ()
+        magic_permute_main (self.out_options + ca)
+        self.compare ()
+    # end def test_magic_permute_pbx
+
+    def test_magic_permute_uox (self):
+        ca = '-l 5 -p 100 --no-dup -c uox -r 1'.split ()
+        magic_permute_main (self.out_options + ca)
+        self.compare ()
+    # end def test_magic_permute_uox
+
+    def test_magic_permute_aex (self):
+        ca = '-l 5 -p 100 --no-dup -c aex -r 1'.split ()
+        magic_permute_main (self.out_options + ca)
+        self.compare ()
+    # end def test_magic_permute_aex
+
+    def test_magic_permute_nox (self):
+        ca = '-l 5 -p 100 --no-dup -c nox -r 4'.split ()
+        magic_permute_main (self.out_options + ca)
+        self.compare ()
+    # end def test_magic_permute_nox
 
 # end class Test_PGA_Slow

@@ -25,7 +25,7 @@ announce_pypi
 upload_pypi
 build
 dist
-coverage.info
+coverage*
 coverage_out
 .coverage
 .nfs*
