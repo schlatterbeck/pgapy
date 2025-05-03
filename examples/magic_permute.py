@@ -102,6 +102,7 @@ class Magic_Square (pga.PGA):
         self.tile_funcs = \
             [ self.try_tile_both, self.try_tile_row, self.try_tile_col
             , self.try_tile_max, self.try_tile_best, self.try_tile_max_two
+            #, self.try_tile_same_multi
             ]
     # end def __init__
 
@@ -305,6 +306,14 @@ class Magic_Square (pga.PGA):
         file.flush ()
     # end def print_string
 
+    def sorted_err_idx (self):
+        """ Sort errors and their indeces, we need the errors only for
+            sorting the index.
+        """
+        e  = self.errs
+        return list (sorted (np.ndindex (e.shape), key = lambda x: e [x]))
+    # end def sorted_err_idx
+
     def stop_cond (self):
         """ Stop when the evaluation has reached 0
         """
@@ -403,33 +412,31 @@ class Magic_Square (pga.PGA):
     def try_tile_both (self):
         if self.sr [0][0] < self.magic and self.sr [-1][0] > self.magic:
             if self.sc [0][0] < self.magic and self.sc [-1][0] > self.magic:
-                ic  = [self.sc [0][1], self.sc [-1][1]]
-                ir  = [self.sr [0][1], self.sr [-1][1]]
-                return self.try_flip (ir, ic)
+                idx1 = [self.sr  [0][1], self.sc  [0][1]]
+                idx2 = [self.sr [-1][1], self.sc [-1][1]]
+                return self.try_flip (idx1, idx2)
     # end def try_tile_both
 
     def try_tile_row (self):
         if self.sr [0][0] < self.magic and self.sr [-1][0] > self.magic:
-            mn  = np.argmin (self.square [self.sr [0] [1], :])
+            mn  = np.argmin (self.square [self.sr  [0][1], :])
             mx  = np.argmax (self.square [self.sr [-1][1], :])
-            ir  = [self.sr [0][1], self.sr [-1][1]]
-            ic  = [mn, mx]
-            return self.try_flip (ir, ic)
+            idx1 = [self.sr  [0][1], mn]
+            idx2 = [self.sr [-1][1], mx]
+            return self.try_flip (idx1, idx2)
     # end def try_tile_row
 
     def try_tile_col (self):
         if self.sc [0][0] < self.magic and self.sc [-1][0] > self.magic:
-            mn  = np.argmin (self.square [:, self.sc [0] [1]])
+            mn  = np.argmin (self.square [:, self.sc  [0][1]])
             mx  = np.argmax (self.square [:, self.sc [-1][1]])
-            ic  = [self.sc [0][1], self.sc [-1][1]]
-            ir  = [mn, mx]
-            return self.try_flip (ir, ic)
+            idx1 = [mn, self.sc  [0][1]]
+            idx2 = [mx, self.sc [-1][1]]
+            return self.try_flip (idx1, idx2)
     # end def try_tile_col
 
     def try_tile_max (self):
-        ir = [self.max_err [0], self.min_err [0]]
-        ic = [self.max_err [1], self.min_err [1]]
-        return self.try_flip (ir, ic)
+        return self.try_flip (self.max_err, self.min_err)
     # end def try_tile_max
 
     def try_tile_best (self):
@@ -447,36 +454,60 @@ class Magic_Square (pga.PGA):
                     best = errdiff
                     bestidx = (i, j)
         if bestidx is not None:
-            ir = (self.abs_err [0], bestidx [0])
-            ic = (self.abs_err [1], bestidx [1])
-            return self.try_flip (ir, ic)
+            return self.try_flip (self.abs_err, bestidx)
     # end def try_tile_best
 
     def try_tile_max_two (self):
         """ Use the two max and the two min errors
             Try all the permutations of exchanging one of the maxima
             with one of the minima
+            Try highest with 2nd lowest and vice-versa
         """
-        idx = list \
-            (sorted (zip (self.errs.flatten (), np.ndindex (self.errs.shape))))
-        ir = [idx [0][1][0], idx [-1][1][0], idx [1][1][0], idx [-2][1][0]]
-        ic = [idx [0][1][1], idx [-1][1][1], idx [1][1][1], idx [-2][1][1]]
-        if self.try_flip (ir, ic):
+        idx = self.sorted_err_idx ()
+        if self.try_flip (idx [:2], [idx [-1], idx [-2]]):
             return True
-        # Try highest with 2nd lowest and vice-versa
-        ir = [idx [0][1][0], idx [-2][1][0], idx [1][1][0], idx [-1][1][0]]
-        ic = [idx [0][1][1], idx [-2][1][1], idx [1][1][1], idx [-1][1][1]]
-        return self.try_flip (ir, ic)
+        # Cross over: Reverse only idx2
+        return self.try_flip (idx [:2], idx [-2:])
     # end def try_tile_max_two
 
-    def try_flip (self, ir, ic):
+    def try_tile_same_multi (self):
+        """ Same complementary value from both directions, more than 2
+        """
+        idx = self.sorted_err_idx ()
+        dif = 0
+        for i in range (len (self) // 2):
+            if self.errs [idx [i]] != -self.errs [idx [-i - 1]]:
+                break
+            if dif == 0:
+                dif = -self.errs [idx [i]]
+                continue
+            if -self.errs [idx [i]] != dif:
+                break
+        if i <= 2 or dif == 0:
+            return
+        # Shuffle both ends
+        idx [:i]  = self.random.sample (idx [:i],  i)
+        idx [-i:] = self.random.sample (idx [-i:], i)
+        # And exchange a subset
+        r = self.random_interval (2, i)
+        return self.try_flip (idx [:r], idx [-r:])
+    # end def try_tile_same_multi
+
+    def try_flip (self, idx1, idx2):
         ev  = self.ev
         assert ev is not None
+        if not isinstance (idx1 [0], (tuple, list, np.ndarray)):
+            idx1 = np.array ([idx1])
+        else:
+            idx1 = np.array (idx1)
+        if not isinstance (idx2 [0], (tuple, list, np.ndarray)):
+            idx2 = np.array ([idx2])
+        else:
+            idx2 = np.array (idx2)
+        ir, ic = np.concatenate ((idx1, idx2)).T
         l = len (ic)
         assert l == len (ir) and l % 2 == 0
-        # pairwise swap:
-        icf = np.fliplr (np.reshape (ic, (l // 2, 2))).flatten ()
-        irf = np.fliplr (np.reshape (ir, (l // 2, 2))).flatten ()
+        irf, icf = np.concatenate ((idx2, idx1)).T
         self.square [ir, ic] = self.square [irf, icf]
         if self.eval_from_pheno () > ev:
             # Allow bad moves for a certain percentage
