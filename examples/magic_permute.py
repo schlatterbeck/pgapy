@@ -102,7 +102,7 @@ class Magic_Square (pga.PGA):
         self.tile_funcs = \
             [ self.try_tile_both, self.try_tile_row, self.try_tile_col
             , self.try_tile_max, self.try_tile_best, self.try_tile_max_two
-            #, self.try_tile_same_multi
+            , self.try_tile_same_multi
             ]
     # end def __init__
 
@@ -489,8 +489,9 @@ class Magic_Square (pga.PGA):
         idx [:i]  = self.random.sample (idx [:i],  i)
         idx [-i:] = self.random.sample (idx [-i:], i)
         # And exchange a subset
-        r = self.random_interval (2, i)
-        return self.try_flip (idx [:r], idx [-r:])
+        #r = self.random_interval (2, i)
+        #return self.try_flip (idx [:r], idx [-r:])
+        return self.try_flip (idx [:2], idx [-2:])
     # end def try_tile_same_multi
 
     def try_flip (self, idx1, idx2):
