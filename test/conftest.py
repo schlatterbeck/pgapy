@@ -1,4 +1,4 @@
-# Copyright (C) 2022 Dr. Ralf Schlatterbeck Open Source Consulting.
+# Copyright (C) 2022-25 Dr. Ralf Schlatterbeck Open Source Consulting.
 # Reichergasse 131, A-3411 Weidling.
 # Web: http://www.runtux.com Email: office@runtux.com
 # ****************************************************************************
@@ -28,3 +28,25 @@
 
 import pytest
 from pga.testsupport import pga_setup_test, pytest_runtest_makereport
+
+def pytest_addoption (parser):
+    parser.addoption \
+        ( '--longrun'
+        , action = 'store_true'
+        , help   = "enable @pytest.mark.slow decorated tests"
+        )
+# end def pytest_addoption
+
+def pytest_configure (config):
+    config.addinivalue_line ("markers", "slow: mark test as slow to run")
+# end def pytest_configure
+
+def pytest_collection_modifyitems (config, items):
+    if config.getoption ("--longrun"):
+        # with --longrun option: do not skip slow tests
+        return
+    skip_slow = pytest.mark.skip (reason = "Skipping long-running tests")
+    for item in items:
+        if "slow" in item.keywords:
+            item.add_marker (skip_slow)
+# end def pytest_collection_modifyitems

@@ -9,6 +9,12 @@ PGAPy: Python Wrapper for PGAPack Parallel Genetic Algorithm Library
 News
 ----
 
+News May 2025:
+
+- Implement permutation preserving crossover and mutation operators.
+- Bug-Fixes (most notably a feature interaction between hillclimber
+  released in April and duplicate checking)
+
 News April 2025:
 
 - Add an optional hillclimb method that is called for all new
@@ -771,6 +777,11 @@ can run the tests with::
 
     python3 -m pytest test
 
+By default all long-running tests are skipped.
+To run *all* tests, specify the ``--longrun`` option::
+
+    python3 -m pytest --longrun test
+
 This runs all the tests and can take a while. Note that the tests run
 most of the examples in the ``examples`` directory with different
 command line parameters where available. To perform several optimization
@@ -785,11 +796,11 @@ Coverage
 
 For the python examples, the coverage can be computed with::
 
-  python3 -m pytest --cov examples test
+  python3 -m pytest --longrun --cov examples test
 
 or more verbose including untested lines with::
 
-  python3 -m pytest --cov-report term-missing --cov examples test
+  python3 -m pytest --longrun --cov-report term-missing --cov examples test
 
 Performing a coverage analysis for the C code in ``pgamodule.c`` is
 currently possible only on Linux |--| at least, since I'm developing on
@@ -802,15 +813,21 @@ To compile for coverage analysis::
 
 This will create a file ending in ``.gcno`` under the ``build`` directory,
 typically something like ``build/temp.linux-x86_64-3.9`` when using
-``python3.9`` on the ``x86_64`` architecture. Running the tests will
-create statistics data files with ending ``.gcda``. These are data files
-for the GNU profiler ``gcov``. From these, ``.html`` files can be
-generated that can be inspected with a browser::
+``python3.9`` on the ``x86_64`` architecture, the extension will be
+different for higher python versions, e.g. for python3.11 on Debian::
+
+    build/temp.linux-x86_64-cpython-311
+
+Running the tests will create statistics data files with ending
+``.gcda``. These are data files for the GNU profiler ``gcov``. From
+these, ``.html`` files can be generated that can be inspected with a
+browser::
 
   lcov --capture --directory . --output-file coverage.info
   genhtml coverage.info --output-directory coverage_out
 
-Note that the ``lcov`` program is part of the linux distribution.
+Note that the ``lcov`` program should be part of the linux distribution.
+It is included in Debian Linux in the package ``lcov``.
 
 Running under MPI
 +++++++++++++++++
@@ -903,6 +920,13 @@ References
 
 Changes
 -------
+
+Version 2.7 (and 2.7.1): New upstream
+
+- Implement permutation preserving crossover and mutation operators
+- Bug Fix of feature interaction hillclimber and duplicate checking
+- Bug Fix for RTR, PAIRWISE_BEST, and the two NSGA population
+  replacement schemes
 
 Version 2.6: New upstream
 
