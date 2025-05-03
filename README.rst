@@ -9,6 +9,12 @@ PGAPy: Python Wrapper for PGAPack Parallel Genetic Algorithm Library
 News
 ----
 
+News May 2025:
+
+- Implement permutation preserving crossover and mutation operators.
+- Bug-Fixes (most notably a feature interaction between hillclimber
+  released in April and duplicate checking)
+
 News April 2025:
 
 - Add an optional hillclimb method that is called for all new
@@ -914,6 +920,13 @@ References
 
 Changes
 -------
+
+Version 2.7 (and 2.7.1): New upstream
+
+- Implement permutation preserving crossover and mutation operators
+- Bug Fix of feature interaction hillclimber and duplicate checking
+- Bug Fix for RTR, PAIRWISE_BEST, and the two NSGA population
+  replacement schemes
 
 Version 2.6: New upstream
 
