@@ -10,7 +10,7 @@ import sys
 class Tile:
 
     def __init__ (self, parent, row, col):
-        b = parent.best
+        b = parent.magic
         self.parent = parent
         self.col    = col
         self.row    = row
@@ -43,7 +43,7 @@ class Magic_Square (pga.PGA):
         self.n      = args.length
         self.ev     = None
         nsq         = self.n**2
-        self.best   = self.n * (nsq + 1) // 2
+        self.magic  = self.n * (nsq + 1) // 2
         self.nr     = np.arange (self.n, dtype = np.int32)
         self.shape  = (self.n, self.n)
         self.rnr    = np.flip (self.nr)
@@ -101,7 +101,7 @@ class Magic_Square (pga.PGA):
             ]
         self.tile_funcs = \
             [ self.try_tile_both, self.try_tile_row, self.try_tile_col
-            , self.try_tile_max, self.try_tile_best
+            , self.try_tile_max, self.try_tile_best, self.try_tile_max_two
             ]
     # end def __init__
 
@@ -132,12 +132,12 @@ class Magic_Square (pga.PGA):
         self.sr    = sorted ([(v, i) for i, v in enumerate (self.rsum)])
         self.sc    = sorted ([(v, i) for i, v in enumerate (self.csum)])
         self.ev    = \
-            ( np.sum (np.abs (self.rsum - self.best))
-            + np.sum (np.abs (self.csum - self.best))
-            + abs (self.d1sum - self.best)
-            + abs (self.d2sum - self.best)
+            ( np.sum (np.abs (self.rsum - self.magic))
+            + np.sum (np.abs (self.csum - self.magic))
+            + abs (self.d1sum - self.magic)
+            + abs (self.d2sum - self.magic)
             )
-        b = self.best
+        b = self.magic
         self.errs = (self.rsum - b) [:, None] + (self.csum - b) [None, :]
         self.errs [np.diag_indices (self.n)] += self.d1sum - b
         self.errs [self.nr, self.rnr]        += self.d2sum - b
@@ -290,7 +290,7 @@ class Magic_Square (pga.PGA):
     # end def pre_eval_
 
     def print_string (self, file, p, pop):
-        sl = len ('%s' % int (self.best))
+        sl = len ('%s' % int (self.magic))
         f  = '%%%dd' % sl
         fr = (f + '  ') * self.n
         self.pheno (p, pop)
@@ -323,7 +323,7 @@ class Magic_Square (pga.PGA):
     # end def to_gene
 
     def try_diag1_row (self):
-        b  = self.best
+        b  = self.magic
         d1 = self.d1sum - b
         ev = self.ev
         if d1 != 0:
@@ -342,7 +342,7 @@ class Magic_Square (pga.PGA):
     # end def try_diag1_row
 
     def try_diag1_col (self):
-        b  = self.best
+        b  = self.magic
         d1 = self.d1sum - b
         ev = self.ev
         if d1 != 0:
@@ -361,7 +361,7 @@ class Magic_Square (pga.PGA):
     # end def try_diag1_col
 
     def try_diag2_row (self):
-        b  = self.best
+        b  = self.magic
         d2 = self.d2sum - b
         ev = self.ev
         if d2 != 0:
@@ -381,7 +381,7 @@ class Magic_Square (pga.PGA):
     # end def try_diag1_row
 
     def try_diag2_col (self):
-        b  = self.best
+        b  = self.magic
         d2 = self.d2sum - b
         ev = self.ev
         if d2 != 0:
@@ -401,15 +401,15 @@ class Magic_Square (pga.PGA):
     # end def try_diag1_col
 
     def try_tile_both (self):
-        if self.sr [0][0] < self.best and self.sr [-1][0] > self.best:
-            if self.sc [0][0] < self.best and self.sc [-1][0] > self.best:
+        if self.sr [0][0] < self.magic and self.sr [-1][0] > self.magic:
+            if self.sc [0][0] < self.magic and self.sc [-1][0] > self.magic:
                 ic  = [self.sc [0][1], self.sc [-1][1]]
                 ir  = [self.sr [0][1], self.sr [-1][1]]
                 return self.try_flip (ir, ic)
     # end def try_tile_both
 
     def try_tile_row (self):
-        if self.sr [0][0] < self.best and self.sr [-1][0] > self.best:
+        if self.sr [0][0] < self.magic and self.sr [-1][0] > self.magic:
             mn  = np.argmin (self.square [self.sr [0] [1], :])
             mx  = np.argmax (self.square [self.sr [-1][1], :])
             ir  = [self.sr [0][1], self.sr [-1][1]]
@@ -418,7 +418,7 @@ class Magic_Square (pga.PGA):
     # end def try_tile_row
 
     def try_tile_col (self):
-        if self.sc [0][0] < self.best and self.sc [-1][0] > self.best:
+        if self.sc [0][0] < self.magic and self.sc [-1][0] > self.magic:
             mn  = np.argmin (self.square [:, self.sc [0] [1]])
             mx  = np.argmax (self.square [:, self.sc [-1][1]])
             ic  = [self.sc [0][1], self.sc [-1][1]]
@@ -452,11 +452,31 @@ class Magic_Square (pga.PGA):
             return self.try_flip (ir, ic)
     # end def try_tile_best
 
+    def try_tile_max_two (self):
+        """ Use the two max and the two min errors
+            Try all the permutations of exchanging one of the maxima
+            with one of the minima
+        """
+        idx = list \
+            (sorted (zip (self.errs.flatten (), np.ndindex (self.errs.shape))))
+        ir = [idx [0][1][0], idx [-1][1][0], idx [1][1][0], idx [-2][1][0]]
+        ic = [idx [0][1][1], idx [-1][1][1], idx [1][1][1], idx [-2][1][1]]
+        if self.try_flip (ir, ic):
+            return True
+        # Try highest with 2nd lowest and vice-versa
+        ir = [idx [0][1][0], idx [-2][1][0], idx [1][1][0], idx [-1][1][0]]
+        ic = [idx [0][1][1], idx [-2][1][1], idx [1][1][1], idx [-1][1][1]]
+        return self.try_flip (ir, ic)
+    # end def try_tile_max_two
+
     def try_flip (self, ir, ic):
         ev  = self.ev
         assert ev is not None
-        icf = np.flip (ic)
-        irf = np.flip (ir)
+        l = len (ic)
+        assert l == len (ir) and l % 2 == 0
+        # pairwise swap:
+        icf = np.fliplr (np.reshape (ic, (l // 2, 2))).flatten ()
+        irf = np.fliplr (np.reshape (ir, (l // 2, 2))).flatten ()
         self.square [ir, ic] = self.square [irf, icf]
         if self.eval_from_pheno () > ev:
             # Allow bad moves for a certain percentage
