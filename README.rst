@@ -14,6 +14,7 @@ News May 2025:
 - Implement permutation preserving crossover and mutation operators.
 - Bug-Fixes (most notably a feature interaction between hillclimber
   released in April and duplicate checking)
+- Fix off-by-one error in two new crossover operators (2.7.2)
 
 News April 2025:
 
@@ -949,12 +950,13 @@ References
 Changes
 -------
 
-Version 2.7 (and 2.7.1): New upstream
+Version 2.7 (and 2.7.1, 2.7.2): New upstream
 
 - Implement permutation preserving crossover and mutation operators
 - Bug Fix of feature interaction hillclimber and duplicate checking
 - Bug Fix for RTR, PAIRWISE_BEST, and the two NSGA population
   replacement schemes
+- Fix off-by-one error in two new crossover operators (2.7.2)
 
 Version 2.6: New upstream
 
