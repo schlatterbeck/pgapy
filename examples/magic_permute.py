@@ -42,59 +42,13 @@ class Magic_Square (pga.PGA):
         self.args   = args
         self.n      = args.length
         self.ev     = None
-        nsq         = self.n**2
-        self.magic  = self.n * (nsq + 1) // 2
+        self.nsq    = self.n**2
+        self.magic  = self.n * (self.nsq + 1) // 2
         self.nr     = np.arange (self.n, dtype = np.int32)
         self.shape  = (self.n, self.n)
         self.rnr    = np.flip (self.nr)
-        self.r      = range (nsq)
+        self.r      = range (self.nsq)
         self.square = np.zeros ((self.n, self.n), dtype = np.int32)
-        if args.use_euclidian_gene_distance:
-            self.gene_distance = self.euclidian_distance
-        # The default mutation is exchange of two alleles, thats the
-        # best for this problem from the builtin operations.
-        # Crossover operator needs to be one of the permutation
-        # preserving ops.
-        # all numbers from 0 to n**2 - 1
-        crossover_type = getattr \
-            (pga, 'PGA_CROSSOVER_' + args.crossover_type.upper ())
-        mutation_type = getattr \
-            (pga, 'PGA_MUTATION_' + args.mutation_type.upper ())
-        replace_type = getattr \
-            (pga, 'PGA_POPREPL_' + args.population_replacement.upper ())
-        p = dict \
-            ( maximize              = False
-            , random_seed           = args.random_seed
-            , pop_size              = args.population_size
-            , num_replace           = int (args.population_size * 0.9)
-            , max_GA_iter           = 1000
-            , max_no_change         = 400
-            , print_options         = [pga.PGA_REPORT_STRING]
-            , print_frequency       = args.print_frequency
-            , select_type           = pga.PGA_SELECT_TRUNCATION
-            , pop_replace_type      = replace_type
-            , mutation_type         = mutation_type
-            , mutation_scramble_max = 5
-            , crossover_type        = crossover_type
-            , no_duplicates         = args.no_duplicates
-            , truncation_proportion = 0.5
-            , stopping_rule_types   =
-                [pga.PGA_STOP_NOCHANGE, pga.PGA_STOP_MAXITER]
-            )
-        if args.mutation_rate:
-            p ['mutation_prob'] = args.mutation_rate
-        if self.args.output_file:
-            p ['output_file'] = args.output_file
-        self.cache = {}
-        self.cache_hits = 0
-        if args.hillclimb:
-            self.hillclimb = self.hillclimb_
-            p ['random_deterministic'] = True
-        if args.cache:
-            self.pre_eval = self.pre_eval_
-            self.endofgen = self.endofgen_
-        super (self.__class__, self).__init__ (int, nsq, **p)
-        self.random = pga.PGA_Random (self)
         self.diag_funcs = \
             [ self.try_diag1_row, self.try_diag1_col
             , self.try_diag2_row, self.try_diag2_col
@@ -106,24 +60,41 @@ class Magic_Square (pga.PGA):
             ]
     # end def __init__
 
+    @classmethod
+    def from_file (cls, args):
+        rows = []
+        n    = None
+        i    = None
+        st   = None
+        with open (args.from_file, 'r') as f:
+            for line in f:
+                if line.startswith ('The Best String'):
+                    st = 'started'
+                    continue
+                if st != 'started':
+                    continue
+                row = [int (x) for x in line.split ()]
+                row = row [:-1]
+                if n is None:
+                    n = len (row)
+                    i = 0
+                else:
+                    i += 1
+                rows.append (row)
+                if i == n - 1:
+                    break
+        args.length = n
+        m = cls (args)
+        m.square = np.array (rows)
+        return m
+    # end def from_file
+
     @property
     def corners (self):
         n  = self.n
         return self.square \
             [np.array ([0, n-1, n-1, 0]), np.array ([0, 0, n-1, n-1])]
     # end def corners
-
-    def endofgen_ (self):
-        pop = pga.PGA_NEWPOP
-        for p in range (self.pop_size):
-            assert self.get_evaluation_up_to_date (p, pop)
-            self.pheno (p, pop)
-            self.eval_from_pheno ()
-            assert self.ev == self.get_evaluation (p, pop)
-            a = self.get_ind (p, pop)
-            if a not in self.cache:
-                self.cache [a] = self.get_evaluation (p, pop)
-    # end def endofgen_
 
     def eval_from_pheno (self):
         self.rsum  = np.sum (self.square, axis = 1)
@@ -148,11 +119,6 @@ class Magic_Square (pga.PGA):
             (np.abs (self.errs).argmax (), self.shape)
         return self.ev
     # end def eval_from_pheno
-
-    def evaluate (self, p, pop):
-        self.pheno (p, pop)
-        return self.eval_from_pheno ()
-    # end def evaluate
 
     def get_ind (self, p, pop):
         a = []
@@ -192,6 +158,43 @@ class Magic_Square (pga.PGA):
         else:
             self.set_evaluation (p, pop, self.ev)
     # end def hillclimb_
+
+    def _mindiff (self, lst, idxlst, maxdepth, s = 0, seen = []):
+        length = len (lst)
+        depth  = len (seen) + 1
+        if depth == maxdepth + 1:
+            return
+        minidx = 0
+        if seen:
+            minidx = seen [-1] + 1
+        for i in idxlst [minidx:]:
+            n_s1 = s + lst [i]
+            nseen = seen [:]
+            nseen.append (i)
+            nsnot = list (set (idxlst) - set (nseen))
+            n_s2 = sum (lst [k] for k in nsnot)
+            yield (depth, n_s1, nseen)
+            yield (depth, n_s2, nsnot)
+            for d, ns, nseen in self._mindiff \
+                (lst, idxlst, maxdepth, n_s1, nseen):
+                yield (d, ns, nseen)
+    # end def _mindiff
+
+    def mindiff (self, lst, idxlst, maxdepth):
+        by_depth = {}
+        for depth, s, seen in self._mindiff (lst, idxlst, maxdepth):
+            abss = abs (s - 1)
+            if depth not in by_depth or abs (by_depth [depth][1] - 1) > abss:
+                d = {}
+                d [s] = [seen]
+                by_depth [depth] = (depth, abss, d)
+            elif by_depth.get (depth, (0, None)) [1] == abss:
+                if s not in by_depth [depth][-1]:
+                    by_depth [depth][-1][s] = []
+                by_depth [depth][-1][s].append (seen)
+        for depth in sorted (by_depth):
+            yield (by_depth [depth])
+    # end def mindiff
 
     def normalize (self):
         """ A normalized magic square has the lowest number of all
@@ -267,42 +270,16 @@ class Magic_Square (pga.PGA):
         return dirty
     # end def normalize
 
-    def pheno (self, p, pop):
-        for i in self.nr:
-            for j in self.nr:
-                a = self.get_allele (p, pop, i * self.n + j) + 1
-                self.square [i, j] = a
-        self.dirty = False
-    # end def pheno
-
-    def pre_eval_ (self, pop):
-        for p in range (self.pop_size):
-            self.pheno (p, pop)
-            self.eval_from_pheno ()
-            if self.get_evaluation_up_to_date (p, pop):
-                assert self.ev == self.get_evaluation (p, pop)
-                continue
-            a = self.get_ind (p, pop)
-            if a in self.cache:
-                assert self.ev == self.cache [a]
-                self.set_evaluation (p, pop, self.cache [a])
-                assert self.get_evaluation_up_to_date (p, pop)
-                self.cache_hits += 1
-    # end def pre_eval_
-
-    def print_string (self, file, p, pop):
+    def print_string (self, file, *args, **kw):
         sl = len ('%s' % int (self.magic))
         f  = '%%%dd' % sl
         fr = (f + '  ') * self.n
-        self.pheno (p, pop)
         self.eval_from_pheno ()
         for r, row in enumerate (self.square):
             rt = tuple (row)
             print (' ' * (sl + 2), fr % rt + f % self.rsum [r], file = file)
         cs = tuple (self.csum)
         print ('', f % self.d2sum, '', fr % cs + f % self.d1sum, file = file)
-        print ("Best idx:", self.get_best_index (pop), file = file)
-        print ("Cache hits: %d" % self.cache_hits, file = file)
         file.flush ()
     # end def print_string
 
@@ -313,23 +290,6 @@ class Magic_Square (pga.PGA):
         e  = self.errs
         return list (sorted (np.ndindex (e.shape), key = lambda x: e [x]))
     # end def sorted_err_idx
-
-    def stop_cond (self):
-        """ Stop when the evaluation has reached 0
-        """
-        best = self.get_best_index (pga.PGA_OLDPOP)
-        eval = self.get_evaluation (best, pga.PGA_OLDPOP)
-        if eval == 0:
-            return True
-        return self.check_stopping_conditions ()
-    # end def stop_cond
-
-    def to_gene (self, p, pop):
-        for i, row in enumerate (self.square):
-            for j, a in enumerate (row):
-                self.set_allele (p, pop, i * self.n + j, a - 1)
-        self.set_evaluation (p, pop, self.ev)
-    # end def to_gene
 
     def try_diag1_row (self):
         b  = self.magic
@@ -489,9 +449,9 @@ class Magic_Square (pga.PGA):
         idx [:i]  = self.random.sample (idx [:i],  i)
         idx [-i:] = self.random.sample (idx [-i:], i)
         # And exchange a subset
-        #r = self.random_interval (2, i)
-        #return self.try_flip (idx [:r], idx [-r:])
-        return self.try_flip (idx [:2], idx [-2:])
+        r = self.random_interval (2, i)
+        return self.try_flip (idx [:r], idx [-r:])
+        return self.try_flip (idx [:min (i, 3)], idx [-min (i, 3):])
     # end def try_tile_same_multi
 
     def try_flip (self, idx1, idx2):
@@ -521,7 +481,130 @@ class Magic_Square (pga.PGA):
         return True
     # end def try_flip
 
+    def try_multi_op (self):
+        idx = self.sorted_err_idx ()
+    # end def try_multi_op
+
 # end class Magic_Square
+
+class Magic_Square_PGA (Magic_Square, pga.PGA):
+
+    def __init__ (self, args):
+        Magic_Square.__init__ (self, args)
+        if args.use_euclidian_gene_distance:
+            self.gene_distance = self.euclidian_distance
+        # The default mutation is exchange of two alleles, thats the
+        # best for this problem from the builtin operations.
+        # Crossover operator needs to be one of the permutation
+        # preserving ops.
+        # all numbers from 0 to n**2 - 1
+        crossover_type = getattr \
+            (pga, 'PGA_CROSSOVER_' + args.crossover_type.upper ())
+        mutation_type = getattr \
+            (pga, 'PGA_MUTATION_' + args.mutation_type.upper ())
+        replace_type = getattr \
+            (pga, 'PGA_POPREPL_' + args.population_replacement.upper ())
+        p = dict \
+            ( maximize              = False
+            , random_seed           = args.random_seed
+            , pop_size              = args.population_size
+            , num_replace           = int (args.population_size * 0.9)
+            , max_GA_iter           = args.max_generation
+            , max_no_change         = 400
+            , print_options         = [pga.PGA_REPORT_STRING]
+            , print_frequency       = args.print_frequency
+            , select_type           = pga.PGA_SELECT_TRUNCATION
+            , pop_replace_type      = replace_type
+            , mutation_type         = mutation_type
+            , mutation_scramble_max = 5
+            , crossover_type        = crossover_type
+            , no_duplicates         = args.no_duplicates
+            , truncation_proportion = 0.5
+            , stopping_rule_types   =
+                [pga.PGA_STOP_NOCHANGE, pga.PGA_STOP_MAXITER]
+            )
+        if args.mutation_rate:
+            p ['mutation_prob'] = args.mutation_rate
+        if self.args.output_file:
+            p ['output_file'] = args.output_file
+        self.cache = {}
+        self.cache_hits = 0
+        if args.hillclimb:
+            self.hillclimb = self.hillclimb_
+            p ['random_deterministic'] = True
+        if args.cache:
+            self.pre_eval = self.pre_eval_
+            self.endofgen = self.endofgen_
+        pga.PGA.__init__ (self, int, self.nsq, **p)
+        self.random = pga.PGA_Random (self)
+    # end def __init__
+
+    def endofgen_ (self):
+        pop = pga.PGA_NEWPOP
+        for p in range (self.pop_size):
+            assert self.get_evaluation_up_to_date (p, pop)
+            self.pheno (p, pop)
+            self.eval_from_pheno ()
+            assert self.ev == self.get_evaluation (p, pop)
+            a = self.get_ind (p, pop)
+            if a not in self.cache:
+                self.cache [a] = self.get_evaluation (p, pop)
+    # end def endofgen_
+
+    def evaluate (self, p, pop):
+        self.pheno (p, pop)
+        return self.eval_from_pheno ()
+    # end def evaluate
+
+    def pheno (self, p, pop):
+        for i in self.nr:
+            for j in self.nr:
+                a = self.get_allele (p, pop, i * self.n + j) + 1
+                self.square [i, j] = a
+        assert len (set (self.square.flatten ())) == self.n ** 2
+        self.dirty = False
+    # end def pheno
+
+    def pre_eval_ (self, pop):
+        for p in range (self.pop_size):
+            self.pheno (p, pop)
+            self.eval_from_pheno ()
+            if self.get_evaluation_up_to_date (p, pop):
+                assert self.ev == self.get_evaluation (p, pop)
+                continue
+            a = self.get_ind (p, pop)
+            if a in self.cache:
+                assert self.ev == self.cache [a]
+                self.set_evaluation (p, pop, self.cache [a])
+                assert self.get_evaluation_up_to_date (p, pop)
+                self.cache_hits += 1
+    # end def pre_eval_
+
+    def print_string (self, file, p, pop):
+        self.pheno (p, pop)
+        super ().print_string (file)
+        print ("Best idx:", self.get_best_index (pop), file = file)
+        print ("Cache hits: %d" % self.cache_hits, file = file)
+    # end def print_string
+
+    def stop_cond (self):
+        """ Stop when the evaluation has reached 0
+        """
+        best = self.get_best_index (pga.PGA_OLDPOP)
+        eval = self.get_evaluation (best, pga.PGA_OLDPOP)
+        if eval == 0:
+            return True
+        return self.check_stopping_conditions ()
+    # end def stop_cond
+
+    def to_gene (self, p, pop):
+        for i, row in enumerate (self.square):
+            for j, a in enumerate (row):
+                self.set_allele (p, pop, i * self.n + j, a - 1)
+        self.set_evaluation (p, pop, self.ev)
+    # end def to_gene
+
+# end def Magic_Square_PGA
 
 def main (argv):
     xtype = \
@@ -539,6 +622,16 @@ def main (argv):
         ( "--cache"
         , help    = "Use a cache: Prevents hillclimber seeing all new"
         , action  = 'store_true'
+        )
+    cmd.add_argument \
+        ( '--from-file'
+        , help    = "Read from file and try optimizations"
+        )
+    cmd.add_argument \
+        ( '-g', '--max-generation'
+        , type    = int
+        , help    = "Maximum number of generations, default=%(default)s"
+        , default = 1000
         )
     cmd.add_argument \
         ( '-H', '--hillclimb'
@@ -606,8 +699,17 @@ def main (argv):
         , action  = 'store_true'
         )
     args = cmd.parse_args (argv)
-    pg = Magic_Square (args)
-    pg.run ()
+    if args.from_file:
+        pg = Magic_Square.from_file (args)
+        diff = pg.square [:, 1] - pg.square [:, 8]
+        idx  = np.arange (10, dtype = np.int32)
+        print (diff)
+        for k in pg.mindiff (diff, idx, 4):
+            print (k)
+        pg.print_string (sys.stdout)
+    else:
+        pg = Magic_Square_PGA (args)
+        pg.run ()
 # end def main
 
 if __name__ == '__main__':
