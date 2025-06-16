@@ -370,6 +370,9 @@ static constdef_t constdef [] =
     , {"PGA_MUTATION_RANGE",        PGA_MUTATION_RANGE        }
     , {"PGA_MUTATION_SCRAMBLE",     PGA_MUTATION_SCRAMBLE     }
     , {"PGA_MUTATION_UNIFORM",      PGA_MUTATION_UNIFORM      }
+    , {"PGA_NDSORT_BOTH",           PGA_NDSORT_BOTH           }
+    , {"PGA_NDSORT_JENSEN",         PGA_NDSORT_JENSEN         }
+    , {"PGA_NDSORT_NSQUARE",        PGA_NDSORT_NSQUARE        }
     , {"PGA_NEWPOP",                PGA_NEWPOP                }
     , {"PGA_OLDPOP",                PGA_OLDPOP                }
     , {"PGA_POPREPL_BEST",          PGA_POPREPL_BEST          }
@@ -1411,6 +1414,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     int nam_window_size = 1;
     PyObject *random_deterministic = NULL;
     int mutation_scramble_max = -1;
+    int sort_nd = -1;
     static char *kwlist[] =
         { "type"
         , "length"
@@ -1489,6 +1493,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         , "nam_window_size"
         , "random_deterministic"
         , "mutation_scramble_max"
+        , "sort_nd"
         , NULL
         };
 
@@ -1496,7 +1501,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             ( args
             , kw
             , "Oi|OiiOOOiiiidOiiOOOiidOOOddiOiOOiddd"
-              "iiiddddddOOOididdidiidiiiOOidOOiidiiOiiOi"
+              "iiiddddddOOOididdidiidiiiOOidOOiidiiOiiOii"
             , kwlist
             , &type
             , &length
@@ -1575,6 +1580,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             , &nam_window_size
             , &random_deterministic
             , &mutation_scramble_max
+            , &sort_nd
             )
         )
     {
@@ -2290,6 +2296,16 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             , "invalid mutation_scramble_max"
             );
         PGASetMutationScrambleMax (ctx, mutation_scramble_max);
+    }
+    if (sort_nd >= 0) {
+        CHECK_VALUE
+            ( (  sort_nd == PGA_NDSORT_JENSEN
+              || sort_nd == PGA_NDSORT_NSQUARE
+              || sort_nd == PGA_NDSORT_BOTH
+              )
+            , "invalid sort_nd setting"
+            );
+        PGASetSortND (ctx, sort_nd);
     }
 
     PGASetUp (ctx);
