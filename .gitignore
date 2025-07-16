@@ -32,3 +32,6 @@ coverage_out
 oldstuff
 rebuild
 PGAPy.egg-info
+changes
+notes
+ReleaseNotes.txt

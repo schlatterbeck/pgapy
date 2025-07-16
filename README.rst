@@ -9,6 +9,23 @@ PGAPy: Python Wrapper for PGAPack Parallel Genetic Algorithm Library
 News
 ----
 
+News July 2025:
+
+Implement new crowding metrics. The original crowding metric in NSGA-II
+does not work very well, especially in higher dimensions. The update
+implements three new metrics. An example is given in the following
+figures. New metrics are used depending on the number of objectives.
+More details can be found in the user guide in the `section on
+population replacement`_ in the user guide of PGAPack_.
+
+|fig1| |fig2|
+
+.. |fig1| image:: examples/crowding-nsga.png
+   :width: 45%
+
+.. |fig2| image:: examples/crowding-mnn.png
+   :width: 45%
+
 News May 2025:
 
 - Implement permutation preserving crossover and mutation operators.
@@ -81,11 +98,11 @@ an old method but is newly implemented in pgapack).
 Introduction
 ------------
 
-PGAPy is a wrapper for PGAPack, the parallel genetic algorithm library
+PGAPy is a wrapper for PGAPack_, the parallel genetic algorithm library
 (see `PGAPack Readme`_), a powerfull genetic algorithm library by
 D. Levine, Mathematics and Computer Science Division Argonne National
 Laboratory. The library is written in C. PGAPy wraps this library for
-use with Python. The original PGAPack library is already quite old but
+use with Python. The original PGAPack_ library is already quite old but
 is one of the most complete and accurate (and fast, although this is not
 my major concern when wrapping it to python) genetic algorithm
 implementations out there with a lot of bells and whistles for
@@ -94,21 +111,21 @@ over the years. It supports parallel execution via the message
 passing interface MPI_ in addition to a normal "serial" version. That's
 why I wanted to use it in Python, too.
 
-To get started you need the PGAPack library, although
+To get started you need the PGAPack_ library, although
 it now comes bundled with PGApy, to install a *parallel* version you
 currently need a pre-installed PGAPack_ compiled for the MPI library of
 choice. See `Installation`_ section for details.
 
 There currently is not much documentation for PGAPy.
 You really, absolutely need to read the documentation that comes
-with PGAPack.
-The PGAPack user guide is now shipped together with PGAPy. It is
+with PGAPack_. See documentation at `Read the Docs`_.
+The PGAPack_ user guide is now shipped together with PGAPy. It is
 installed together with some examples in share/pgapy, wherever the
 Python installer decides to place this in the final installation
 (usually ``/usr/local/share`` on Linux).
 
-The original PGAPack library can still be downloaded from the PGAPack_
-ftp site, it is written in ANSI C but will probably not compile against
+The original PGAPack library can still be downloaded from the `PGAPack
+ftp site`_, it is written in ANSI C but will probably not compile against
 a recent version of MPI_. It will also not work with recent versions of
 PGAPy. Note that this version is not actively maintained. I've started a
 `PGAPack fork on github`_ where I've ported the library to the latest
@@ -156,7 +173,7 @@ I'm actively maintaining that branch, adding new features and bug-fixes.
 
 To get you started, I've included some very simple examples in
 ``examples``, e.g., ``one-max.py`` implements the "Maxbit" example
-similar to one in the PGAPack documentation. The examples were inspired
+`similar to one in the PGAPack documentation`_. The examples were inspired
 by the book "Genetic Algorithms in Python" but are written from scratch
 and don't include any code from the book. The examples illustrates
 several points:
@@ -167,7 +184,7 @@ several points:
   returns a sequence of numbers indicating the fitness of the gene given.
   It gets the parameters ``p`` and ``pop`` that can be used to fetch allele
   values from the gene using the ``get_allele`` method, for more details
-  refer to the PGAPack documentation. The number of evaluations returned
+  refer to the `PGAPack documentation`_. The number of evaluations returned
   by your function is defined with the constructor parameter
   ``num_eval``, the default for this parameter is 1. If your evaluation
   function does not return multiple evaluations (with the default
@@ -1181,8 +1198,15 @@ experimentation.
 
 .. _`PGAPack Readme`:
    https://github.com/schlatterbeck/pgapack/blob/master/README.rst
-.. _PGAPack:          http://ftp.mcs.anl.gov/pub/pgapack/
+.. _`PGAPack ftp site`:          http://ftp.mcs.anl.gov/pub/pgapack/
 .. _`PGAPack fork on github`: https://github.com/schlatterbeck/pgapack
+.. _`PGAPack`: https://github.com/schlatterbeck/pgapack
 .. _MPI: http://mpi-forum.org/
 .. _`my pgapack debian package builder`:
     https://github.com/schlatterbeck/debian-pgapack
+.. _`Read the Docs`: https://pgapack.readthedocs.io/en/latest/
+.. _`similar to one in the PGAPack documentation`:
+    https://pgapack.readthedocs.io/en/latest/part1.html#maxbit-problem-in-c
+.. _`PGAPack documentation`: https://pgapack.readthedocs.io/en/latest/
+.. _`section on population replacement`:
+   https://pgapack.readthedocs.io/en/latest/part2.html#population-replacement
