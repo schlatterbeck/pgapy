@@ -33,6 +33,7 @@ class Two_Bar (pga.PGA):
             , max_GA_iter          = 100
             , print_options        = [pga.PGA_REPORT_STRING]
             , mutation_bounce_back = True
+            , crowding_method      = pga.PGA_CROWDING_ENNS_2NN
             )
         if args.random_seed:
             d ['random_seed'] = args.random_seed

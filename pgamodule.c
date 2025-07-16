@@ -347,6 +347,10 @@ static constdef_t constdef [] =
     , {"PGA_CROSSOVER_TWOPT",       PGA_CROSSOVER_TWOPT       }
     , {"PGA_CROSSOVER_UNIFORM",     PGA_CROSSOVER_UNIFORM     }
     , {"PGA_CROSSOVER_UOX",         PGA_CROSSOVER_UOX         }
+    , {"PGA_CROWDING_CD_PRUNE",     PGA_CROWDING_CD_PRUNE     }
+    , {"PGA_CROWDING_ENNS_2NN",     PGA_CROWDING_ENNS_2NN     }
+    , {"PGA_CROWDING_ENNS_MNN",     PGA_CROWDING_ENNS_MNN     }
+    , {"PGA_CROWDING_NSGA_II",      PGA_CROWDING_NSGA_II      }
     , {"PGA_DE_CROSSOVER_BIN",      PGA_DE_CROSSOVER_BIN      }
     , {"PGA_DE_CROSSOVER_EXP",      PGA_DE_CROSSOVER_EXP      }
     , {"PGA_DE_VARIANT_BEST",       PGA_DE_VARIANT_BEST       }
@@ -1415,6 +1419,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
     PyObject *random_deterministic = NULL;
     int mutation_scramble_max = -1;
     int sort_nd = -1;
+    int crowding_method = -1;
     static char *kwlist[] =
         { "type"
         , "length"
@@ -1494,6 +1499,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
         , "random_deterministic"
         , "mutation_scramble_max"
         , "sort_nd"
+        , "crowding_method"
         , NULL
         };
 
@@ -1501,7 +1507,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             ( args
             , kw
             , "Oi|OiiOOOiiiidOiiOOOiidOOOddiOiOOiddd"
-              "iiiddddddOOOididdidiidiiiOOidOOiidiiOiiOii"
+              "iiiddddddOOOididdidiidiiiOOidOOiidiiOiiOiii"
             , kwlist
             , &type
             , &length
@@ -1581,6 +1587,7 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             , &random_deterministic
             , &mutation_scramble_max
             , &sort_nd
+            , &crowding_method
             )
         )
     {
@@ -2306,6 +2313,17 @@ static int PGA_init (PyObject *self, PyObject *args, PyObject *kw)
             , "invalid sort_nd setting"
             );
         PGASetSortND (ctx, sort_nd);
+    }
+    if (crowding_method >= 0) {
+        CHECK_VALUE
+            ( (  crowding_method == PGA_CROWDING_NSGA_II
+              || crowding_method == PGA_CROWDING_CD_PRUNE
+              || crowding_method == PGA_CROWDING_ENNS_2NN
+              || crowding_method == PGA_CROWDING_ENNS_MNN
+              )
+            , "invalid crowding_method setting"
+            );
+        PGASetCrowdingMethod (ctx, crowding_method);
     }
 
     PGASetUp (ctx);

@@ -311,6 +311,7 @@ PGAPack name                         Constructor parameter             Type   Pr
 ``PGASetCrossoverSBXOncePerString``  ``crossover_SBX_once_per_string`` int    yes
 ``PGASetCrossoverProb``              ``crossover_prob``                float  yes
 ``PGASetCrossoverType``              ``crossover_type``                sym    no
+``PGASetCrowdingMethod``             ``crowding_method``               int    no
 ``PGASetDEAuxFactor``                ``DE_aux_factor``                 double yes
 ``PGASetDECrossoverProb``            ``DE_crossover_prob``             double yes
 ``PGASetDECrossoverType``            ``DE_crossover_type``             sym    no
@@ -376,6 +377,7 @@ PGAPack name                         Constructor parameter             Type   Pr
 ``PGASetRestartFrequencyValue``      ``restart_frequency``             int    yes
 ``PGASetRTRWindowSize``              ``rtr_window_size``               int    yes
 ``PGASetSelectType``                 ``select_type``                   sym    no
+``PGASetSortND``                     ``sort_nd``                       int    no
 ``PGASetStoppingRuleType``           ``stopping_rule_types``           msym   no
 ``PGASetStringLength``               ``string_length``                 int    yes
 ``PGASetSumConstraintsFlag``         ``sum_constraints``               int    yes
@@ -523,6 +525,10 @@ PGA_CROSSOVER_SBX          Simulated Binary Crossover
 PGA_CROSSOVER_TWOPT        Two-point Crossover
 PGA_CROSSOVER_UNIFORM      Uniform Crossover
 PGA_CROSSOVER_UOX          Unified Order Based Crossover for permutations
+PGA_CROWDING_CD_PRUNE      Iterated Crowding-distance pruning
+PGA_CROWDING_ENNS_2NN      2 nearest neighbors efficient NN
+PGA_CROWDING_ENNS_MNN      M nearest neighbors efficient NN
+PGA_CROWDING_NSGA_II       The original NSGA-II crowding metric
 PGA_DE_CROSSOVER_BIN       Standard DE binomial crossover
 PGA_DE_CROSSOVER_EXP       Differential evolution exponential crossover
 PGA_DE_VARIANT_BEST        DE: Derive from best string
@@ -546,6 +552,9 @@ PGA_MUTATION_POSITION      Position mutation for permutations
 PGA_MUTATION_RANGE         Replace gene with uniform selection from init range
 PGA_MUTATION_SCRAMBLE      Scramble mutation for permutations
 PGA_MUTATION_UNIFORM       Mutation uniform from interval
+PGA_NDSORT_BOTH            Both non-dominated sorts in comparison
+PGA_NDSORT_JENSEN          The new optimized non-dominated sorting
+PGA_NDSORT_NSQUARE         The original O(N**2) non-dominated sorting
 PGA_NEWPOP                 Symbolic constant for new population
 PGA_OLDPOP                 Symbolic constant for old population
 PGA_POPREPL_BEST           Population replacement best strings
@@ -949,6 +958,32 @@ References
 
 Changes
 -------
+
+Version 2.9: New crowding metrics for NSGA-II
+
+- Implement new crowding metrics for NSGA-II: The original NSGA-II
+  algorithm doesn't work well in higher dimensions.
+- New crowding metrics are from two papers, one for the two-objective
+  case, one for more than two objective functions.
+- Crowding metrics can be set with the new constructor option
+  crowding_method. It takes the values PGA_CROWDING_CD_PRUNE (the new
+  default for 2-objective problems), PGA_CROWDING_ENNS_2NN, and
+  PGA_CROWDING_ENNS_MNN (the new default for more than two objectives).
+  The original NSGA-II algorithm can be set with PGA_CROWDING_NSGA_II.
+- The ENNS methods use an efficient nearest neighbor search (with 2 or M
+  neighbors depending on the algorithm) while the prune algorithm uses
+  the same metric as the original NSGA-II algorithm but removes crowded
+  elements one-by-one updating the metric after each removal.
+
+Version 2.8: New non-dominated sorting
+
+- Upstream: New non-dominated sorting algorithm
+- Allow switching to original NSGA-II non-dominated sorting or allow to
+  run both algorithms with comparison (and assertion if they don't
+  agree).
+- new constructor parameter sort_nd with values PGA_NDSORT_JENSEN (the
+  new algorithm and the default), PGA_NDSORT_NSQUARE (the original
+  algorithm with effort O(N**2)) and PGA_NDSORT_BOTH.
 
 Version 2.7 (and 2.7.1, 2.7.2): New upstream
 

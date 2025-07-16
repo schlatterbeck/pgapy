@@ -50,6 +50,7 @@ class Multi_Objective (pga.PGA):
             , no_duplicates        = True
             , mutation_bounce_back = True
             , print_options        = [pga.PGA_REPORT_STRING]
+            , crowding_method      = pga.PGA_CROWDING_CD_PRUNE
             )
         if self.args.output_file:
             d ['output_file'] = args.output_file

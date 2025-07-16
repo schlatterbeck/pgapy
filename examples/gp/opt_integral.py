@@ -53,6 +53,7 @@ class Find_Integral (pga.PGA, Genetic_Programming):
             , print_frequency = 1
             , tournament_with_replacement = False
             , no_duplicates   = True
+            , crowding_method = pga.PGA_CROWDING_NSGA_II
             )
         if self.args.multiobjective:
             d ['num_replace']    = self.popsize

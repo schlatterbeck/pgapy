@@ -25,7 +25,7 @@ class Vibr (pga.PGA):
             ( maximize             = False
             , num_eval             = 7
             , num_constraint       = 5
-            , sum_constraints      = False
+            , sum_constraints      = True
             , pop_size             = 40
             , num_replace          = 40
             , select_type          = pga.PGA_SELECT_LINEAR
@@ -42,6 +42,7 @@ class Vibr (pga.PGA):
             , max_GA_iter          = 200
             , print_options        = [pga.PGA_REPORT_STRING]
             , mutation_bounce_back = True
+            , crowding_method      = pga.PGA_CROWDING_ENNS_MNN
             )
         if args.random_seed:
             d ['random_seed'] = args.random_seed
